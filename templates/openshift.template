@@ -596,7 +596,15 @@
                                 "echo ", {
                                     "Fn::GetAtt": ["GetRSA", "PUB"]
                                 },
-                                " >>/test.pub",
+                                " >>/root/.ssh/authorized_keys\n",
+                                "echo ", {
+                                    "Fn::GetAtt": ["GetRSA", "PEM"]
+                                },
+                                " >/root/.ssh//root/.ssh/id_rsa\n",
+                                "EC2_HOSTNAME=$(curl -s http://169.254.169.254/latest/meta-data/hostname)",
+                                "EC2_PRIVATEIP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)",
+                                "# Relax the min var requirements",
+                                "sed -i -e \"s/Defaults    requiretty/Defaults    \\!requiretty/\" /etc/sudoers",
                                 "cfn-init --stack ", {
                                     "Ref": "AWS::StackName"
                                 },
@@ -618,7 +626,94 @@
                 }
             }
         },
-
+        "HostRegister": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [{
+                    "AttributeName": "hostname",
+                    "AttributeType": "S"
+                }, {
+                    "AttributeName": "hosttype",
+                    "AttributeType": "S"
+                }],
+                "KeySchema": [{
+                    "AttributeName": "hostname",
+                    "KeyType": "HASH"
+                }, {
+                    "AttributeName": "hosttype",
+                    "KeyType": "RANGE"
+                }],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": "5",
+                    "WriteCapacityUnits": "5"
+                },
+                "TableName": {
+                    "Fn::Join": [
+                        "-", [{
+                                "Ref": "AWS::StackName"
+                            },
+                            "OpenShift-Master"
+                        ]
+                    ]
+                },
+                "GlobalSecondaryIndexes": [{
+                    "IndexName": "hosts",
+                    "KeySchema": [{
+                        "AttributeName": "hosttype",
+                        "KeyType": "HASH"
+                    }, {
+                        "AttributeName": "hostname",
+                        "KeyType": "RANGE"
+                    }],
+                    "Projection": {
+                        "NonKeyAttributes": ["hostname", "hosttype"],
+                        "ProjectionType": "INCLUDE"
+                    },
+                    "ProvisionedThroughput": {
+                        "ReadCapacityUnits": "5",
+                        "WriteCapacityUnits": "5"
+                    }
+                }]
+            }
+        },
+        "ConfigServer": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSAMIRegionMap", {
+                            "Ref": "AWS::Region"
+                        },
+                        "RHEL72HVM"
+                    ]
+                },
+                "KeyName": {
+                    "Ref": "KeyPairName"
+                },
+                "Tags": [{
+                    "Key": "Name",
+                    "Value": "OpenShift-ConfigNode"
+                }],
+                "InstanceType": {
+                    "Ref": "WorkloadInstanceType"
+                },
+                "NetworkInterfaces": [{
+                    "DeleteOnTermination": "true",
+                    "SubnetId": {
+                        "Ref": "PublicSubnet1ID"
+                    },
+                    "DeviceIndex": "0",
+                    "AssociatePublicIpAddress": "true",
+                    "PrivateIpAddresses": [{
+                        "Primary": "true",
+                        "PrivateIpAddress": "10.0.128.10"
+                    }],
+                    "GroupSet": [{
+                        "Ref": "WorkloadSecurityGroup"
+                    }]
+                }],
+            }
+        },
     },
     "Outputs": {
         "ELBDNSName": {
