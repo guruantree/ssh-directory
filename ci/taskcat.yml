@@ -19,6 +19,8 @@ global:
     - us-west-2
   reporting: true
 tests:
-  workload-master:
-    parameter_input: openshift-master.json
+  openshift:
+    parameter_input: openshift-master-taskcat.json
     template_file: openshift-master.template
+    regions:
+    - us-east-1
