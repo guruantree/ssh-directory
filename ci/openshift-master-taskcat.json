@@ -33,7 +33,7 @@
     },
     {
         "ParameterKey": "QSS3BucketName",
-        "ParameterValue": "$[taskcat_autobucket]"
+        "ParameterValue": "tonynv-redhat-openshift"
     },
     {
         "ParameterKey": "QSS3KeyPrefix",
@@ -45,18 +45,10 @@
     },
     {
         "ParameterKey": "WorkloadInstanceType",
-        "ParameterValue": "t2.micro"
+        "ParameterValue": "t2.large"
     },
     {
-        "ParameterKey": "WorkloadNodesDesiredCapacity",
-        "ParameterValue": "2"
-    },
-    {
-        "ParameterKey": "WorkloadNodesMaxSize",
-        "ParameterValue": "2"
-    },
-    {
-        "ParameterKey": "WorkloadNodesMinSize",
+        "ParameterKey": "NumberOfMaster",
         "ParameterValue": "2"
     }
 ]
