@@ -1,0 +1,644 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "OpenShift Template (workload)",
+    "Metadata": {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [{
+                "Label": {
+                    "default": "Network Configuration"
+                },
+                "Parameters": [
+                    "VPCID",
+                    "PrivateSubnet1ID",
+                    "PrivateSubnet2ID",
+                    "PublicSubnet1ID",
+                    "PublicSubnet2ID",
+                    "RemoteAccessCIDR"
+                ]
+            }, {
+                "Label": {
+                    "default": "Amazon EC2 Configuration"
+                },
+                "Parameters": [
+                    "KeyPairName",
+                    "WorkloadInstanceType"
+                ]
+            }, {
+                "Label": {
+                    "default": "Workload Nodes Configuration"
+                },
+                "Parameters": [
+                    "NumberOfMaster",
+                    "OperatorEmail"
+                ]
+            }, {
+                "Label": {
+                    "default": "AWS Quick Start Configuration"
+                },
+                "Parameters": [
+                    "QSS3BucketName",
+                    "QSS3KeyPrefix"
+                ]
+            }],
+            "ParameterLabels": {
+                "KeyPairName": {
+                    "default": "SSH Key Name"
+                },
+                "OperatorEmail": {
+                    "default": "Operator Email"
+                },
+                "PrivateSubnet1ID": {
+                    "default": "Private Subnet 1 ID"
+                },
+                "PrivateSubnet2ID": {
+                    "default": "Private Subnet 2 ID"
+                },
+                "PublicSubnet1ID": {
+                    "default": "Public Subnet 1 ID"
+                },
+                "PublicSubnet2ID": {
+                    "default": "Public Subnet 2 ID"
+                },
+                "QSS3BucketName": {
+                    "defauS3BucketNamelt": "Quick Start S3 Bucket Name"
+                },
+                "QSS3KeyPrefix": {
+                    "default": "Quick Start S3 Key Prefix"
+                },
+                "RemoteAccessCIDR": {
+                    "default": "Allowed External Access CIDR"
+                },
+                "VPCID": {
+                    "default": "VPC ID"
+                },
+                "WorkloadInstanceType": {
+                    "default": "Workload Servers Instance Type"
+                },
+                "NumberOfMaster": {
+                    "default": "Workload Nodes Desired Capacity"
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "KeyPairName": {
+            "Description": "Name of an existing EC2 key pair. All instances will launch with this key pair.",
+            "Type": "AWS::EC2::KeyPair::KeyName"
+        },
+        "OperatorEmail": {
+            "AllowedPattern": "([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)",
+            "ConstraintDescription": "Must be a valid email address.",
+            "Description": "Email address that notifications of any scaling operations will be sent to",
+            "Type": "String"
+        },
+        "PrivateSubnet1ID": {
+            "Description": "ID of private subnet 1 in Availability Zone 1 for the Workload (e.g., subnet-a0246dcd)",
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "PrivateSubnet2ID": {
+            "Description": "ID of private subnet 2 in Availability Zone 2 for the Workload (e.g., subnet-b1f432cd)",
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "PublicSubnet1ID": {
+            "Description": "ID of public subnet 1 in Availability Zone 1 for the ELB load balancer (e.g., subnet-9bc642ac)",
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "PublicSubnet2ID": {
+            "Description": "ID of public subnet 2 in Availability Zone 2 for the ELB load balancer (e.g., subnet-e3246d8e)",
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "QSS3BucketName": {
+            "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
+            "ConstraintDescription": "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
+            "Default": "quickstart-reference",
+            "Description": "S3 bucket name for the Quick Start assets. This string can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
+            "Type": "String"
+        },
+        "QSS3KeyPrefix": {
+            "AllowedPattern": "^[0-9a-zA-Z-/]*$",
+            "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
+            "Default": "examples/latest/",
+            "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
+            "Type": "String"
+        },
+        "RemoteAccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+            "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
+            "Type": "String"
+        },
+        "VPCID": {
+            "Description": "ID of your existing VPC for deployment",
+            "Type": "AWS::EC2::VPC::Id"
+        },
+        "WorkloadInstanceType": {
+            "AllowedValues": [
+                "t2.large",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge",
+                "m4.10xlarge",
+                "m3.medium",
+                "m3.large",
+                "m3.xlarge",
+                "m3.2xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+                "c4.8xlarge",
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c3.8xlarge",
+                "r3.large",
+                "r3.xlarge"
+            ],
+            "ConstraintDescription": "Must contain valid instance type",
+            "Default": "m4.xlarge",
+            "Description": "Type of EC2 instance for the Workload instances",
+            "Type": "String"
+        },
+        "NumberOfMaster": {
+            "Default": "2",
+            "Description": "The desired capacity for the Workload nodes Auto Scaling group",
+            "Type": "Number"
+        }
+    },
+    "Rules": {
+        "SubnetsInVPC": {
+            "Assertions": [{
+                "Assert": {
+                    "Fn::EachMemberIn": [{
+                        "Fn::ValueOfAll": [
+                            "AWS::EC2::Subnet::Id",
+                            "VpcId"
+                        ]
+                    }, {
+                        "Fn::RefAll": "AWS::EC2::VPC::Id"
+                    }]
+                },
+                "AssertDescription": "All subnets must in the VPC"
+            }]
+        }
+    },
+    "Mappings": {
+        "AWSAMIRegionMap": {
+            "AMI": {
+                "CENTOS7HVM": "CentOS Linux 7 x86_64 HVM EBS 1704_01-b7ee8a69-ee97-4a49-9e68-afaee216db2e-ami-d52f5bc3.4",
+                "RHEL72HVM": "RHEL-7.2_HVM-20161025-x86_64-1-Hourly2-GP2"
+            },
+            "ap-northeast-1": {
+                "CENTOS7HVM": "ami-29d1e34e",
+                "RHEL72HVM": "ami-2265c543"
+            },
+            "ap-northeast-2": {
+                "CENTOS7HVM": "ami-08e93466",
+                "RHEL72HVM": "ami-a9e532c7"
+            },
+            "ap-south-1": {
+                "CENTOS7HVM": "ami-3c0e7353",
+                "RHEL72HVM": "ami-917205fe"
+            },
+            "ap-southeast-1": {
+                "CENTOS7HVM": "ami-7d2eab1e",
+                "RHEL72HVM": "ami-22953841"
+            },
+            "ap-southeast-2": {
+                "CENTOS7HVM": "ami-34171d57",
+                "RHEL72HVM": "ami-91cdf0f2"
+            },
+            "ca-central-1": {
+                "CENTOS7HVM": "ami-28823e4c",
+                "RHEL72HVM": "ami-b764d6d3"
+            },
+            "eu-central-1": {
+                "CENTOS7HVM": "ami-fa2df395",
+                "RHEL72HVM": "ami-7def1712"
+            },
+            "eu-west-1": {
+                "CENTOS7HVM": "ami-061b1560",
+                "RHEL72HVM": "ami-b22961c1"
+            },
+            "eu-west-2": {
+                "CENTOS7HVM": "ami-e05a4d84",
+                "RHEL72HVM": "ami-b9353fdd"
+            },
+            "sa-east-1": {
+                "CENTOS7HVM": "ami-b31a75df",
+                "RHEL72HVM": "ami-28f66a44"
+            },
+            "us-east-1": {
+                "CENTOS7HVM": "ami-46c1b650",
+                "RHEL72HVM": "ami-873e6190"
+            },
+            "us-east-2": {
+                "CENTOS7HVM": "ami-18f8df7d",
+                "RHEL72HVM": "ami-0a33696f"
+            },
+            "us-west-1": {
+                "CENTOS7HVM": "ami-f5d7f195",
+                "RHEL72HVM": "ami-f88fc498"
+            },
+            "us-west-2": {
+                "CENTOS7HVM": "ami-f4533694",
+                "RHEL72HVM": "ami-5dd3743d"
+            }
+        },
+        "LinuxAMINameMap": {
+            "Redhat-Enterprise-Linux-7": {
+                "Code": "RHEL72HVM"
+            },
+            "CentOS-7": {
+                "Code": "CENTOS7HVM"
+            }
+        }
+    },
+    "Conditions": {
+        "GovCloudCondition": {
+            "Fn::Equals": [{
+                    "Ref": "AWS::Region"
+                },
+                "us-gov-west-1"
+            ]
+        }
+    },
+    "Resources": {
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": ["lambda.amazonaws.com"]
+                        },
+                        "Action": ["sts:AssumeRole"]
+                    }]
+                },
+                "Path": "/",
+                "Policies": [{
+                    "PolicyName": "lambda_policy",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": "arn:aws:logs:*:*:*"
+                        }, {
+                            "Effect": "Allow",
+                            "Action": [
+                                "cloudformation:DescribeStacks"
+                            ],
+                            "Resource": "*"
+                        }]
+                    }
+                }]
+            }
+        },
+        "KeyGen": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "S3Bucket": {
+                        "Ref": "QSS3BucketName"
+                    },
+                    "S3Key": {
+                        "Fn::Sub": "${QSS3KeyPrefix}scripts/genrsa_lambda.zip"
+                    }
+                },
+                "Handler": "service.handler",
+                "Runtime": "python2.7",
+                "Timeout": "5",
+                "Role": {
+                    "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]
+                }
+            }
+        },
+        "GetRSA": {
+            "Type": "Custom::GenerateKeys",
+            "Version": "1.0",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": ["KeyGen", "Arn"]
+                },
+                "ResponseURL": {
+                    "Fn::Join": ["", ["http://ResponseURL", {
+                        "Ref": "AWS::StackId"
+                    }, "RequestId"]]
+                },
+                "StackId": {
+                    "Ref": "AWS::StackId"
+                },
+                "ResourceProperties": {
+                    "RequestType": "Create",
+                    "RequestId": {
+                        "Fn::Join": ["", [{
+                            "Ref": "AWS::StackId"
+                        }, "RequestId"]]
+                    },
+                    "LogicalResourceId": "KeyGenLogicalResourceId"
+                }
+
+            },
+            "DependsOn": ["KeyGen"]
+        },
+        "NotificationTopic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "Subscription": [{
+                    "Endpoint": {
+                        "Ref": "OperatorEmail"
+                    },
+                    "Protocol": "email"
+                }]
+            }
+        },
+
+
+        "ELBSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow access to the ELB",
+                "VpcId": {
+                    "Ref": "VPCID"
+                },
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": "80",
+                    "ToPort": "80",
+                    "CidrIp": "0.0.0.0/0"
+                }, {
+                    "IpProtocol": "tcp",
+                    "FromPort": "443",
+                    "ToPort": "443",
+                    "CidrIp": "0.0.0.0/0"
+                }]
+            }
+        },
+        "ElasticLoadBalancer": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "Subnets": [{
+                    "Ref": "PublicSubnet1ID"
+                }, {
+                    "Ref": "PublicSubnet2ID"
+                }],
+                "SecurityGroups": [{
+                    "Ref": "ELBSecurityGroup"
+                }],
+                "AppCookieStickinessPolicy": [{
+                    "CookieName": "dummy",
+                    "PolicyName": "WorkloadCookieStickinessPolicy"
+                }],
+                "Listeners": [{
+                    "LoadBalancerPort": "80",
+                    "InstancePort": "80",
+                    "Protocol": "HTTP",
+                    "PolicyNames": [
+                        "WorkloadCookieStickinessPolicy"
+                    ]
+                }],
+                "CrossZone": "true",
+                "HealthCheck": {
+                    "Target": "TCP:80",
+                    "HealthyThreshold": "2",
+                    "UnhealthyThreshold": "3",
+                    "Interval": "30",
+                    "Timeout": "3"
+                }
+            }
+        },
+        "SetupRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [
+                                "ec2.amazonaws.com"
+                            ]
+                        },
+                        "Action": [
+                            "sts:AssumeRole"
+                        ]
+                    }]
+                },
+                "Path": "/",
+                "Policies": [{
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                            "Action": [
+                                "s3:GetObject"
+                            ],
+                            "Resource": {
+                                "Fn::Sub": "arn:aws:s3:::${QSS3BucketName}/${QSS3KeyPrefix}*"
+                            },
+                            "Effect": "Allow"
+                        }]
+                    },
+                    "PolicyName": "aws-quick-start-s3-policy"
+                }, {
+                    "PolicyName": "WorkloadSetup",
+                    "PolicyDocument": {
+                        "Statement": [{
+                            "Effect": "Allow",
+                            "Action": [
+                                "cloudwatch:PutMetricData",
+                                "cloudwatch:EnableAlarmActions",
+                                "cloudwatch:PutMetricAlarm"
+                            ],
+                            "Resource": "*"
+                        }]
+                    }
+                }]
+            }
+        },
+        "SetupRoleProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [{
+                    "Ref": "SetupRole"
+                }]
+            }
+        },
+        "WorkloadSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow access to the Workload instances",
+                "VpcId": {
+                    "Ref": "VPCID"
+                },
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "tcp",
+                    "FromPort": "80",
+                    "ToPort": "80",
+                    "SourceSecurityGroupId": {
+                        "Ref": "ELBSecurityGroup"
+                    }
+                }, {
+                    "IpProtocol": "tcp",
+                    "FromPort": "443",
+                    "ToPort": "443",
+                    "SourceSecurityGroupId": {
+                        "Ref": "ELBSecurityGroup"
+                    }
+                }, {
+                    "IpProtocol": "tcp",
+                    "FromPort": "22",
+                    "ToPort": "22",
+                    "CidrIp": {
+                        "Ref": "RemoteAccessCIDR"
+                    }
+                }]
+            }
+        },
+        "OpenShiftServerASG": {
+            "Properties": {
+                "DesiredCapacity": {
+                    "Ref": "NumberOfMaster"
+                },
+                "LaunchConfigurationName": {
+                    "Ref": "OpenShiftASLaunchConfig"
+                },
+                "MaxSize": {
+                    "Ref": "NumberOfMaster"
+                },
+                "MinSize": {
+                    "Ref": "NumberOfMaster"
+                },
+                "Tags": [{
+                    "Key": "Name",
+                    "PropagateAtLaunch": "true",
+                    "Value": "OpenShift-Master"
+                }],
+                "VPCZoneIdentifier": [{
+                    "Ref": "PrivateSubnet1ID"
+                }, {
+                    "Ref": "PrivateSubnet2ID"
+                }]
+            },
+            "Type": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "OpenShiftASLaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "DependsOn": "GetRSA",
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "configSets": {
+                        "quickstart": [
+                            "pre-install",
+                            "install",
+                            "configure",
+                            "cleanup"
+                        ]
+                    },
+                    "pre-install": {
+                        "packages": {
+                            "yum": {
+                                "curl": [],
+                                "wget": []
+                            }
+                        }
+                    },
+                    "install": {},
+                    "configure": {},
+                    "cleanup": {}
+                }
+            },
+            "Properties": {
+                "KeyName": {
+                    "Ref": "KeyPairName"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSAMIRegionMap", {
+                            "Ref": "AWS::Region"
+                        },
+                        "RHEL72HVM"
+                    ]
+                },
+                "InstanceMonitoring": "true",
+                "IamInstanceProfile": {
+                    "Ref": "SetupRoleProfile"
+                },
+                "InstanceType": {
+                    "Ref": "WorkloadInstanceType"
+                },
+                "SecurityGroups": [{
+                    "Ref": "WorkloadSecurityGroup"
+                }],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "", [
+                                "#!/bin/bash\n",
+                                "export PATH=$PATH:/usr/local/bin\n",
+                                "which pip &> /dev/null\n",
+                                "if [ $? -ne 0 ] ; then\n",
+                                "    echo \"PIP NOT INSTALLED\"\n",
+                                "    [ `which yum` ] && $(yum install -y epel-release; yum install -y python-pip) && echo \"PIP INSTALLED\"\n",
+                                "    [ `which apt-get` ] && apt-get -y update && apt-get -y install python-pip && echo \"PIP INSTALLED\"\n",
+                                "fi\n",
+                                "pip install --upgrade pip &> /dev/null\n",
+                                "pip install awscli --ignore-installed six &> /dev/null\n",
+                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                                "echo ", {
+                                    "Fn::GetAtt": ["GetRSA", "PUB"]
+                                },
+                                " >>/test.pub",
+                                "cfn-init --stack ", {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --resource OpenShiftASLaunchConfig --configsets quickstart --region ", {
+                                    "Ref": "AWS::Region"
+                                },
+                                "\n",
+                                "# Signal the status from cfn-init\n",
+                                "cfn-signal -e $? --stack ", {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --resource OpenShiftASG --region ", {
+                                    "Ref": "AWS::Region"
+                                },
+                                "\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+
+    },
+    "Outputs": {
+        "ELBDNSName": {
+            "Description": "ELB DNS Name",
+            "Value": {
+                "Fn::GetAtt": [
+                    "ElasticLoadBalancer",
+                    "DNSName"
+                ]
+            }
+        },
+        "PrivateKey": {
+            "Value": {
+                "Fn::GetAtt": ["GetRSA", "PEM"]
+            }
+        },
+        "PublicKey": {
+            "Value": {
+                "Fn::GetAtt": ["GetRSA", "PUB"]
+            }
+        }
+    }
+}
