@@ -594,19 +594,36 @@
                         "Fn::Join": [
                             "", [
                                 "#!/bin/bash\n",
-                                "curl -s https://raw.githubusercontent.com/aws-quickstart/quickstart-linux-utilities/master/quickstart_linux_common.source -o /tmp/quickstart_linux_common.source \n",
-                                ". /tmp/quickstart_linux_common.source",
+                                "##############################################################################\n",
+                                "# Load QuickStart Common Utils\n",
+                                "#\n",
+                                "curl -s ",
+                                {
+                                    "Fn::Sub": [
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
+                                        {
+                                            "S3Region": {
+                                                "Fn::If": [
+                                                    "GovCloudCondition",
+                                                    "s3-us-gov-west-1",
+                                                    "s3"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "scripts/quickstart_linux_common.source -o /tmp/quickstart_linux_common.source \n",
+                                "source /tmp/quickstart_linux_common.source\n",
+                                "#\n",
+                                "##############################################################################\n",
+                                "# Install Pip    \n",
                                 "qs_bootstrap_pip \n",
+                                "# Update OS  \n",
                                 "qs_update-os \n",
-                                "export PATH=$PATH:/usr/local/bin\n",
-                                "#pip install --upgrade pip &> /dev/null\n",
-                                "pip install --upgrade pip \n",
-                                "pip install awscli --ignore-installed six &> /dev/null\n",
-                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                                "EC2_HOSTNAME=$(curl -s http://169.254.169.254/latest/meta-data/hostname)\n",
-                                "EC2_PRIVATEIP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)\n",
-                                "# Relax the min var requirements",
-                                "sed -i \"s/^.*requiretty/#Defaults requiretty/\" /etc/sudoers\n",
+                                "#\n",
+                                "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
+                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n", 
+                                "# Start cfn-init\n",
                                 "cfn-init --stack ", {
                                     "Ref": "AWS::StackName"
                                 },
@@ -625,7 +642,6 @@
                             ]
                         ]
                     }
-                }
             }
         },
         "HostRegister": {
