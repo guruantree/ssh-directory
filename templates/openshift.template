@@ -538,6 +538,7 @@
                     "configSets": {
                         "quickstart": [
                             "pre-install",
+                            "files",
                             "install",
                             "configure",
                             "cleanup"
@@ -550,6 +551,16 @@
                                 "wget": []
                             }
                         }
+                    },
+                    "files": {
+                        "/root/.ssh/authorized_keys.qs": {
+                            "content": {
+                                "Fn::GetAtt": ["GetRSA", "PUB"]
+                            }
+                        },
+                        "mode": "000400",
+                        "owner": "root",
+                        "group": "root"
                     },
                     "install": {},
                     "configure": {},
@@ -583,20 +594,15 @@
                         "Fn::Join": [
                             "", [
                                 "#!/bin/bash\n",
+                                "curl -s https://raw.githubusercontent.com/aws-quickstart/quickstart-linux-utilities/master/quickstart_linux_common.source -o /tmp/quickstart_linux_common.source \n",
+                                ". /tmp/quickstart_linux_common.source",
+                                "qs_bootstrap_pip \n",
+                                "qs_update-os \n",
                                 "export PATH=$PATH:/usr/local/bin\n",
-                                "which pip &> /dev/null\n",
-                                "if [ $? -ne 0 ] ; then\n",
-                                "    echo \"PIP NOT INSTALLED\"\n",
-                                "    [ `which yum` ] && $(yum install -y epel-release; yum install -y python-pip) && echo \"PIP INSTALLED\"\n",
-                                "    [ `which apt-get` ] && apt-get -y update && apt-get -y install python-pip && echo \"PIP INSTALLED\"\n",
-                                "fi\n",
-                                "pip install --upgrade pip &> /dev/null\n",
+                                "#pip install --upgrade pip &> /dev/null\n",
+                                "pip install --upgrade pip \n",
                                 "pip install awscli --ignore-installed six &> /dev/null\n",
                                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                                "echo ", {
-                                    "Fn::GetAtt": ["GetRSA", "PUB"]
-                                },
-                                " >>/root/.ssh/authorized_keys\n",
                                 "EC2_HOSTNAME=$(curl -s http://169.254.169.254/latest/meta-data/hostname)\n",
                                 "EC2_PRIVATEIP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)\n",
                                 "# Relax the min var requirements",
@@ -674,6 +680,53 @@
         },
         "ConfigServer": {
             "Type": "AWS::EC2::Instance",
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "configSets": {
+                        "quickstart": [
+                            "pre-install",
+                            "files",
+                            "install",
+                            "configure",
+                            "cleanup"
+                        ]
+                    },
+                    "pre-install": {
+                        "packages": {
+                            "yum": {
+                                "curl": [],
+                                "wget": []
+                            }
+                        }
+                    },
+                    "files": {
+                        "/root/.ssh/authorized_keys.qs": {
+                            "content": {
+                                "Fn::GetAtt": ["GetRSA", "PUB"]
+                            },
+                            "mode": "000400",
+                            "owner": "root",
+                            "group": "root"
+                        },
+                        "/root/.ssh/id_rsa": {
+                            "content": {
+                                "Fn::GetAtt": ["GetRSA", "PEM"]
+                            },
+                            "mode": "000400",
+                            "owner": "root",
+                            "group": "root"
+                        }
+                    },
+                    "install": {
+                        "addkeys": {
+                            "command": "cat /root/.ssh/authorized_keys.qs >> /root/.ssh/authorized_keys",
+                            "ignoreErrors": "false"
+                        }
+                    },
+                    "configure": {},
+                    "cleanup": {}
+                }
+            },
             "Properties": {
                 "ImageId": {
                     "Fn::FindInMap": [
@@ -713,22 +766,36 @@
                         "Fn::Join": [
                             "", [
                                 "#!/bin/bash\n",
-                                "export PATH=$PATH:/usr/local/bin\n",
-                                "which pip &> /dev/null\n",
-                                "if [ $? -ne 0 ] ; then\n",
-                                "    echo \"PIP NOT INSTALLED\"\n",
-                                "    [ `which yum` ] && $(yum install -y epel-release; yum install -y python-pip) && echo \"PIP INSTALLED\"\n",
-                                "    [ `which apt-get` ] && apt-get -y update && apt-get -y install python-pip && echo \"PIP INSTALLED\"\n",
-                                "fi\n",
-                                "pip install --upgrade pip &> /dev/null\n",
-                                "pip install awscli --ignore-installed six &> /dev/null\n",
-                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                                "echo ", {
-                                    "Fn::GetAtt": ["GetRSA", "PUB"]
+                                "##############################################################################\n",
+                                "# Load QuickStart Common Utils\n",
+                                "#\n",
+                                "curl -s ",
+                                {
+                                    "Fn::Sub": [
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
+                                        {
+                                            "S3Region": {
+                                                "Fn::If": [
+                                                    "GovCloudCondition",
+                                                    "s3-us-gov-west-1",
+                                                    "s3"
+                                                ]
+                                            }
+                                        }
+                                    ]
                                 },
-                                " >>/root/.ssh/authorized_keys\n",
-                                "# Relax the min var requirements",
-                                "sed -i \"s/^.*requiretty/#Defaults requiretty/\" /etc/sudoers\n",
+                                "scripts/quickstart_linux_common.source -o /tmp/quickstart_linux_common.source \n",
+                                "source /tmp/quickstart_linux_common.source\n",
+                                "#\n",
+                                "##############################################################################\n",
+                                "# Install Pip    \n",
+                                "qs_bootstrap_pip \n",
+                                "# Update OS  \n",
+                                "qs_update-os \n",
+                                "#\n",
+                                "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
+                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n", 
+                                "# Start cfn-init\n",
                                 "cfn-init --stack ", {
                                     "Ref": "AWS::StackName"
                                 },
@@ -759,16 +826,6 @@
                     "ElasticLoadBalancer",
                     "DNSName"
                 ]
-            }
-        },
-        "PrivateKey": {
-            "Value": {
-                "Fn::GetAtt": ["GetRSA", "PEM"]
-            }
-        },
-        "PublicKey": {
-            "Value": {
-                "Fn::GetAtt": ["GetRSA", "PUB"]
             }
         }
     }

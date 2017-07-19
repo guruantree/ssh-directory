@@ -1,0 +1,267 @@
+#!/usr/bin/bash -e 
+# QuickStart Common Linux Tools
+# author: tonynv@amazon.com
+#
+
+# Supported only while bootstrapping Amazon ec2:
+# 
+#  Official vendor images
+# -Red Hat Enterprise Linux 7   https://aws.amazon.com/marketplace/pp/B00KWBZVK6
+# -Centos 7                     https://aws.amazon.com/marketplace/pp/B00O7WM7QW
+# -Ubuntu 16.04 (LTS)           https://aws.amazon.com/marketplace/pp/B01JBL2M0O
+# -Amazon Linux 2016.09.1       https://aws.amazon.com/marketplace/pp/B00CIYTQTC
+# -SUSE Linux Enterprise 12     https://aws.amazon.com/marketplace/pp/B00PMM99PI
+#  Supported Edge releases
+# -Fedora 25              https://alt.fedoraproject.org/cloud/
+# -Ubuntu 16.04           https://cloud-images.ubuntu.com/releases/14.04/14.04/
+#
+
+# Configuration
+#
+PROGRAM='QuickStart Linux Common Tools'
+
+# Usage 
+#
+# To use the functions defined here (source this file):
+# Example:
+#   load script into scripts
+#   source quickstart_linux_common.source
+#   or 
+#   source /dev/stdin  <<< "$(curl -s https://quickstart-reference.s3.amazonaws.com/linux/utilities/quickstart_linux_common.source)"
+#   # To print os type to std out 
+#   get_os-type 
+#   # to assign the os type to a variable OS
+#   get_os-type OS
+#
+
+# Detects operating system type and return value
+# If no variable is passed in function will print to std-out
+# 
+
+function qs_get-ostype () {
+    local __return=$1
+    DETECTION_STRING="/etc/*-release"
+    if [[ $(ls ${DETECTION_STRING}) ]]; then
+            OS=$(cat /etc/*-release \
+            | grep PRETTY_NAME \
+            | tr -d \" \
+            | awk -F= '{print $2}'\
+            | awk '{print $1,$2}'  \
+            | sed 's/Linux//g' \
+            | sed 's/[^a-zA-Z]//g')
+
+        if [ $? -eq 0 ] && [ "$__return" ];then
+            eval $__return="${OS}"
+            return 0
+        elif [ $OS ]; then
+            echo $OS
+            return 0;
+        else
+             echo "Unknown"
+        fi
+    else
+        if [ "$__return" ]; then
+                __return="Unknown"
+                return 1
+        else
+                echo "Unknown"
+                return 1;
+        fi
+    fi
+}
+
+# Returns operating system version or return 1
+# If no variable is passed in function will print to std-out
+# 
+function qs_get-osversion () {
+    local __return=$1
+    DETECTION_STRING="/etc/*-release"
+    if [[ $(ls ${DETECTION_STRING})  ]]; then
+        OSLEVEL=$(cat ${DETECTION_STRING} \
+        | grep VERSION_ID \
+        | tr -d \" \
+        | awk -F= '{print $2}')
+
+        if [ $? -eq 0 ] && [ "$__return" ];then
+            eval $__return="${OSLEVEL}"
+            return 0
+        elif [ $OS ]; then
+            echo $OSLEVEL
+            return 0;
+        else
+            echo "Unknown"
+        fi
+    else
+        if [ "$__return" ]; then
+            __return="Unknown"
+            return 1
+        else
+            echo "Unknown"
+            return 1;
+        fi
+    fi
+}
+
+# If python is install returns default python path
+# If no variable is passed in function will print to std-out
+#
+function qs_get-python-path () {
+    local __return=$1
+    # Set PYTHON_EXECUTEABLE to default python version
+    if command -v python > /dev/null 2>&1; then
+       PYTHON_EXECUTEABLE=$(which python)
+    else
+       PYTHON_EXECUTEABLE=$(which python3)
+    fi
+
+    #Return python path or return code (1)
+    if [ $PYTHON_EXECUTEABLE ] && [ "$__return" ]; then
+        eval $__return="${PYTHON_EXECUTEABLE}"
+        return 0
+    elif [ $PYTHON_EXECUTEABLE ]; then
+        echo $PYTHON_EXECUTEABLE
+        return 0;
+    else
+        echo "Python Not installed"
+        return 1
+    fi
+
+}
+
+# Installs pip from bootstrap.pypa
+#
+function  qs_bootstrap_pip () {
+    echo "[INFO] Check for python/pip"
+    qs_get-python-path PYTHON_EXECUTEABLE
+    if  [ $? -eq 0 ] ;then
+    curl --silent \
+     --show-error \
+    --retry 5 \
+    https://bootstrap.pypa.io/get-pip.py | sudo $PYTHON_EXECUTEABLE
+    else 
+        echo $PYTHON_EXECUTEABLE
+        exit 1
+    fi
+}
+
+# Relax require tty
+#
+function  qs_notty () {
+    qs_get-ostype INSTANCE_OSTYPE
+    qs_get-osversion INSTANCE_OSVERSION
+    echo "[INFO] Relax tty requirement"
+    if [ "$INSTANCE_OSTYPE" == "RedHat" ]; then
+       sed -i -e "s/Defaults    requiretty/Defaults    \!requiretty/" /etc/sudoers
+    elif [ "$INSTANCE_OSTYPE" == "CentOS" ]; then
+       sed -i -e "s/Defaults    requiretty/Defaults    \!requiretty/" /etc/sudoers
+    fi
+}
+
+# Relax require tty
+#
+function  qs_enable_epel () {
+    qs_get-ostype INSTANCE_OSTYPE
+    qs_get-osversion INSTANCE_OSVERSION
+    echo "[INFO] Enable epel-release-latest-7"
+    if [ "$INSTANCE_OSTYPE" == "RedHat" ]; then
+        yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    elif [ "$INSTANCE_OSTYPE" == "CentOS" ]; then
+        yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    elif [ "$INSTANCE_OSTYPE" == "fedora" ]; then
+        echo "Enabled!"
+  
+    else
+        exit 1
+    fi
+
+}
+
+# Updates supported operating systems to latest 
+# or 
+# exit with code (1)
+#
+# If no variable is passed in function will print to std-out
+#
+function qs_update-os () {
+    # Assigns values to INSTANCE_OSTYPE
+    qs_get-ostype INSTANCE_OSTYPE
+    qs_get-osversion INSTANCE_OSVERSION
+
+    echo "[INFO] Start OS Updates"
+    if [ "$INSTANCE_OSTYPE" == "Amazon" ]; then
+        yum update -y
+    elif [ "$INSTANCE_OSTYPE" == "Ubuntu" ]; then
+        apt update && apt upgrade -y 
+    elif [ "$INSTANCE_OSTYPE" == "RedHat" ]; then
+        yum update -y
+    elif [ "$INSTANCE_OSTYPE" == "CentOS" ]; then
+        yum update -y
+    elif [ "$INSTANCE_OSTYPE" == "fedora" ]; then
+        dnf update -y   
+    elif [ "$INSTANCE_OSTYPE" == "SUSE" ]; then
+        zypper refresh && zypper update
+    else
+        exit 1
+    fi
+    echo "[INFO] Finished OS Updates"
+}
+
+function available_functions () {
+echo "--------------------------------"
+echo "Available quickstart_function ()
+    #qs_get-ostype
+    #qs_get-osversion
+    #qs_get-python-path
+    #qs_bootstrap_pip
+    #qs_update-os
+    #qs_notty"
+echo "--------------------------------"
+}
+
+function install_dependancies () {
+# Install dependencies
+# Assigns values to INSTANCE_
+#
+qs_get-ostype INSTANCE_OSTYPE
+qs_get-osversion INSTANCE_OSVERSION
+
+
+check_cmd () {
+    if hash $1 &>/dev/null; then
+        echo "[INFO] Dependencies Met!"
+        return 0
+    else
+        echo "[INFO] Installing Dependencies"
+        return 1
+    fi
+}
+
+if [ "$INSTANCE_OSTYPE" == "Amazon" ]; then
+    check_cmd curl 'yum clean all && yum install curl -y'
+elif [ "$INSTANCE_OSTYPE" == "Ubuntu" ]; then
+    check_cmd curl;[[ $? -eq 1 ]] && apt update && apt install curl -y || return 0
+
+elif [ "$INSTANCE_OSTYPE" == "RedHat" ]; then
+    check_cmd curl;[[ $? -eq 1 ]] && yum clean && yum install curl -y || return 0
+
+elif [ "$INSTANCE_OSTYPE" == "CentOS" ]; then
+    check_cmd curl;[[ $? -eq 1 ]] && yum clean && yum install curl -y || return 0
+
+elif [ "$INSTANCE_OSTYPE" == "fedora" ]; then
+    check_cmd curl;[[ $? -eq 1 ]] && dnf clean && dnf install curl -y || return 0
+
+elif [ "$INSTANCE_OSTYPE" == "SUSE" ]; then
+    check_cmd curl;[[ $? -eq 1 ]] && zypper refresh && zypper install curl -y || return 0
+else
+    echo "[FAIL] : Dependencies not satisfied!"
+    exit 1
+fi
+
+}
+
+# start exec 
+qs_notty
+install_dependancies
+available_functions
+
+# end exec
