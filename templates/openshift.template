@@ -597,11 +597,9 @@
                                 "##############################################################################\n",
                                 "# Load QuickStart Common Utils\n",
                                 "#\n",
-                                "curl -s ",
-                                {
+                                "curl -s ", {
                                     "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
-                                        {
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
                                             "S3Region": {
                                                 "Fn::If": [
                                                     "GovCloudCondition",
@@ -612,17 +610,16 @@
                                         }
                                     ]
                                 },
-                                "scripts/quickstart_linux_common.source -o /tmp/quickstart_linux_common.source \n",
-                                "source /tmp/quickstart_linux_common.source\n",
+                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source -o /tmp/quickstart-cfn-tools.source \n",
+                                "source /tmp/quickstart-cfn-tools.source\n",
                                 "#\n",
                                 "##############################################################################\n",
-                                "# Install Pip    \n",
                                 "qs_bootstrap_pip \n",
-                                "# Update OS  \n",
                                 "qs_update-os \n",
+                                "qs_enable_epel\n",
+                                "qs_aws-cfn-bootstrap\n",
                                 "#\n",
                                 "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
-                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n", 
                                 "# Start cfn-init\n",
                                 "cfn-init --stack ", {
                                     "Ref": "AWS::StackName"
@@ -642,6 +639,7 @@
                             ]
                         ]
                     }
+                }
             }
         },
         "HostRegister": {
@@ -785,11 +783,9 @@
                                 "##############################################################################\n",
                                 "# Load QuickStart Common Utils\n",
                                 "#\n",
-                                "curl -s ",
-                                {
+                                "curl -s ", {
                                     "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
-                                        {
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
                                             "S3Region": {
                                                 "Fn::If": [
                                                     "GovCloudCondition",
@@ -800,17 +796,16 @@
                                         }
                                     ]
                                 },
-                                "scripts/quickstart_linux_common.source -o /tmp/quickstart_linux_common.source \n",
-                                "source /tmp/quickstart_linux_common.source\n",
+                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source -o /tmp/quickstart-cfn-tools.source \n",
+                                "source /tmp/quickstart-cfn-tools.source\n",
                                 "#\n",
                                 "##############################################################################\n",
-                                "# Install Pip    \n",
                                 "qs_bootstrap_pip \n",
-                                "# Update OS  \n",
                                 "qs_update-os \n",
+                                "qs_enable_epel\n",
+                                "qs_aws-cfn-bootstrap\n",
                                 "#\n",
                                 "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
-                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n", 
                                 "# Start cfn-init\n",
                                 "cfn-init --stack ", {
                                     "Ref": "AWS::StackName"
@@ -832,7 +827,7 @@
                     }
                 }
             }
-        },
+        }
     },
     "Outputs": {
         "ELBDNSName": {
