@@ -21,11 +21,11 @@
                 },
                 "Parameters": [
                     "KeyPairName",
-                    "WorkloadInstanceType"
+                    "InstanceType"
                 ]
             }, {
                 "Label": {
-                    "default": "Workload Nodes Configuration"
+                    "default": "OpenShift Nodes Configuration"
                 },
                 "Parameters": [
                     "NumberOfMaster",
@@ -71,7 +71,7 @@
                 "VPCID": {
                     "default": "VPC ID"
                 },
-                "WorkloadInstanceType": {
+                "InstanceType": {
                     "default": "Workload Servers Instance Type"
                 },
                 "NumberOfMaster": {
@@ -131,7 +131,8 @@
             "Description": "ID of your existing VPC for deployment",
             "Type": "AWS::EC2::VPC::Id"
         },
-        "WorkloadInstanceType": {
+        "InstanceType": {
+            "Default": "m4.large",
             "AllowedValues": [
                 "t2.large",
                 "m4.large",
@@ -139,22 +140,11 @@
                 "m4.2xlarge",
                 "m4.4xlarge",
                 "m4.10xlarge",
-                "m3.medium",
-                "m3.large",
-                "m3.xlarge",
-                "m3.2xlarge",
                 "c4.large",
                 "c4.xlarge",
                 "c4.2xlarge",
                 "c4.4xlarge",
-                "c4.8xlarge",
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
-                "c3.8xlarge",
-                "r3.large",
-                "r3.xlarge"
+                "c4.8xlarge"
             ],
             "ConstraintDescription": "Must contain valid instance type",
             "Default": "m4.xlarge",
@@ -162,9 +152,10 @@
             "Type": "String"
         },
         "NumberOfMaster": {
-            "Default": "2",
-            "Description": "The desired capacity for the Workload nodes Auto Scaling group",
-            "Type": "Number"
+            "Default": "3",
+            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Type": "Number",
+            "AllowedValues": ["3"]
         }
     },
     "Rules": {
@@ -470,7 +461,7 @@
                 }]
             }
         },
-        "WorkloadSecurityGroup": {
+        "OpenShiftSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Allow access to the Workload instances",
@@ -501,7 +492,7 @@
                 }]
             }
         },
-        "OpenShiftServerASG": {
+        "OpenShiftMasterASG": {
             "Properties": {
                 "DesiredCapacity": {
                     "Ref": "NumberOfMaster"
@@ -518,7 +509,7 @@
                 "Tags": [{
                     "Key": "Name",
                     "PropagateAtLaunch": "true",
-                    "Value": "OpenShift-Master"
+                    "Value": "openshift-master"
                 }],
                 "VPCZoneIdentifier": [{
                     "Ref": "PrivateSubnet1ID"
@@ -534,7 +525,20 @@
             "Metadata": {
                 "AWS::CloudFormation::Init": {
                     "configSets": {
-                        "quickstart": ["GetPublicKey", "AddPublicKey"]
+                        "quickstart": ["GetPublicKey", "AddPublicKey", "Ansible"]
+                    },
+                    "Ansible": {
+                        "packages": {
+                            "yum": {
+                                "ansible": []
+                            }
+                        },
+                        "commands": {
+                            "disable-host-key-checking": {
+                                "command": "sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg",
+                                "ignoreErrors": "false"
+                            }
+                        }
                     },
                     "GetPublicKey": {
                         "files": {
@@ -580,10 +584,10 @@
                     "Ref": "SetupRoleProfile"
                 },
                 "InstanceType": {
-                    "Ref": "WorkloadInstanceType"
+                    "Ref": "InstanceType"
                 },
                 "SecurityGroups": [{
-                    "Ref": "WorkloadSecurityGroup"
+                    "Ref": "OpenShiftSecurityGroup"
                 }],
                 "UserData": {
                     "Fn::Base64": {
@@ -665,7 +669,7 @@
                         "-", [{
                                 "Ref": "AWS::StackName"
                             },
-                            "OpenShift-Master"
+                            "openshift-master"
                         ]
                     ]
                 },
@@ -694,7 +698,20 @@
             "Metadata": {
                 "AWS::CloudFormation::Init": {
                     "configSets": {
-                        "quickstart": ["GetPublicKey", "AddPublicKey", "SetPrivateKey"]
+                        "quickstart": ["GetPublicKey", "AddPublicKey", "SetPrivateKey", "Ansible"]
+                    },
+                    "Ansible": {
+                        "packages": {
+                            "yum": {
+                                "ansible": []
+                            }
+                        },
+                        "commands": {
+                            "disable-host-key-checking": {
+                                "command": "sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg",
+                                "ignoreErrors": "false"
+                            }
+                        }
                     },
                     "SetPrivateKey": {
                         "files": {
@@ -756,7 +773,7 @@
                     "Value": "OpenShift-ConfigNode"
                 }],
                 "InstanceType": {
-                    "Ref": "WorkloadInstanceType"
+                    "Ref": "InstanceType"
                 },
                 "NetworkInterfaces": [{
                     "DeleteOnTermination": "true",
@@ -770,7 +787,7 @@
                         "PrivateIpAddress": "10.0.128.10"
                     }],
                     "GroupSet": [{
-                        "Ref": "WorkloadSecurityGroup"
+                        "Ref": "OpenShiftSecurityGroup"
                     }]
                 }],
                 "UserData": {

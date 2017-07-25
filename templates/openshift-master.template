@@ -22,7 +22,7 @@
                 },
                 "Parameters": [
                     "KeyPairName",
-                    "WorkloadInstanceType"
+                    "InstanceType"
                 ]
             }, {
                 "Label": {
@@ -82,7 +82,7 @@
                 "VPCCIDR": {
                     "default": "VPC CIDR"
                 },
-                "WorkloadInstanceType": {
+                "InstanceType": {
                     "default": "Workload Servers Instance Type"
                 },
                 "NumberOfMaster": {
@@ -161,32 +161,20 @@
             "Description": "CIDR block for the VPC",
             "Type": "String"
         },
-        "WorkloadInstanceType": {
+        "InstanceType": {
+              "Default": "m4.large",
             "AllowedValues": [
-                "t2.micro",
-                "t2.medium",
                 "t2.large",
                 "m4.large",
                 "m4.xlarge",
                 "m4.2xlarge",
                 "m4.4xlarge",
                 "m4.10xlarge",
-                "m3.medium",
-                "m3.large",
-                "m3.xlarge",
-                "m3.2xlarge",
                 "c4.large",
                 "c4.xlarge",
                 "c4.2xlarge",
                 "c4.4xlarge",
-                "c4.8xlarge",
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
-                "c3.8xlarge",
-                "r3.large",
-                "r3.xlarge"
+                "c4.8xlarge"
             ],
             "ConstraintDescription": "Must contain valid instance type",
             "Default": "m4.xlarge",
@@ -194,7 +182,7 @@
             "Type": "String"
         },
         "NumberOfMaster": {
-            "Default": "2",
+            "Default": "3",
             "Description": "The minimum size of the Auto Scaling group",
             "Type": "Number"
         }
@@ -243,8 +231,8 @@
                     "Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template"
                 },
                 "Parameters": {
-                    "WorkloadInstanceType": {
-                        "Ref": "WorkloadInstanceType"
+                    "InstanceType": {
+                        "Ref": "InstanceType"
                     },
                     "NumberOfMaster": {
                         "Ref": "NumberOfMaster"

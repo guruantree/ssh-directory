@@ -44,11 +44,7 @@
         "ParameterValue": "10.0.0.0/16"
     },
     {
-        "ParameterKey": "WorkloadInstanceType",
+        "ParameterKey": "InstanceType",
         "ParameterValue": "t2.large"
-    },
-    {
-        "ParameterKey": "NumberOfMaster",
-        "ParameterValue": "2"
     }
 ]
