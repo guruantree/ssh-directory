@@ -576,7 +576,7 @@
                         "AWSAMIRegionMap", {
                             "Ref": "AWS::Region"
                         },
-                        "RHEL72HVM"
+                        "CENTOS7HVM"
                     ]
                 },
                 "InstanceMonitoring": "true",
@@ -762,7 +762,7 @@
                         "AWSAMIRegionMap", {
                             "Ref": "AWS::Region"
                         },
-                        "RHEL72HVM"
+                        "CENTOS7HVM"
                     ]
                 },
                 "KeyName": {
