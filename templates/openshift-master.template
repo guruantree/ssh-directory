@@ -182,7 +182,7 @@
             "Type": "String"
         },
         "NumberOfMaster": {
-            "Default": "3",
+            "Default": "1",
             "Description": "The minimum size of the Auto Scaling group",
             "Type": "Number"
         }
