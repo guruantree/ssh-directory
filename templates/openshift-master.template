@@ -22,7 +22,9 @@
                 },
                 "Parameters": [
                     "KeyPairName",
-                    "InstanceType"
+                    "MasterInstanceType",
+                    "EtcdInstanceType",
+                    "NodesInstanceType"
                 ]
             }, {
                 "Label": {
@@ -30,6 +32,8 @@
                 },
                 "Parameters": [
                     "NumberOfMaster",
+                    "NumberOfEtcd",
+                    "NumberOfNodes",
                     "OperatorEmail"
                 ]
             }, {
@@ -82,7 +86,7 @@
                 "VPCCIDR": {
                     "default": "VPC CIDR"
                 },
-                "InstanceType": {
+                "MasterInstanceType": {
                     "default": "Workload Servers Instance Type"
                 },
                 "NumberOfMaster": {
@@ -161,8 +165,8 @@
             "Description": "CIDR block for the VPC",
             "Type": "String"
         },
-        "InstanceType": {
-              "Default": "m4.large",
+        "MasterInstanceType": {
+            "Default": "m4.large",
             "AllowedValues": [
                 "t2.large",
                 "m4.large",
@@ -178,13 +182,66 @@
             ],
             "ConstraintDescription": "Must contain valid instance type",
             "Default": "m4.xlarge",
-            "Description": "EC2 instance type for the Workload instances",
+            "Description": "Type of EC2 instance for the Workload instances",
+            "Type": "String"
+        },
+        "EtcdInstanceType": {
+            "Default": "m4.large",
+            "AllowedValues": [
+                "t2.large",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge",
+                "m4.10xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+                "c4.8xlarge"
+            ],
+            "ConstraintDescription": "Must contain valid instance type",
+            "Default": "m4.xlarge",
+            "Description": "Type of EC2 instance for the Workload instances",
+            "Type": "String"
+        },
+        "NodesInstanceType": {
+            "Default": "m4.large",
+            "AllowedValues": [
+                "t2.large",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge",
+                "m4.10xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+                "c4.8xlarge"
+            ],
+            "ConstraintDescription": "Must contain valid instance type",
+            "Default": "m4.xlarge",
+            "Description": "Type of EC2 instance for the Workload instances",
             "Type": "String"
         },
         "NumberOfMaster": {
-            "Default": "1",
-            "Description": "The minimum size of the Auto Scaling group",
-            "Type": "Number"
+            "Default": "3",
+            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Type": "Number",
+            "AllowedValues": ["3"]
+        },
+        "NumberOfEtcd": {
+            "Default": "3",
+            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Type": "Number",
+            "AllowedValues": ["3"]
+        },
+        "NumberOfNodes": {
+            "Default": "3",
+            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Type": "Number",
+            "AllowedValues": ["3"]
         }
     },
     "Resources": {
@@ -231,8 +288,8 @@
                     "Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template"
                 },
                 "Parameters": {
-                    "InstanceType": {
-                        "Ref": "InstanceType"
+                    "MasterInstanceType": {
+                        "Ref": "MasterInstanceType"
                     },
                     "NumberOfMaster": {
                         "Ref": "NumberOfMaster"

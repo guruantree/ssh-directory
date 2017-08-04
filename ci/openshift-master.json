@@ -34,21 +34,5 @@
     {
         "ParameterKey": "VPCCIDR",
         "ParameterValue": "10.0.0.0/16"
-    },
-    {
-        "ParameterKey": "WorkloadInstanceType",
-        "ParameterValue": "t2.large"
-    },
-    {
-        "ParameterKey": "WorkloadNodesDesiredCapacity",
-        "ParameterValue": "2"
-    },
-    {
-        "ParameterKey": "WorkloadNodesMaxSize",
-        "ParameterValue": "2"
-    },
-    {
-        "ParameterKey": "WorkloadNodesMinSize",
-        "ParameterValue": "2"
     }
 ]

@@ -21,7 +21,7 @@
                 },
                 "Parameters": [
                     "KeyPairName",
-                    "InstanceType"
+                    "MasterInstanceType"
                 ]
             }, {
                 "Label": {
@@ -71,7 +71,7 @@
                 "VPCID": {
                     "default": "VPC ID"
                 },
-                "InstanceType": {
+                "MasterInstanceType": {
                     "default": "Workload Servers Instance Type"
                 },
                 "NumberOfMaster": {
@@ -131,7 +131,47 @@
             "Description": "ID of your existing VPC for deployment",
             "Type": "AWS::EC2::VPC::Id"
         },
-        "InstanceType": {
+        "MasterInstanceType": {
+            "Default": "m4.large",
+            "AllowedValues": [
+                "t2.large",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge",
+                "m4.10xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+                "c4.8xlarge"
+            ],
+            "ConstraintDescription": "Must contain valid instance type",
+            "Default": "m4.xlarge",
+            "Description": "Type of EC2 instance for the Workload instances",
+            "Type": "String"
+        },
+        "EtcdInstanceType": {
+            "Default": "m4.large",
+            "AllowedValues": [
+                "t2.large",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge",
+                "m4.10xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+                "c4.8xlarge"
+            ],
+            "ConstraintDescription": "Must contain valid instance type",
+            "Default": "m4.xlarge",
+            "Description": "Type of EC2 instance for the Workload instances",
+            "Type": "String"
+        },
+        "NodesInstanceType": {
             "Default": "m4.large",
             "AllowedValues": [
                 "t2.large",
@@ -155,7 +195,19 @@
             "Default": "3",
             "Description": "The desired capacity for the OpenShift Master Nodes",
             "Type": "Number",
-            "AllowedValues": ["1", "2", "3"]
+            "AllowedValues": ["3"]
+        },
+        "NumberOfEtcd": {
+            "Default": "3",
+            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Type": "Number",
+            "AllowedValues": ["3"]
+        },
+        "NumberOfNodes": {
+            "Default": "3",
+            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Type": "Number",
+            "AllowedValues": ["3"]
         }
     },
     "Rules": {
@@ -497,19 +549,73 @@
                 "DesiredCapacity": {
                     "Ref": "NumberOfMaster"
                 },
-                "LaunchConfigurationName": {
-                    "Ref": "OpenShiftASLaunchConfig"
-                },
                 "MaxSize": {
                     "Ref": "NumberOfMaster"
                 },
                 "MinSize": {
                     "Ref": "NumberOfMaster"
                 },
+                "LaunchConfigurationName": {
+                    "Ref": "OpenShiftASLaunchConfig"
+                },
                 "Tags": [{
                     "Key": "Name",
                     "PropagateAtLaunch": "true",
                     "Value": "openshift-master"
+                }],
+                "VPCZoneIdentifier": [{
+                    "Ref": "PrivateSubnet1ID"
+                }, {
+                    "Ref": "PrivateSubnet2ID"
+                }]
+            },
+            "Type": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "OpenShiftEtcdASG": {
+            "Properties": {
+                "DesiredCapacity": {
+                    "Ref": "NumberOfEtcd"
+                },
+                "MaxSize": {
+                    "Ref": "NumberOfEtcd"
+                },
+                "MinSize": {
+                    "Ref": "NumberOfEtcd"
+                },
+                "LaunchConfigurationName": {
+                    "Ref": "OpenShiftASLaunchConfig"
+                },
+                "Tags": [{
+                    "Key": "Name",
+                    "PropagateAtLaunch": "true",
+                    "Value": "openshift-etcd"
+                }],
+                "VPCZoneIdentifier": [{
+                    "Ref": "PrivateSubnet1ID"
+                }, {
+                    "Ref": "PrivateSubnet2ID"
+                }]
+            },
+            "Type": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "OpenShiftNodeASG": {
+            "Properties": {
+                "DesiredCapacity": {
+                    "Ref": "NumberOfNodes"
+                },
+                "MaxSize": {
+                    "Ref": "NumberOfNodes"
+                },
+                "MinSize": {
+                    "Ref": "NumberOfNodes"
+                },
+                "LaunchConfigurationName": {
+                    "Ref": "OpenShiftASLaunchConfig"
+                },
+                "Tags": [{
+                    "Key": "Name",
+                    "PropagateAtLaunch": "true",
+                    "Value": "openshift-nodes"
                 }],
                 "VPCZoneIdentifier": [{
                     "Ref": "PrivateSubnet1ID"
@@ -584,7 +690,7 @@
                     "Ref": "SetupRoleProfile"
                 },
                 "InstanceType": {
-                    "Ref": "InstanceType"
+                    "Ref": "MasterInstanceType"
                 },
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
@@ -614,13 +720,15 @@
                                 "source /tmp/quickstart-cfn-tools.source\n",
                                 "#\n",
                                 "##############################################################################\n",
-                                "qs_bootstrap_pip \n",
-                                "#qs_update-os \n",
-                                "qs_enable_epel\n",
-                                "qs_aws-cfn-bootstrap\n",
+                                "# Install AWS cfn-bootstrap \n",
+                                "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
+                                "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
+                                "##############################################################################\n",
+                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
+                                "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
+                                "# Start cfn-configset [cfg_node_keys]\n",
                                 "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
-                                "touch /root/qs_bootstrap\n",
                                 "# Start cfn-init\n",
                                 "cfn-init --stack ", {
                                     "Ref": "AWS::StackName"
@@ -637,7 +745,7 @@
                 }
             }
         },
-        "ConfigServer": {
+        "AnsibleConfigServer": {
             "Type": "AWS::EC2::Instance",
             "Metadata": {
                 "AWS::CloudFormation::Init": {
@@ -702,6 +810,9 @@
                 }
             },
             "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "SetupRoleProfile"
+                },
                 "ImageId": {
                     "Fn::FindInMap": [
                         "AWSAMIRegionMap", {
@@ -715,10 +826,10 @@
                 },
                 "Tags": [{
                     "Key": "Name",
-                    "Value": "OpenShift-ConfigNode"
+                    "Value": "ansible-configserver"
                 }],
                 "InstanceType": {
-                    "Ref": "InstanceType"
+                    "Ref": "MasterInstanceType"
                 },
                 "NetworkInterfaces": [{
                     "DeleteOnTermination": "true",
@@ -761,19 +872,19 @@
                                 "#\n",
                                 "##############################################################################\n",
                                 "# Install AWS cfn-bootstrap \n",
-                                "qs_bootstrap_pip || qs_err \n",
-                                "qs_aws-cfn-bootstrap || qs_err \n",
+                                "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
+                                "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
                                 "##############################################################################\n",
-                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err\n",
+                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
                                 "#failsomething || qs_err\n",
-                                "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err\n",
+                                "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
                                 "# Start cfn-configset [cfg_node_keys]\n",
                                 "cfn-init -v ",
                                 "--stack ", {
                                     "Ref": "AWS::StackName"
                                 },
-                                " --resource ConfigServer",
+                                " --resource AnsibleConfigServer",
                                 " --configsets cfg_node_keys --region ", {
                                     "Ref": "AWS::Region"
                                 },
@@ -783,7 +894,7 @@
                                 "   --stack ", {
                                     "Ref": "AWS::StackName"
                                 },
-                                "   --resource ConfigServer ",
+                                "   --resource AnsibleConfigServer ",
                                 "   --configsets cfg_ansible ",
                                 "   --region ", {
                                     "Ref": "AWS::Region"
@@ -796,7 +907,8 @@
                                 "   --stack ", {
                                     "Ref": "AWS::StackName"
                                 },
-                                "   --resource ConfigServer ",
+                                "   --resource AnsibleConfigServer ",
+                                "   --reason \"[FAILED] AnsibleConfigServer bootstraping\" ",
                                 "   --region ", {
                                     "Ref": "AWS::Region"
                                 },
@@ -810,7 +922,7 @@
             },
             "CreationPolicy": {
                 "ResourceSignal": {
-                    "Timeout": "PT5M"
+                    "Timeout": "PT15M"
                 }
             }
         }
