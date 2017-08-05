@@ -902,24 +902,34 @@
                                 "pip install boto3 &> /var/log/userdata.boto3_install.log || qs_err\n",
                                 "python ~/get_nodes.py ", {
                                     "Ref": "AWS::Region"
-                                },
-                                " ", {
+                                }, " ", {
+                                    "Ref": "OpenShiftMasterASG"
+                                }, " ", "master &>> /tmp/test-master", 
+                                "\n", 
+                                "python ~/get_nodes.py ", {
                                     "Ref": "AWS::Region"
-                                },
-                                " ",
-                                "master &> /tmp/log",
+                                }, " ", {
+                                    "Ref": "OpenShiftEtcdASG"
+                                }, " ", "etcd &>> /tmp/test-etcd", 
+                                "\n", 
+                                "python ~/get_nodes.py ", {
+                                    "Ref": "AWS::Region"
+                                }, " ", {
+                                    "Ref": "OpenShiftNodeASG"
+                                }, " ", "nodes &> /tmp/test-nodes", 
                                 "\n",
                                 "cfn-init -v ",
                                 "--stack ", {
                                     "Ref": "AWS::StackName"
                                 },
                                 " --resource AnsibleConfigServer",
-                                " --configsets cfg_node_keys --region ", {
+                                " --configsets cfg_node_keys ",
+                                " --region ", {
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
                                 "# Start cfn-configset [cfg_ansible]\n",
-                                "cfn-init -v ",
+                                "cfn-init -v ", 
                                 "   --stack ", {
                                     "Ref": "AWS::StackName"
                                 },
