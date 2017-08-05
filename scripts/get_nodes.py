@@ -1,6 +1,5 @@
 import boto3
 import sys
-import pprint
 
 region = None
 asgname = None
@@ -30,9 +29,9 @@ def get_asg_nodes(asgname, region):
             nodes.append(node['InstanceId'])
     return nodes
 
-def get_private_ip(instanceid):
+def get_private_ip(instanceid, region):
     nodes = []
-    client = boto3.client('ec2')
+    client = boto3.client('ec2',region_name=region)
     response = client.describe_instances()
 
     for r in response['Reservations']:
@@ -46,9 +45,7 @@ if __name__ == '__main__':
     nodeids = get_asg_nodes(asgname, region)
     print ("[{}]".format(label))
     for id in nodeids:
-        n = get_private_ip(id)
+        n = get_private_ip(id, region)
         for hostname in n:
             print (hostname)
-
-
 

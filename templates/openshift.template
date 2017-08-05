@@ -494,9 +494,8 @@
                         "Statement": [{
                             "Effect": "Allow",
                             "Action": [
-                                "cloudwatch:PutMetricData",
-                                "cloudwatch:EnableAlarmActions",
-                                "cloudwatch:PutMetricAlarm"
+                                "autoscaling:Describe*",
+                                "ec2:Describe*"
                             ],
                             "Resource": "*"
                         }]
@@ -546,7 +545,7 @@
         },
         "OpenShiftMasterASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn" : "OpenShiftASLaunchConfig",
+            "DependsOn": "OpenShiftASLaunchConfig",
             "Properties": {
                 "DesiredCapacity": {
                     "Ref": "NumberOfMaster"
@@ -732,28 +731,6 @@
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
                                 "# Start cfn-configset [cfg_node_keys]\n",
                                 "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
-                                "curl -s ", {
-                                    "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
-                                            "S3Region": {
-                                                "Fn::If": [
-                                                    "GovCloudCondition",
-                                                    "s3-us-gov-west-1",
-                                                    "s3"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                },
-                                "scripts/get_nodes.py -o ~/get_nodes.py \n",
-                                "python ~/get_nodes.py ", {
-                                    "Ref": "AWS::Region"
-                                },
-                                " ", {
-                                    "Ref": "AWS::Region"
-                                },
-                                " ",
-                                "master",
                                 "\n",
                                 "# Start cfn-init\n",
                                 "cfn-init --stack ", {
@@ -906,7 +883,32 @@
                                 "#\n",
                                 "#failsomething || qs_err\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
-                                "# Start cfn-configset [cfg_node_keys]\n",
+                                "# Start cfn-configset [cfg_node_keys]",
+                                "\n",
+                                "curl -s ", {
+                                    "Fn::Sub": [
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
+                                            "S3Region": {
+                                                "Fn::If": [
+                                                    "GovCloudCondition",
+                                                    "s3-us-gov-west-1",
+                                                    "s3"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "scripts/get_nodes.py -o ~/get_nodes.py \n",
+                                "pip install boto3 &> /var/log/userdata.boto3_install.log || qs_err\n",
+                                "python ~/get_nodes.py ", {
+                                    "Ref": "AWS::Region"
+                                },
+                                " ", {
+                                    "Ref": "AWS::Region"
+                                },
+                                " ",
+                                "master &> /tmp/log",
+                                "\n",
                                 "cfn-init -v ",
                                 "--stack ", {
                                     "Ref": "AWS::StackName"
