@@ -904,19 +904,19 @@
                                     "Ref": "AWS::Region"
                                 }, " ", {
                                     "Ref": "OpenShiftMasterASG"
-                                }, " ", "master &>> /tmp/test-master", 
+                                }, " ", "master > /tmp/openshift_instances-master", 
                                 "\n", 
                                 "python ~/get_nodes.py ", {
                                     "Ref": "AWS::Region"
                                 }, " ", {
                                     "Ref": "OpenShiftEtcdASG"
-                                }, " ", "etcd &>> /tmp/test-etcd", 
+                                }, " ", "etcd > /tmp/openshift_instances-etcd", 
                                 "\n", 
                                 "python ~/get_nodes.py ", {
                                     "Ref": "AWS::Region"
                                 }, " ", {
                                     "Ref": "OpenShiftNodeASG"
-                                }, " ", "nodes &> /tmp/test-nodes", 
+                                }, " ", "nodes > /tmp/openshift_instances-nodes", 
                                 "\n",
                                 "cfn-init -v ",
                                 "--stack ", {
@@ -953,6 +953,9 @@
                                 },
                                 "\n",
                                 "echo \"End cfn stack signaling\"\n",
+                                "echo \"Begin OpenShift configuration\"\n",
+                                "cat /tmp/openshift_instances-* >/etc/ansible/hosts \n",
+                                "ansible all  -m ping || qs_err \" [ERROR]: Unable to connect to ansible hosts \"\n",
                                 "\n"
                             ]
                         ]
