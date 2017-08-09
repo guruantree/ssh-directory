@@ -650,12 +650,14 @@
             "Metadata": {
                 "AWS::CloudFormation::Init": {
                     "configSets": {
-                        "quickstart": ["GetPublicKey", "AddPublicKey", "Ansible"]
+                        "quickstart": ["GetPublicKey", "AddPublicKey", "Ansible", "NetworkManager"]
                     },
                     "Ansible": {
                         "packages": {
                             "yum": {
-                                "ansible": []
+                                "ansible": [],
+                                "NetworkManager": []
+
                             }
                         },
                         "commands": {
@@ -686,6 +688,14 @@
                         "commands": {
                             "append-publickey": {
                                 "command": "cat /root/.ssh/public.key >>/root/.ssh/authorized_keys",
+                                "ignoreErrors": "false"
+                            }
+                        }
+                    },
+                    "NetworkManager": {
+                        "commands": {
+                            "start_enable_nm": {
+                                "command": "systemctl start NetworkManager && systemctl enable  NetworkManager",
                                 "ignoreErrors": "false"
                             }
                         }
@@ -991,7 +1001,7 @@
             },
             "CreationPolicy": {
                 "ResourceSignal": {
-                    "Timeout": "PT45M"
+                    "Timeout": "PT80M"
                 }
             }
         }
