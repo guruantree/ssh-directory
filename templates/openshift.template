@@ -71,6 +71,9 @@
                 "VPCID": {
                     "default": "VPC ID"
                 },
+                "VPCCIDR": {
+                    "default": "VPC CIDR"
+                },
                 "MasterInstanceType": {
                     "default": "Workload Servers Instance Type"
                 },
@@ -125,6 +128,13 @@
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
             "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
+            "Type": "String"
+        },
+        "VPCCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Default": "10.0.0.0/16",
+            "Description": "CIDR block for the VPC",
             "Type": "String"
         },
         "VPCID": {
@@ -521,6 +531,13 @@
                 },
                 "SecurityGroupIngress": [{
                     "IpProtocol": "tcp",
+                    "FromPort": "0",
+                    "ToPort": "65535",
+                    "CidrIp": {
+                        "Ref": "VPCCIDR"
+                    }
+                }, {
+                    "IpProtocol": "tcp",
                     "FromPort": "80",
                     "ToPort": "80",
                     "SourceSecurityGroupId": {
@@ -539,7 +556,7 @@
                     "ToPort": "22",
                     "CidrIp": {
                         "Ref": "RemoteAccessCIDR"
-                    }
+                    },
                 }]
             }
         },
@@ -687,6 +704,12 @@
                         "CENTOS7HVM"
                     ]
                 },
+                "BlockDeviceMappings": [{
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                        "VolumeSize": "50"
+                    }
+                }],
                 "InstanceMonitoring": "true",
                 "IamInstanceProfile": {
                     "Ref": "SetupRoleProfile"
@@ -705,7 +728,7 @@
                                 "##############################################################################\n",
                                 "# Load QuickStart Common Utils\n",
                                 "#\n",
-                                "curl -s ", {
+                                "curl --retry 5 -s ", {
                                     "Fn::Sub": [
                                         "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
                                             "S3Region": {
@@ -858,7 +881,7 @@
                                 "##############################################################################\n",
                                 "# Load QuickStart Common Utils\n",
                                 "#\n",
-                                "curl -s ", {
+                                "curl --retry 5 -s ", {
                                     "Fn::Sub": [
                                         "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
                                             "S3Region": {
@@ -885,20 +908,11 @@
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
                                 "# Start cfn-configset [cfg_node_keys]",
                                 "\n",
-                                "curl -s ", {
-                                    "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
-                                            "S3Region": {
-                                                "Fn::If": [
-                                                    "GovCloudCondition",
-                                                    "s3-us-gov-west-1",
-                                                    "s3"
-                                                ]
-                                            }
-                                        }
-                                    ]
+                                "aws s3 cp ", {
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}",
+
                                 },
-                                "scripts/get_nodes.py -o ~/get_nodes.py \n",
+                                "scripts/get_nodes.py  ~/get_nodes.py \n",
                                 "pip install boto3 &> /var/log/userdata.boto3_install.log || qs_err\n",
                                 "python ~/get_nodes.py ", {
                                     "Ref": "AWS::Region"
@@ -939,6 +953,23 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
+                                "echo \"Begin OpenShift configuration\"\n",
+                                "aws s3 cp ", {
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}",
+
+                                },
+                                "scripts/openshift_config.yml  ~/openshift_config.yml \n",
+                                "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
+                                "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
+                                "ansible all  -m ping || qs_err \" [ERROR]: Unable to connect to ansible hosts \"\n",
+                                "\n",
+                                "CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-3.6.173.0.5-5.tar.gz \n",
+                                "curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz \n",
+                                "tar -zxf openshift-ansible.tar.gz \n",
+                                "mkdir -p /usr/share/ansible \n",
+                                "mv openshift-ansible-* /usr/share/ansible/openshift-ansible \n",
+                                "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n\n",
+                                "\n",
                                 "echo \"Start cfn stack signaling\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
                                 "echo \"[qs_status] = $(qs_status)\"\n",
@@ -947,38 +978,12 @@
                                     "Ref": "AWS::StackName"
                                 },
                                 "   --resource AnsibleConfigServer ",
-                                "   --reason \"[FAILED] AnsibleConfigServer bootstraping\" ",
+                                "   --reason \"[FAILED] ansible-playbook did not complete build\" ",
                                 "   --region ", {
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
-                                "echo \"End cfn stack signaling\"\n",
-                                "echo \"Begin OpenShift configuration\"\n",
-                                "curl -s ", {
-                                    "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
-                                            "S3Region": {
-                                                "Fn::If": [
-                                                    "GovCloudCondition",
-                                                    "s3-us-gov-west-1",
-                                                    "s3"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                },
-                                "scripts/openshift_config.yml -o ~/openshift_config.yml \n",
-                                "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
-                                "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
-                                "ansible all  -m ping || qs_err \" [ERROR]: Unable to connect to ansible hosts \"\n",
-                                "\n",
-                                "CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-3.5.111-1.tar.gz \n",
-                                "curl  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz \n",
-                                "tar -zxf openshift-ansible.tar.gz \n",
-                                "mkdir -p /usr/share/ansible \n",
-                                "mv openshift-ansible-* /usr/share/ansible/openshift-ansible \n",
-                                "#ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \n",
-                                "\n"
+                                "echo \"End cfn stack signaling\"\n"
                             ]
                         ]
                     }
@@ -986,7 +991,7 @@
             },
             "CreationPolicy": {
                 "ResourceSignal": {
-                    "Timeout": "PT15M"
+                    "Timeout": "PT45M"
                 }
             }
         }

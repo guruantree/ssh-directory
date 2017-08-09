@@ -333,6 +333,9 @@
                     "QSS3KeyPrefix": {
                         "Ref": "QSS3KeyPrefix"
                     },
+                    "VPCCIDR": {
+                        "Ref": "VPCCIDR"
+                    },
                     "VPCID": {
                         "Fn::GetAtt": [
                             "VPCStack",
