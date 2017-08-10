@@ -29,7 +29,7 @@ def get_asg_nodes(asgname, region):
             nodes.append(node['InstanceId'])
     return nodes
 
-def get_private_ip(instanceid, region):
+def get_ip_address(instanceid, region, label):
     nodes = []
     client = boto3.client('ec2',region_name=region)
     response = client.describe_instances()
@@ -37,15 +37,18 @@ def get_private_ip(instanceid, region):
     for r in response['Reservations']:
         for i in r['Instances']:
             if i['InstanceId'] == instanceid:
-                for n in i['NetworkInterfaces']:
-                    nodes.append(n['PrivateDnsName'])
+                if label == 'masters':
+                    for n in i['NetworkInterfaces']:
+                        print n['Association']['PublicDnsName']
+                else:
+                    for n in i['NetworkInterfaces']:
+                        nodes.append(n['PrivateDnsName'])
     return nodes
 
 if __name__ == '__main__':
     nodeids = get_asg_nodes(asgname, region)
     print ("[{}]".format(label))
     for id in nodeids:
-        n = get_private_ip(id, region)
+        n = get_ip_address(id, region, label)
         for hostname in n:
             print (hostname)
-

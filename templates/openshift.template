@@ -11,8 +11,10 @@
                     "VPCID",
                     "PrivateSubnet1ID",
                     "PrivateSubnet2ID",
+                    "PrivateSubnet3ID",
                     "PublicSubnet1ID",
                     "PublicSubnet2ID",
+                    "PublicSubnet3ID",
                     "RemoteAccessCIDR"
                 ]
             }, {
@@ -53,11 +55,17 @@
                 "PrivateSubnet2ID": {
                     "default": "Private Subnet 2 ID"
                 },
+                "PrivateSubnet3ID": {
+                    "default": "Private Subnet 3 ID"
+                },
                 "PublicSubnet1ID": {
                     "default": "Public Subnet 1 ID"
                 },
                 "PublicSubnet2ID": {
                     "default": "Public Subnet 2 ID"
+                },
+                "PublicSubnet3ID": {
+                    "default": "Public Subnet 3 ID"
                 },
                 "QSS3BucketName": {
                     "defauS3BucketNamelt": "Quick Start S3 Bucket Name"
@@ -102,12 +110,20 @@
             "Description": "ID of private subnet 2 in Availability Zone 2 for the Workload (e.g., subnet-b1f432cd)",
             "Type": "AWS::EC2::Subnet::Id"
         },
+        "PrivateSubnet3ID": {
+            "Description": "ID of private subnet 2 in Availability Zone 3 for the Workload (e.g., subnet-b1f4a2cd)",
+            "Type": "AWS::EC2::Subnet::Id"
+        },
         "PublicSubnet1ID": {
             "Description": "ID of public subnet 1 in Availability Zone 1 for the ELB load balancer (e.g., subnet-9bc642ac)",
             "Type": "AWS::EC2::Subnet::Id"
         },
         "PublicSubnet2ID": {
             "Description": "ID of public subnet 2 in Availability Zone 2 for the ELB load balancer (e.g., subnet-e3246d8e)",
+            "Type": "AWS::EC2::Subnet::Id"
+        },
+        "PublicSubnet3ID": {
+            "Description": "ID of public subnet 2 in Availability Zone 3 for the ELB load balancer (e.g., subnet-e324ad8e)",
             "Type": "AWS::EC2::Subnet::Id"
         },
         "QSS3BucketName": {
@@ -423,9 +439,11 @@
                 },
                 "SecurityGroupIngress": [{
                     "IpProtocol": "tcp",
-                    "FromPort": "8443",
-                    "ToPort": "8443",
-                    "CidrIp": "0.0.0.0/0"
+                    "FromPort": "80",
+                    "ToPort": "80",
+                    "CidrIp": {
+                        "Ref": "RemoteAccessCIDR"
+                    }
                 }]
             }
         },
@@ -436,20 +454,22 @@
                     "Ref": "PublicSubnet1ID"
                 }, {
                     "Ref": "PublicSubnet2ID"
+                }, {
+                    "Ref": "PublicSubnet3ID"
                 }],
                 "SecurityGroups": [{
                     "Ref": "OpenShiftELBSecurityGroup"
                 }],
                 "AppCookieStickinessPolicy": [{
                     "CookieName": "openshiftcookie",
-                    "PolicyName": "WorkloadCookieStickinessPolicy"
+                    "PolicyName": "OpenShiftMasterAppSticknessPolicy"
                 }],
                 "Listeners": [{
-                    "LoadBalancerPort": "8443",
+                    "LoadBalancerPort": "80",
                     "InstancePort": "8443",
                     "Protocol": "HTTP",
                     "PolicyNames": [
-                        "WorkloadCookieStickinessPolicy"
+                        "OpenShiftMasterAppSticknessPolicy"
                     ]
                 }],
                 "CrossZone": "true",
@@ -533,17 +553,10 @@
                     }
                 }, {
                     "IpProtocol": "tcp",
-                    "FromPort": "80",
-                    "ToPort": "80",
-                    "SourceSecurityGroupId": {
-                        "Ref": "OpenShiftELBSecurityGroup"
-                    }
-                }, {
-                    "IpProtocol": "tcp",
-                    "FromPort": "443",
-                    "ToPort": "443",
-                    "SourceSecurityGroupId": {
-                        "Ref": "OpenShiftELBSecurityGroup"
+                    "FromPort": "8443",
+                    "ToPort": "8444",
+                    "CidrIp": {
+                        "Ref": "RemoteAccessCIDR"
                     }
                 }, {
                     "IpProtocol": "tcp",
@@ -557,9 +570,9 @@
         },
         "OpenShiftMasterASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "OpenShiftASLaunchConfig",
+            "DependsOn": "OpenShiftMasterASLaunchConfig",
             "Properties": {
-                                "LoadBalancerNames": [{
+                "LoadBalancerNames": [{
                     "Ref": "OpenShiftMasterELB"
                 }],
                 "DesiredCapacity": {
@@ -580,9 +593,11 @@
                     "Value": "openshift-master"
                 }],
                 "VPCZoneIdentifier": [{
-                    "Ref": "PrivateSubnet1ID"
+                    "Ref": "PublicSubnet1ID"
                 }, {
-                    "Ref": "PrivateSubnet2ID"
+                    "Ref": "PublicSubnet2ID"
+                }, {
+                    "Ref": "PublicSubnet3ID"
                 }]
             }
         },
@@ -611,6 +626,8 @@
                     "Ref": "PrivateSubnet1ID"
                 }, {
                     "Ref": "PrivateSubnet2ID"
+                }, {
+                    "Ref": "PrivateSubnet3ID"
                 }]
             }
         },
@@ -639,7 +656,147 @@
                     "Ref": "PrivateSubnet1ID"
                 }, {
                     "Ref": "PrivateSubnet2ID"
+                }, {
+                    "Ref": "PrivateSubnet3ID"
                 }]
+            }
+        },
+        "OpenShiftMasterASLaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "DependsOn": "GetRSA",
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "configSets": {
+                        "quickstart": ["GetPublicKey", "AddPublicKey", "Ansible", "NetworkManager"]
+                    },
+                    "Ansible": {
+                        "packages": {
+                            "yum": {
+                                "ansible": [],
+                                "NetworkManager": []
+
+                            }
+                        },
+                        "commands": {
+                            "disable-host-key-checking": {
+                                "command": "sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg",
+                                "ignoreErrors": "false"
+                            }
+                        }
+                    },
+                    "GetPublicKey": {
+                        "files": {
+                            "/root/.ssh/public.key": {
+                                "content": {
+                                    "Fn::Join": ["", [
+                                        "#QuickStart Generated\n", {
+                                            "Fn::GetAtt": ["GetRSA", "PUB"]
+                                        },
+                                        "\n"
+                                    ]]
+                                },
+                                "mode": "000400",
+                                "owner": "root",
+                                "group": "root"
+                            }
+                        }
+                    },
+                    "AddPublicKey": {
+                        "commands": {
+                            "append-publickey": {
+                                "command": "cat /root/.ssh/public.key >>/root/.ssh/authorized_keys",
+                                "ignoreErrors": "false"
+                            }
+                        }
+                    },
+                    "NetworkManager": {
+                        "commands": {
+                            "start_enable_nm": {
+                                "command": "systemctl start NetworkManager && systemctl enable  NetworkManager",
+                                "ignoreErrors": "false"
+                            }
+                        }
+                    }
+                }
+            },
+            "Properties": {
+                "KeyName": {
+                    "Ref": "KeyPairName"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSAMIRegionMap", {
+                            "Ref": "AWS::Region"
+                        },
+                        "CENTOS7HVM"
+                    ]
+                },
+                "BlockDeviceMappings": [{
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                        "VolumeSize": "50"
+                    }
+                }],
+                "InstanceMonitoring": "true",
+                "IamInstanceProfile": {
+                    "Ref": "SetupRoleProfile"
+                },
+                "InstanceType": {
+                    "Ref": "MasterInstanceType"
+                },
+                "AssociatePublicIpAddress": "true",
+                "SecurityGroups": [{
+                    "Ref": "OpenShiftSecurityGroup"
+                }],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "", [
+                                "#!/bin/bash\n",
+                                "##############################################################################\n",
+                                "# Load QuickStart Common Utils\n",
+                                "#\n",
+                                "curl --retry 5 -s ", {
+                                    "Fn::Sub": [
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
+                                            "S3Region": {
+                                                "Fn::If": [
+                                                    "GovCloudCondition",
+                                                    "s3-us-gov-west-1",
+                                                    "s3"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source -o /tmp/quickstart-cfn-tools.source \n",
+                                "source /tmp/quickstart-cfn-tools.source\n",
+                                "#\n",
+                                "##############################################################################\n",
+                                "# Install AWS cfn-bootstrap \n",
+                                "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
+                                "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
+                                "##############################################################################\n",
+                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
+                                "#\n",
+                                "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
+                                "# Start cfn-configset [cfg_node_keys]\n",
+                                "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
+                                "\n",
+                                "# Start cfn-init\n",
+                                "cfn-init --stack ", {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --resource OpenShiftASLaunchConfig ",
+                                " --configsets quickstart ",
+                                " --region ", {
+                                    "Ref": "AWS::Region"
+                                },
+                                "\n"
+                            ]
+                        ]
+                    }
+                }
             }
         },
         "OpenShiftASLaunchConfig": {
@@ -1005,14 +1162,14 @@
         }
     },
     "Outputs": {
-        "ELBDNSName": {
-            "Description": "ELB DNS Name",
+        "OpenShiftUI": {
+            "Description": "The URL OpenShiftUI",
             "Value": {
-                "Fn::GetAtt": [
-                    "OpenShiftMasterELB",
-                    "DNSName"
-                ]
+                "Fn::Join": ["", ["http://", {
+                    "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
+                }]]
             }
         }
     }
+
 }
