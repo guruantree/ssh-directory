@@ -414,7 +414,7 @@
                 }]
             }
         },
-        "ELBSecurityGroup": {
+        "OpenShiftELBSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Allow access to the ELB",
@@ -423,18 +423,13 @@
                 },
                 "SecurityGroupIngress": [{
                     "IpProtocol": "tcp",
-                    "FromPort": "80",
-                    "ToPort": "80",
-                    "CidrIp": "0.0.0.0/0"
-                }, {
-                    "IpProtocol": "tcp",
-                    "FromPort": "443",
-                    "ToPort": "443",
+                    "FromPort": "8443",
+                    "ToPort": "8443",
                     "CidrIp": "0.0.0.0/0"
                 }]
             }
         },
-        "ElasticLoadBalancer": {
+        "OpenShiftMasterELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
                 "Subnets": [{
@@ -443,15 +438,15 @@
                     "Ref": "PublicSubnet2ID"
                 }],
                 "SecurityGroups": [{
-                    "Ref": "ELBSecurityGroup"
+                    "Ref": "OpenShiftELBSecurityGroup"
                 }],
                 "AppCookieStickinessPolicy": [{
-                    "CookieName": "dummy",
+                    "CookieName": "openshiftcookie",
                     "PolicyName": "WorkloadCookieStickinessPolicy"
                 }],
                 "Listeners": [{
-                    "LoadBalancerPort": "80",
-                    "InstancePort": "80",
+                    "LoadBalancerPort": "8443",
+                    "InstancePort": "8443",
                     "Protocol": "HTTP",
                     "PolicyNames": [
                         "WorkloadCookieStickinessPolicy"
@@ -459,7 +454,7 @@
                 }],
                 "CrossZone": "true",
                 "HealthCheck": {
-                    "Target": "TCP:80",
+                    "Target": "TCP:8443",
                     "HealthyThreshold": "2",
                     "UnhealthyThreshold": "3",
                     "Interval": "30",
@@ -541,14 +536,14 @@
                     "FromPort": "80",
                     "ToPort": "80",
                     "SourceSecurityGroupId": {
-                        "Ref": "ELBSecurityGroup"
+                        "Ref": "OpenShiftELBSecurityGroup"
                     }
                 }, {
                     "IpProtocol": "tcp",
                     "FromPort": "443",
                     "ToPort": "443",
                     "SourceSecurityGroupId": {
-                        "Ref": "ELBSecurityGroup"
+                        "Ref": "OpenShiftELBSecurityGroup"
                     }
                 }, {
                     "IpProtocol": "tcp",
@@ -564,6 +559,9 @@
             "Type": "AWS::AutoScaling::AutoScalingGroup",
             "DependsOn": "OpenShiftASLaunchConfig",
             "Properties": {
+                                "LoadBalancerNames": [{
+                    "Ref": "OpenShiftMasterELB"
+                }],
                 "DesiredCapacity": {
                     "Ref": "NumberOfMaster"
                 },
@@ -1011,7 +1009,7 @@
             "Description": "ELB DNS Name",
             "Value": {
                 "Fn::GetAtt": [
-                    "ElasticLoadBalancer",
+                    "OpenShiftMasterELB",
                     "DNSName"
                 ]
             }
