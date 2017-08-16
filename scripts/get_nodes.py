@@ -33,7 +33,7 @@ def get_asg_nodes(asgname, region):
     asginfo = client.describe_auto_scaling_instances()
 
     for node in asginfo['AutoScalingInstances']:
-        if node['AutoScalingGroupName'] == asgname: 
+        if node['AutoScalingGroupName'] == asgname:
             nodes.append(node['InstanceId'])
     return nodes
 
@@ -50,7 +50,7 @@ def get_ip_address(instanceid, region, label):
                         print n['Association']['PublicDnsName'] + " openshift_public_hostname=" + pubhostname
                 else:
                     for n in i['NetworkInterfaces']:
-                        nodes.append(n['PrivateDnsName'])
+                        nodes.append(n['PrivateIPAddress'])
     return nodes
 
 if __name__ == '__main__':
