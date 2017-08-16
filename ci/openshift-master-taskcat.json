@@ -40,8 +40,12 @@
         "ParameterValue": "quickstart-redhat-openshift/"
     },
     {
-        "ParameterKey": "RedhatOpenShiftPoolID",
-        "ParameterValue": "8a85f9815de7ec03015de80d9c362ba8"
+        "ParameterKey": "RedhatSubscriptionUserName",
+        "ParameterValue": "awspsa-tonynv"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionPassword",
+        "ParameterValue": "$[taskcat_url_https://s3.amazonaws.com/tonynv-rhn/rhpass]"
     },
     {
         "ParameterKey": "VPCCIDR",

@@ -33,7 +33,8 @@
                     "default": "Workload Nodes Configuration"
                 },
                 "Parameters": [
-                    "RedhatOpenShiftPoolID",
+                    "RedhatSubscriptionUserName",
+                    "RedhatSubscriptionPassword",
                     "NumberOfMaster",
                     "NumberOfEtcd",
                     "NumberOfNodes",
@@ -95,8 +96,11 @@
                 "VPCCIDR": {
                     "default": "VPC CIDR"
                 },
-                "RedhatOpenShiftPoolID": {
-                    "default": "Red hat OpenShift PoolID"
+                "RedhatSubscriptionUserName": {
+                    "default": "Red Hat Subscription UserName"
+                },
+                "RedhatSubscriptionPassword": {
+                    "default": "Red Hat Subscription Password"
                 },
                 "MasterInstanceType": {
                     "default": "Workload Servers Instance Type"
@@ -184,8 +188,12 @@
             "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
             "Type": "String"
         },
-        "RedhatOpenShiftPoolID": {
-            "Description": "Enter Redhat OpenShift Pool ID",
+        "RedhatSubscriptionUserName": {
+            "Description": "Enter Redhat RHN UserName",
+            "Type": "String"
+        },
+        "RedhatSubscriptionPassword": {
+            "Description": "Enter Redhat RHN Password",
             "Type": "String"
         },
         "VPCCIDR": {
@@ -381,8 +389,11 @@
                     "QSS3KeyPrefix": {
                         "Ref": "QSS3KeyPrefix"
                     },
-                    "RedhatOpenShiftPoolID": {
-                        "Ref": "RedhatOpenShiftPoolID"
+                    "RedhatSubscriptionUserName": {
+                        "Ref": "RedhatSubscriptionUserName"
+                    },
+                    "RedhatSubscriptionPassword": {
+                        "Ref": "RedhatSubscriptionPassword"
                     },
                     "VPCCIDR": {
                         "Ref": "VPCCIDR"

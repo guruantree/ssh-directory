@@ -30,7 +30,8 @@
                     "default": "OpenShift Nodes Configuration"
                 },
                 "Parameters": [
-                    "RedhatOpenShiftPoolID",
+                    "RedhatSubscriptionUserName",
+                    "RedhatSubscriptionPassword",
                     "NumberOfMaster",
                     "OperatorEmail"
                 ]
@@ -83,8 +84,11 @@
                 "VPCCIDR": {
                     "default": "VPC CIDR"
                 },
-                "RedhatOpenShiftPoolID": {
-                    "default": "Red hat OpenShift PoolID"
+                "RedhatSubscriptionUserName": {
+                    "default": "Red Hat Subscription UserName"
+                },
+                "RedhatSubscriptionPassword": {
+                    "default": "Red Hat Subscription Password"
                 },
                 "MasterInstanceType": {
                     "default": "Workload Servers Instance Type"
@@ -150,8 +154,12 @@
             "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
             "Type": "String"
         },
-        "RedhatOpenShiftPoolID": {
-            "Description": "Enter Redhat OpenShift Pool ID",
+        "RedhatSubscriptionUserName": {
+            "Description": "Enter Redhat RHN UserName",
+            "Type": "String"
+        },
+        "RedhatSubscriptionPassword": {
+            "Description": "Enter Redhat RHN Password",
             "Type": "String"
         },
         "VPCCIDR": {
@@ -1145,11 +1153,20 @@
                                 "mkdir -p /usr/share/ansible \n",
                                 "mv openshift-ansible-* /usr/share/ansible/openshift-ansible \n",
                                 "#Attach to Subscription pool\n",
-                                "subscription-manager attach --pool=", {
-                                    "Ref": "RedhatOpenShiftPoolID"
+                                "subscription-manager register",
+                                " --username=", {
+                                    "Ref": "RedhatSubscriptionUserName"
                                 },
+                                " --password=", {
+                                    "Ref": "RedhatSubscriptionPassword"
+                                },
+                                " --auto-attach",
                                 "\n",
-                                "subscription-manager repos --enable=rhel-7-server-rpms",
+                                "POOL_ID=$(subscription-manager list --available --matches '*OpenShift*'| grep Pool | awk '{print $3}')",
+                                "\n",
+                                "subscription-manager attach --pool=${POOL_ID}\n",
+                                "subscription-manager repos",
+                                " --enable=rhel-7-server-rpms",
                                 " --enable=rhel-7-server-extras-rpms ",
                                 " --enable=rhel-7-server-ose-3.6-rpms ",
                                 " --enable=rhel-7-fast-datapath-rpms \n",
