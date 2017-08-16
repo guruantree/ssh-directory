@@ -30,6 +30,7 @@
                     "default": "OpenShift Nodes Configuration"
                 },
                 "Parameters": [
+                    "RedhatOpenShiftPoolID",
                     "NumberOfMaster",
                     "OperatorEmail"
                 ]
@@ -81,6 +82,9 @@
                 },
                 "VPCCIDR": {
                     "default": "VPC CIDR"
+                },
+                "RedhatOpenShiftPoolID": {
+                    "default": "Red hat OpenShift PoolID"
                 },
                 "MasterInstanceType": {
                     "default": "Workload Servers Instance Type"
@@ -144,6 +148,10 @@
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
             "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
+            "Type": "String"
+        },
+        "RedhatOpenShiftPoolID": {
+            "Description": "Enter Redhat OpenShift Pool ID",
             "Type": "String"
         },
         "VPCCIDR": {
@@ -564,7 +572,7 @@
                     "ToPort": "22",
                     "CidrIp": {
                         "Ref": "RemoteAccessCIDR"
-                    },
+                    }
                 }]
             }
         },
@@ -728,7 +736,7 @@
                         "AWSAMIRegionMap", {
                             "Ref": "AWS::Region"
                         },
-                        "CENTOS7HVM"
+                        "RHEL72HVM"
                     ]
                 },
                 "BlockDeviceMappings": [{
@@ -777,7 +785,6 @@
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
                                 "##############################################################################\n",
-                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
                                 "# Start cfn-configset [cfg_node_keys]\n",
@@ -866,7 +873,7 @@
                         "AWSAMIRegionMap", {
                             "Ref": "AWS::Region"
                         },
-                        "CENTOS7HVM"
+                        "RHEL72HVM"
                     ]
                 },
                 "BlockDeviceMappings": [{
@@ -1010,7 +1017,7 @@
                         "AWSAMIRegionMap", {
                             "Ref": "AWS::Region"
                         },
-                        "CENTOS7HVM"
+                        "RHEL72HVM"
                     ]
                 },
                 "KeyName": {
@@ -1067,14 +1074,13 @@
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
                                 "##############################################################################\n",
-                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
                                 "#failsomething || qs_err\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
                                 "# Start cfn-configset [cfg_node_keys]",
                                 "\n",
                                 "aws s3 cp ", {
-                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}",
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
 
                                 },
                                 "scripts/get_nodes.py  ~/get_nodes.py \n",
@@ -1120,10 +1126,10 @@
                                 "\n",
                                 "echo \"Begin OpenShift configuration\"\n",
                                 "aws s3 cp ", {
-                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}",
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
 
                                 },
-                                "scripts/openshift_config.yml  ~/openshift_config.yml \n",
+                                "scripts/openshift_config_ose.yml  ~/openshift_config.yml \n",
                                 "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
                                 "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
                                 "ansible all  -m ping || qs_err \" [ERROR]: Unable to connect to ansible hosts \"\n",
@@ -1133,7 +1139,20 @@
                                 "tar -zxf openshift-ansible.tar.gz \n",
                                 "mkdir -p /usr/share/ansible \n",
                                 "mv openshift-ansible-* /usr/share/ansible/openshift-ansible \n",
-                                "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n\n",
+                                "#Attach to Subscription pool\n",
+                                "subscription-manager attach --pool=", {
+                                    "Ref": "RedhatOpenShiftPoolID"
+                                },
+                                "\n",
+                                "subscription-manager repos --enable=rhel-7-server-rpms",
+                                " --enable=rhel-7-server-extras-rpms ",
+                                " --enable=rhel-7-server-ose-3.6-rpms ",
+                                " --enable=rhel-7-fast-datapath-rpms \n",
+                                "#Install dependancies\n",
+                                "yum install -y wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct atomic-openshift-utils docker\n",
+                                "yum update -y \n",
+                                "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
+                                "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "\n",
                                 "echo \"Start cfn stack signaling\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
@@ -1156,7 +1175,7 @@
             },
             "CreationPolicy": {
                 "ResourceSignal": {
-                    "Timeout": "PT80M"
+                    "Timeout": "PT120M"
                 }
             }
         }

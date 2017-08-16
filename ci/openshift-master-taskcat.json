@@ -40,6 +40,10 @@
         "ParameterValue": "quickstart-redhat-openshift/"
     },
     {
+        "ParameterKey": "RedhatOpenShiftPoolID",
+        "ParameterValue": "8a85f9815de7ec03015de80d9c362ba8"
+    },
+    {
         "ParameterKey": "VPCCIDR",
         "ParameterValue": "10.0.0.0/16"
     }
