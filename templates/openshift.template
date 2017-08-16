@@ -785,6 +785,7 @@
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
                                 "##############################################################################\n",
+                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
                                 "# Start cfn-configset [cfg_node_keys]\n",
@@ -1074,6 +1075,7 @@
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
                                 "##############################################################################\n",
+                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
                                 "#failsomething || qs_err\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
@@ -1089,7 +1091,10 @@
                                     "Ref": "AWS::Region"
                                 }, " ", {
                                     "Ref": "OpenShiftMasterASG"
-                                }, " ", "masters > /tmp/openshift_instances-master",
+                                }, " ", "masters ", {
+                                    "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
+                                },
+                                " > /tmp/openshift_instances-master",
                                 "\n",
                                 "python ~/get_nodes.py ", {
                                     "Ref": "AWS::Region"
@@ -1150,7 +1155,6 @@
                                 " --enable=rhel-7-fast-datapath-rpms \n",
                                 "#Install dependancies\n",
                                 "yum install -y wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct atomic-openshift-utils docker\n",
-                                "yum update -y \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
                                 "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "\n",
@@ -1162,7 +1166,6 @@
                                     "Ref": "AWS::StackName"
                                 },
                                 "   --resource AnsibleConfigServer ",
-                                "   --reason \"[FAILED] ansible-playbook did not complete build\" ",
                                 "   --region ", {
                                     "Ref": "AWS::Region"
                                 },

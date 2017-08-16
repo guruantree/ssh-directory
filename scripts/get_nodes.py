@@ -4,11 +4,19 @@ import sys
 region = None
 asgname = None
 label = None
+pubhostname = None
 
 if len(sys.argv) == 4:
     region = sys.argv[1]
     asgname = sys.argv[2]
     label = sys.argv[3]
+
+elif len(sys.argv) == 5:
+    region = sys.argv[1]
+    asgname = sys.argv[2]
+    label = sys.argv[3]
+    pubhostname = sys.argv[4]
+
 
     #print ("Tag: " + label)
     #print ("Region : " + region)
@@ -39,7 +47,7 @@ def get_ip_address(instanceid, region, label):
             if i['InstanceId'] == instanceid:
                 if label == 'masters':
                     for n in i['NetworkInterfaces']:
-                        print n['Association']['PublicDnsName']
+                        print n['Association']['PublicDnsName'] + " openshift_public_hostname=" + pubhostname
                 else:
                     for n in i['NetworkInterfaces']:
                         nodes.append(n['PrivateDnsName'])
