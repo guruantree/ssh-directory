@@ -1,0 +1,18 @@
+# AWS QuickStart OpenShift Installation
+#
+# Create an OSEv3 group that contains the masters, nodes, and etcd groups
+[OSEv3:children]
+masters
+nodes
+etcd
+
+# Set variables common for all OSEv3 hosts
+[OSEv3:vars]
+ansible_ssh_user=root
+deployment_type=origin
+openshift_deployment_type=origin
+# Debug level for all OpenShift components (Defaults to 2)
+debug_level=2
+containerized=false
+openshift_master_cluster_method=native
+openshift_disable_check=docker_storage
