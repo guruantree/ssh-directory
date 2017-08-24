@@ -45,12 +45,9 @@ def get_ip_address(instanceid, region, label):
     for r in response['Reservations']:
         for i in r['Instances']:
             if i['InstanceId'] == instanceid:
-                if label == 'masters':
                     for n in i['NetworkInterfaces']:
-                        print n['Association']['PublicDnsName'] + " openshift_public_hostname=" + pubhostname
-                else:
-                    for n in i['NetworkInterfaces']:
-                        nodes.append(n['PrivateIPAddress'])
+                        nodes.append(n['PrivateDnsName'])
+
     return nodes
 
 if __name__ == '__main__':

@@ -1,9 +1,9 @@
-global:
+--- 
+global: 
   marketplace-ami: false
   owner: quickstart-eng@amazon.com
   qsname: quickstart-redhat-openshift
-  s3bucket: tonynv-redhat-openshift
-  regions:
+  regions: 
     - ap-northeast-1
     - ap-northeast-2
     - ap-south-1
@@ -19,9 +19,11 @@ global:
     - us-west-1
     - us-west-2
   reporting: true
-tests:
-  openshift:
+  s3bucket: tonynv-redhat-openshift
+tests: 
+  openshift: 
     parameter_input: openshift-master-taskcat.json
+    regions: 
+      - us-east-1
     template_file: openshift-master.template
-    regions:
-    - us-east-1
+

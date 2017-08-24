@@ -32,6 +32,7 @@
                 "Parameters": [
                     "RedhatSubscriptionUserName",
                     "RedhatSubscriptionPassword",
+                    "RedhatSubscriptionPoolD",
                     "NumberOfMaster",
                     "OperatorEmail"
                 ]
@@ -90,11 +91,26 @@
                 "RedhatSubscriptionPassword": {
                     "default": "Red Hat Subscription Password"
                 },
+                "RedhatSubscriptionPoolD": {
+                    "default": "Red Hat Pool ID"
+                },
                 "MasterInstanceType": {
-                    "default": "Workload Servers Instance Type"
+                    "default": "Master Instance Type"
+                },
+                "EtcdInstanceType": {
+                    "default": "Etcd Instance Type"
+                },
+                "NodesInstanceType": {
+                    "default": "Nodes Instance Type"
                 },
                 "NumberOfMaster": {
-                    "default": "Workload Nodes Desired Capacity"
+                    "default": "Number of Master's"
+                },
+                "NumberOfEtcd": {
+                    "default": "Number of Etcd's"
+                },
+                "NumberOfNodes": {
+                    "default": "Number of Nodes's"
                 }
             }
         }
@@ -162,6 +178,10 @@
             "Description": "Enter Redhat RHN Password",
             "Type": "String"
         },
+        "RedhatSubscriptionPoolD": {
+            "Description": "Enter Redhat RHN Pool ID",
+            "Type": "String"
+        },
         "VPCCIDR": {
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
@@ -174,9 +194,7 @@
             "Type": "AWS::EC2::VPC::Id"
         },
         "MasterInstanceType": {
-            "Default": "m4.large",
             "AllowedValues": [
-                "t2.large",
                 "m4.large",
                 "m4.xlarge",
                 "m4.2xlarge",
@@ -194,9 +212,7 @@
             "Type": "String"
         },
         "EtcdInstanceType": {
-            "Default": "m4.large",
             "AllowedValues": [
-                "t2.large",
                 "m4.large",
                 "m4.xlarge",
                 "m4.2xlarge",
@@ -214,9 +230,7 @@
             "Type": "String"
         },
         "NodesInstanceType": {
-            "Default": "m4.large",
             "AllowedValues": [
-                "t2.large",
                 "m4.large",
                 "m4.xlarge",
                 "m4.2xlarge",
@@ -237,19 +251,19 @@
             "Default": "3",
             "Description": "The desired capacity for the OpenShift Master Nodes",
             "Type": "Number",
-            "AllowedValues": ["3"]
+            "AllowedValues": ["2", "3"]
         },
         "NumberOfEtcd": {
             "Default": "3",
             "Description": "The desired capacity for the OpenShift Master Nodes",
             "Type": "Number",
-            "AllowedValues": ["3"]
+            "AllowedValues": ["2", "3"]
         },
         "NumberOfNodes": {
             "Default": "3",
             "Description": "The desired capacity for the OpenShift Master Nodes",
             "Type": "Number",
-            "AllowedValues": ["3"]
+            "AllowedValues": ["2", "3"]
         }
     },
     "Rules": {
@@ -272,72 +286,54 @@
     "Mappings": {
         "AWSAMIRegionMap": {
             "AMI": {
-                "CENTOS7HVM": "CentOS Linux 7 x86_64 HVM EBS 1704_01-b7ee8a69-ee97-4a49-9e68-afaee216db2e-ami-d52f5bc3.4",
                 "RHEL72HVM": "RHEL-7.2_HVM-20161025-x86_64-1-Hourly2-GP2"
             },
             "ap-northeast-1": {
-                "CENTOS7HVM": "ami-29d1e34e",
                 "RHEL72HVM": "ami-2265c543"
             },
             "ap-northeast-2": {
-                "CENTOS7HVM": "ami-08e93466",
                 "RHEL72HVM": "ami-a9e532c7"
             },
             "ap-south-1": {
-                "CENTOS7HVM": "ami-3c0e7353",
                 "RHEL72HVM": "ami-917205fe"
             },
             "ap-southeast-1": {
-                "CENTOS7HVM": "ami-7d2eab1e",
                 "RHEL72HVM": "ami-22953841"
             },
             "ap-southeast-2": {
-                "CENTOS7HVM": "ami-34171d57",
                 "RHEL72HVM": "ami-91cdf0f2"
             },
             "ca-central-1": {
-                "CENTOS7HVM": "ami-28823e4c",
                 "RHEL72HVM": "ami-b764d6d3"
             },
             "eu-central-1": {
-                "CENTOS7HVM": "ami-fa2df395",
                 "RHEL72HVM": "ami-7def1712"
             },
             "eu-west-1": {
-                "CENTOS7HVM": "ami-061b1560",
                 "RHEL72HVM": "ami-b22961c1"
             },
             "eu-west-2": {
-                "CENTOS7HVM": "ami-e05a4d84",
                 "RHEL72HVM": "ami-b9353fdd"
             },
             "sa-east-1": {
-                "CENTOS7HVM": "ami-b31a75df",
                 "RHEL72HVM": "ami-28f66a44"
             },
             "us-east-1": {
-                "CENTOS7HVM": "ami-46c1b650",
-                "RHEL72HVM": "ami-873e6190"
+                "RHEL72HVM": "ami-c998b6b2"
             },
             "us-east-2": {
-                "CENTOS7HVM": "ami-18f8df7d",
                 "RHEL72HVM": "ami-0a33696f"
             },
             "us-west-1": {
-                "CENTOS7HVM": "ami-f5d7f195",
                 "RHEL72HVM": "ami-f88fc498"
             },
             "us-west-2": {
-                "CENTOS7HVM": "ami-f4533694",
                 "RHEL72HVM": "ami-5dd3743d"
             }
         },
         "LinuxAMINameMap": {
             "Redhat-Enterprise-Linux-7": {
                 "Code": "RHEL72HVM"
-            },
-            "CentOS-7": {
-                "Code": "CENTOS7HVM"
             }
         }
     },
@@ -455,12 +451,26 @@
                 },
                 "SecurityGroupIngress": [{
                     "IpProtocol": "tcp",
+                    "FromPort": "8443",
+                    "ToPort": "8444",
+                    "CidrIp": {
+                        "Ref": "RemoteAccessCIDR"
+                    }
+                }, {
+                    "IpProtocol": "tcp",
                     "FromPort": "80",
                     "ToPort": "80",
                     "CidrIp": {
                         "Ref": "RemoteAccessCIDR"
                     }
-                }]
+                }, {
+                    "IpProtocol": "tcp",
+                    "FromPort": "443",
+                    "ToPort": "443",
+                    "CidrIp": {
+                        "Ref": "RemoteAccessCIDR"
+                    }
+                }, ]
             }
         },
         "OpenShiftMasterELB": {
@@ -476,17 +486,14 @@
                 "SecurityGroups": [{
                     "Ref": "OpenShiftELBSecurityGroup"
                 }],
-                "AppCookieStickinessPolicy": [{
-                    "CookieName": "openshiftcookie",
-                    "PolicyName": "OpenShiftMasterAppSticknessPolicy"
-                }],
                 "Listeners": [{
-                    "LoadBalancerPort": "80",
+                    "LoadBalancerPort": "8433",
                     "InstancePort": "8443",
-                    "Protocol": "HTTP",
-                    "PolicyNames": [
-                        "OpenShiftMasterAppSticknessPolicy"
-                    ]
+                    "Protocol": "TCP",
+                }, {
+                    "LoadBalancerPort": "80",
+                    "InstancePort": "443",
+                    "Protocol": "TCP",
                 }],
                 "CrossZone": "true",
                 "HealthCheck": {
@@ -576,6 +583,20 @@
                     }
                 }, {
                     "IpProtocol": "tcp",
+                    "FromPort": "80",
+                    "ToPort": "80",
+                    "CidrIp": {
+                        "Ref": "RemoteAccessCIDR"
+                    }
+                }, {
+                    "IpProtocol": "tcp",
+                    "FromPort": "443",
+                    "ToPort": "443",
+                    "CidrIp": {
+                        "Ref": "RemoteAccessCIDR"
+                    }
+                }, {
+                    "IpProtocol": "tcp",
                     "FromPort": "22",
                     "ToPort": "22",
                     "CidrIp": {
@@ -586,7 +607,7 @@
         },
         "OpenShiftMasterASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "OpenShiftMasterASLaunchConfig",
+            "DependsOn": "OpenShiftMasterELB",
             "Properties": {
                 "LoadBalancerNames": [{
                     "Ref": "OpenShiftMasterELB"
@@ -609,11 +630,11 @@
                     "Value": "openshift-master"
                 }],
                 "VPCZoneIdentifier": [{
-                    "Ref": "PublicSubnet1ID"
+                    "Ref": "PrivateSubnet1ID"
                 }, {
-                    "Ref": "PublicSubnet2ID"
+                    "Ref": "PrivateSubnet2ID"
                 }, {
-                    "Ref": "PublicSubnet3ID"
+                    "Ref": "PrivateSubnet3ID"
                 }]
             }
         },
@@ -675,144 +696,6 @@
                 }, {
                     "Ref": "PrivateSubnet3ID"
                 }]
-            }
-        },
-        "OpenShiftMasterASLaunchConfig": {
-            "Type": "AWS::AutoScaling::LaunchConfiguration",
-            "DependsOn": "GetRSA",
-            "Metadata": {
-                "AWS::CloudFormation::Init": {
-                    "configSets": {
-                        "quickstart": ["GetPublicKey", "AddPublicKey", "Ansible", "NetworkManager"]
-                    },
-                    "Ansible": {
-                        "packages": {
-                            "yum": {
-                                "ansible": [],
-                                "NetworkManager": []
-
-                            }
-                        },
-                        "commands": {
-                            "disable-host-key-checking": {
-                                "command": "sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg",
-                                "ignoreErrors": "false"
-                            }
-                        }
-                    },
-                    "GetPublicKey": {
-                        "files": {
-                            "/root/.ssh/public.key": {
-                                "content": {
-                                    "Fn::Join": ["", [
-                                        "#QuickStart Generated\n", {
-                                            "Fn::GetAtt": ["GetRSA", "PUB"]
-                                        },
-                                        "\n"
-                                    ]]
-                                },
-                                "mode": "000400",
-                                "owner": "root",
-                                "group": "root"
-                            }
-                        }
-                    },
-                    "AddPublicKey": {
-                        "commands": {
-                            "append-publickey": {
-                                "command": "cat /root/.ssh/public.key >>/root/.ssh/authorized_keys",
-                                "ignoreErrors": "false"
-                            }
-                        }
-                    },
-                    "NetworkManager": {
-                        "commands": {
-                            "start_enable_nm": {
-                                "command": "systemctl start NetworkManager && systemctl enable  NetworkManager",
-                                "ignoreErrors": "false"
-                            }
-                        }
-                    }
-                }
-            },
-            "Properties": {
-                "KeyName": {
-                    "Ref": "KeyPairName"
-                },
-                "ImageId": {
-                    "Fn::FindInMap": [
-                        "AWSAMIRegionMap", {
-                            "Ref": "AWS::Region"
-                        },
-                        "RHEL72HVM"
-                    ]
-                },
-                "BlockDeviceMappings": [{
-                    "DeviceName": "/dev/sda1",
-                    "Ebs": {
-                        "VolumeSize": "50"
-                    }
-                }],
-                "InstanceMonitoring": "true",
-                "IamInstanceProfile": {
-                    "Ref": "SetupRoleProfile"
-                },
-                "InstanceType": {
-                    "Ref": "MasterInstanceType"
-                },
-                "AssociatePublicIpAddress": "true",
-                "SecurityGroups": [{
-                    "Ref": "OpenShiftSecurityGroup"
-                }],
-                "UserData": {
-                    "Fn::Base64": {
-                        "Fn::Join": [
-                            "", [
-                                "#!/bin/bash\n",
-                                "##############################################################################\n",
-                                "# Load QuickStart Common Utils\n",
-                                "#\n",
-                                "curl --retry 5 -s ", {
-                                    "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
-                                            "S3Region": {
-                                                "Fn::If": [
-                                                    "GovCloudCondition",
-                                                    "s3-us-gov-west-1",
-                                                    "s3"
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                },
-                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source -o /tmp/quickstart-cfn-tools.source \n",
-                                "source /tmp/quickstart-cfn-tools.source\n",
-                                "#\n",
-                                "##############################################################################\n",
-                                "# Install AWS cfn-bootstrap \n",
-                                "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
-                                "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
-                                "##############################################################################\n",
-                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
-                                "#\n",
-                                "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
-                                "# Start cfn-configset [cfg_node_keys]\n",
-                                "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
-                                "\n",
-                                "# Start cfn-init\n",
-                                "cfn-init --stack ", {
-                                    "Ref": "AWS::StackName"
-                                },
-                                " --resource OpenShiftASLaunchConfig ",
-                                " --configsets quickstart ",
-                                " --region ", {
-                                    "Ref": "AWS::Region"
-                                },
-                                "\n"
-                            ]
-                        ]
-                    }
-                }
             }
         },
         "OpenShiftASLaunchConfig": {
@@ -936,8 +819,39 @@
                                 "# Start cfn-configset [cfg_node_keys]\n",
                                 "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
                                 "\n",
+                                "#Attach to Subscription pool\n",
+                                "subscription-manager register",
+                                " --username=", {
+                                    "Ref": "RedhatSubscriptionUserName"
+                                },
+                                " --password=", {
+                                    "Ref": "RedhatSubscriptionPassword"
+                                },
+                                " --auto-attach",
+                                "\n",
+                                "POOL_ID=", {
+                                    "Ref": "RedhatSubscriptionPoolD"
+                                },
+                                "\n",
+                                "subscription-manager attach --pool=${POOL_ID}\n",
+                                "yum-config-manager --disable *\n",
+                                "yum clean all\n",
+                                "yum repolist | grep OpenShift \n",
+                                "subscription-manager repos ",
+                                "--disable=\"rhel-7-server-ose-3.5-rpms\" ",
+                                "--enable=\"rhel-7-server-ose-3.6-rpms\" ",
+                                "--enable=\"rhel-7-server-extras-rpms\" ",
+                                "--enable=\"rhel-7-fast-datapath-rpms\" ",
+                                "\n",
+                                "#Install dependancies\n",
+                                "yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct\n",
+                                "yum -y update \n",
+                                "yum -y install atomic-openshift-utils\n",
+                                "yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
+                                "atomic-openshift-excluder unexclude\n",
                                 "# Start cfn-init\n",
-                                "cfn-init --stack ", {
+                                "cfn-init -v ",
+                                " --stack ", {
                                     "Ref": "AWS::StackName"
                                 },
                                 " --resource OpenShiftASLaunchConfig ",
@@ -1099,9 +1013,7 @@
                                     "Ref": "AWS::Region"
                                 }, " ", {
                                     "Ref": "OpenShiftMasterASG"
-                                }, " ", "masters ", {
-                                    "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
-                                },
+                                }, " ", "masters ",
                                 " > /tmp/openshift_instances-master",
                                 "\n",
                                 "python ~/get_nodes.py ", {
@@ -1144,14 +1056,18 @@
                                 },
                                 "scripts/openshift_config_ose.yml  ~/openshift_config.yml \n",
                                 "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
-                                "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
-                                "ansible all  -m ping || qs_err \" [ERROR]: Unable to connect to ansible hosts \"\n",
+                                "ELBDNSNAME=", {
+                                    "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
+                                },
                                 "\n",
-                                "CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-3.6.173.0.5-5.tar.gz \n",
-                                "curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz \n",
-                                "tar -zxf openshift-ansible.tar.gz \n",
-                                "mkdir -p /usr/share/ansible \n",
-                                "mv openshift-ansible-* /usr/share/ansible/openshift-ansible \n",
+                                "#echo openshift_master_cluster_public_hostname=${ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "#echo openshift_master_cluster_hostname=${ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "\n",
+                                "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
+                                "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
+                                "ansible -m ping all || ansible -m ping all\n",
+                                "ansible -m ping all || qs_err \" [ERROR]: Unable to connect to ansible hosts \"\n",
+                                "\n",
                                 "#Attach to Subscription pool\n",
                                 "subscription-manager register",
                                 " --username=", {
@@ -1162,17 +1078,26 @@
                                 },
                                 " --auto-attach",
                                 "\n",
-                                "POOL_ID=$(subscription-manager list --available --matches '*OpenShift*'| grep Pool | awk '{print $3}')",
+                                "POOL_ID=", {
+                                    "Ref": "RedhatSubscriptionPoolD"
+                                },
                                 "\n",
                                 "subscription-manager attach --pool=${POOL_ID}\n",
-                                "subscription-manager repos",
-                                " --enable=rhel-7-server-rpms",
-                                " --enable=rhel-7-server-extras-rpms ",
-                                " --enable=rhel-7-server-ose-3.6-rpms ",
-                                " --enable=rhel-7-fast-datapath-rpms \n",
+                                "yum-config-manager --disable *\n",
+                                "yum clean all\n",
+                                "subscription-manager repos ",
+                                "--disable=\"rhel-7-server-ose-3.5-rpms\" ",
+                                "--enable=\"rhel-7-server-ose-3.6-rpms\" ",
+                                "--enable=\"rhel-7-server-extras-rpms\" ",
+                                "--enable=\"rhel-7-fast-datapath-rpms\" ",
+                                "\n",
+                                "yum repolist | grep OpenShift \n",
                                 "#Install dependancies\n",
-                                "yum install -y wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct atomic-openshift-utils docker\n",
-                                "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
+                                "yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct\n",
+                                "yum -y update \n",
+                                "yum -y install atomic-openshift-utils\n",
+                                "yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
+                                "atomic-openshift-excluder unexclude\n",
                                 "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "\n",
                                 "echo \"Start cfn stack signaling\"\n",
@@ -1195,7 +1120,7 @@
             },
             "CreationPolicy": {
                 "ResourceSignal": {
-                    "Timeout": "PT120M"
+                    "Timeout": "PT240M"
                 }
             }
         }
