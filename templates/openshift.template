@@ -1003,7 +1003,6 @@
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
                                 "##############################################################################\n",
-                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
                                 "#failsomething || qs_err\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
