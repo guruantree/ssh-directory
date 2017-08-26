@@ -4,47 +4,73 @@
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
-                "Label": {
-                    "default": "Network Configuration"
+                    "Label": {
+                        "default": "Network Configuration"
+                    },
+                    "Parameters": [
+                        "VPCID",
+                        "VPCCIDR",
+                        "PrivateSubnet1ID",
+                        "PrivateSubnet2ID",
+                        "PrivateSubnet3ID",
+                        "PublicSubnet1ID",
+                        "PublicSubnet2ID",
+                        "PublicSubnet3ID",
+                        "RemoteAccessCIDR"
+                    ]
                 },
-                "Parameters": [
-                    "VPCID",
-                    "PrivateSubnet1ID",
-                    "PrivateSubnet2ID",
-                    "PrivateSubnet3ID",
-                    "PublicSubnet1ID",
-                    "PublicSubnet2ID",
-                    "PublicSubnet3ID",
-                    "RemoteAccessCIDR"
-                ]
-            }, {
-                "Label": {
-                    "default": "Amazon EC2 Configuration"
+                {
+                    "Label": {
+                        "default": "Amazon EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "KeyPairName",
+                        "MasterInstanceType"
+                    ]
                 },
-                "Parameters": [
-                    "KeyPairName",
-                    "MasterInstanceType"
-                ]
-            }, {
-                "Label": {
-                    "default": "OpenShift Nodes Configuration"
+                {
+                    "Label": {
+                        "default": "Ansible PlayBook Configuration"
+                    },
+                    "Parameters": [
+                        "AnsiblePlayBookType",
+                        "AnsiblePlayBookGitRepoTag"
+                    ]
                 },
-                "Parameters": [
-                    "RedhatSubscriptionUserName",
-                    "RedhatSubscriptionPassword",
-                    "RedhatSubscriptionPoolD",
-                    "NumberOfMaster",
-                    "OperatorEmail"
-                ]
-            }, {
-                "Label": {
-                    "default": "AWS Quick Start Configuration"
+                {
+                    "Label": {
+                        "default": "OpenShift Nodes Configuration"
+                    },
+                    "Parameters": [
+                        "NumberOfMaster",
+                        "NumberOfEtcd",
+                        "NumberOfMaster",
+                        "NumberOfNodes",
+                        "EtcdInstanceType",
+                        "NodesInstanceType"
+
+                    ]
                 },
-                "Parameters": [
-                    "QSS3BucketName",
-                    "QSS3KeyPrefix"
-                ]
-            }],
+                {
+                    "Label": {
+                        "default": "Red Hat Subscription Information"
+                    },
+                    "Parameters": [
+                        "RedhatSubscriptionUserName",
+                        "RedhatSubscriptionPassword",
+                        "RedhatSubscriptionPoolD"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "AWS Quick Start Configuration"
+                    },
+                    "Parameters": [
+                        "QSS3BucketName",
+                        "QSS3KeyPrefix"
+                    ]
+                }
+            ],
             "ParameterLabels": {
                 "KeyPairName": {
                     "default": "SSH Key Name"
@@ -93,6 +119,12 @@
                 },
                 "RedhatSubscriptionPoolD": {
                     "default": "Red Hat Pool ID"
+                },
+                "AnsiblePlayBookType": {
+                    "default": "Switch to Development Mode"
+                },
+                "AnsiblePlayBookGitRepoTag": {
+                    "default": "Git Repo Release Version"
                 },
                 "MasterInstanceType": {
                     "default": "Master Instance Type"
@@ -180,6 +212,20 @@
         },
         "RedhatSubscriptionPoolD": {
             "Description": "Enter Redhat RHN Pool ID",
+            "Type": "String"
+        },
+        "AnsiblePlayBookType": {
+            "Description": "Note: OpenSource GitHub is for Development Only!",
+            "Default": "Default: Subscription Version",
+            "AllowedValues": [
+                "Default: Subscription Version",
+                "Develop: OpenSource GitHub"
+            ],
+            "Type": "String"
+        },
+        "AnsiblePlayBookGitRepoTag": {
+            "Description": "Only Used if [Develop: OpenSource GitHub] is selected. List of Development Releases available here -> https://github.com/openshift/openshift-ansible/releases",
+            "Default": "3.6.173.0.5-5",
             "Type": "String"
         },
         "VPCCIDR": {
@@ -271,13 +317,15 @@
             "Assertions": [{
                 "Assert": {
                     "Fn::EachMemberIn": [{
-                        "Fn::ValueOfAll": [
-                            "AWS::EC2::Subnet::Id",
-                            "VpcId"
-                        ]
-                    }, {
-                        "Fn::RefAll": "AWS::EC2::VPC::Id"
-                    }]
+                            "Fn::ValueOfAll": [
+                                "AWS::EC2::Subnet::Id",
+                                "VpcId"
+                            ]
+                        },
+                        {
+                            "Fn::RefAll": "AWS::EC2::VPC::Id"
+                        }
+                    ]
                 },
                 "AssertDescription": "All subnets must in the VPC"
             }]
@@ -286,54 +334,54 @@
     "Mappings": {
         "AWSAMIRegionMap": {
             "AMI": {
-                "RHEL72HVM": "RHEL-7.2_HVM-20161025-x86_64-1-Hourly2-GP2"
+                "RHEL74HVM": "RHEL-7.2_HVM-20161025-x86_64-1-Hourly2-GP2"
             },
             "ap-northeast-1": {
-                "RHEL72HVM": "ami-2265c543"
+                "RHEL74HVM": "ami-2265c543"
             },
             "ap-northeast-2": {
-                "RHEL72HVM": "ami-a9e532c7"
+                "RHEL74HVM": "ami-a9e532c7"
             },
             "ap-south-1": {
-                "RHEL72HVM": "ami-917205fe"
+                "RHEL74HVM": "ami-917205fe"
             },
             "ap-southeast-1": {
-                "RHEL72HVM": "ami-22953841"
+                "RHEL74HVM": "ami-22953841"
             },
             "ap-southeast-2": {
-                "RHEL72HVM": "ami-91cdf0f2"
+                "RHEL74HVM": "ami-91cdf0f2"
             },
             "ca-central-1": {
-                "RHEL72HVM": "ami-b764d6d3"
+                "RHEL74HVM": "ami-b764d6d3"
             },
             "eu-central-1": {
-                "RHEL72HVM": "ami-7def1712"
+                "RHEL74HVM": "ami-7def1712"
             },
             "eu-west-1": {
-                "RHEL72HVM": "ami-b22961c1"
+                "RHEL74HVM": "ami-b22961c1"
             },
             "eu-west-2": {
-                "RHEL72HVM": "ami-b9353fdd"
+                "RHEL74HVM": "ami-b9353fdd"
             },
             "sa-east-1": {
-                "RHEL72HVM": "ami-28f66a44"
+                "RHEL74HVM": "ami-28f66a44"
             },
             "us-east-1": {
-                "RHEL72HVM": "ami-c998b6b2"
+                "RHEL74HVM": "ami-c998b6b2"
             },
             "us-east-2": {
-                "RHEL72HVM": "ami-0a33696f"
+                "RHEL74HVM": "ami-0a33696f"
             },
             "us-west-1": {
-                "RHEL72HVM": "ami-f88fc498"
+                "RHEL74HVM": "ami-f88fc498"
             },
             "us-west-2": {
-                "RHEL72HVM": "ami-5dd3743d"
+                "RHEL74HVM": "ami-5dd3743d"
             }
         },
         "LinuxAMINameMap": {
             "Redhat-Enterprise-Linux-7": {
-                "Code": "RHEL72HVM"
+                "Code": "RHEL74HVM"
             }
         }
     },
@@ -366,20 +414,22 @@
                     "PolicyDocument": {
                         "Version": "2012-10-17",
                         "Statement": [{
-                            "Effect": "Allow",
-                            "Action": [
-                                "logs:CreateLogGroup",
-                                "logs:CreateLogStream",
-                                "logs:PutLogEvents"
-                            ],
-                            "Resource": "arn:aws:logs:*:*:*"
-                        }, {
-                            "Effect": "Allow",
-                            "Action": [
-                                "cloudformation:DescribeStacks"
-                            ],
-                            "Resource": "*"
-                        }]
+                                "Effect": "Allow",
+                                "Action": [
+                                    "logs:CreateLogGroup",
+                                    "logs:CreateLogStream",
+                                    "logs:PutLogEvents"
+                                ],
+                                "Resource": "arn:aws:logs:*:*:*"
+                            },
+                            {
+                                "Effect": "Allow",
+                                "Action": [
+                                    "cloudformation:DescribeStacks"
+                                ],
+                                "Resource": "*"
+                            }
+                        ]
                     }
                 }]
             }
@@ -411,9 +461,11 @@
                     "Fn::GetAtt": ["KeyGen", "Arn"]
                 },
                 "ResponseURL": {
-                    "Fn::Join": ["", ["http://ResponseURL", {
-                        "Ref": "AWS::StackId"
-                    }, "RequestId"]]
+                    "Fn::Join": ["", ["http://ResponseURL",
+                        {
+                            "Ref": "AWS::StackId"
+                        }, "RequestId"
+                    ]]
                 },
                 "StackId": {
                     "Ref": "AWS::StackId"
@@ -454,21 +506,24 @@
                         "CidrIp": {
                             "Ref": "VPCCIDR"
                         }
-                    }, {
+                    },
+                    {
                         "IpProtocol": "tcp",
                         "FromPort": "8443",
                         "ToPort": "8444",
                         "CidrIp": {
                             "Ref": "RemoteAccessCIDR"
                         }
-                    }, {
+                    },
+                    {
                         "IpProtocol": "tcp",
                         "FromPort": "80",
                         "ToPort": "80",
                         "CidrIp": {
                             "Ref": "RemoteAccessCIDR"
                         }
-                    }, {
+                    },
+                    {
                         "IpProtocol": "tcp",
                         "FromPort": "443",
                         "ToPort": "443",
@@ -495,51 +550,59 @@
                     "Ref": "VPCID"
                 },
                 "SecurityGroupIngress": [{
-                    "IpProtocol": "-1",
-                    "CidrIp": {
-                        "Ref": "VPCCIDR"
+                        "IpProtocol": "-1",
+                        "CidrIp": {
+                            "Ref": "VPCCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8443",
+                        "ToPort": "8444",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
                     }
-                }, {
-                    "IpProtocol": "tcp",
-                    "FromPort": "8443",
-                    "ToPort": "8444",
-                    "CidrIp": {
-                        "Ref": "RemoteAccessCIDR"
-                    }
-                }, {
-                    "IpProtocol": "tcp",
-                    "FromPort": "80",
-                    "ToPort": "80",
-                    "CidrIp": {
-                        "Ref": "RemoteAccessCIDR"
-                    }
-                }, {
-                    "IpProtocol": "tcp",
-                    "FromPort": "443",
-                    "ToPort": "443",
-                    "CidrIp": {
-                        "Ref": "RemoteAccessCIDR"
-                    }
-                }, {
-                    "IpProtocol": "tcp",
-                    "FromPort": "22",
-                    "ToPort": "22",
-                    "CidrIp": {
-                        "Ref": "RemoteAccessCIDR"
-                    }
-                }]
+                ]
             }
         },
         "OpenShiftMasterELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
                 "Subnets": [{
-                    "Ref": "PrivateSubnet1ID"
-                }, {
-                    "Ref": "PrivateSubnet2ID"
-                }, {
-                    "Ref": "PrivateSubnet3ID"
-                }],
+                        "Ref": "PrivateSubnet1ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet2ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet3ID"
+                    }
+                ],
                 "SecurityGroups": [{
                     "Ref": "OpenShiftELBSecurityGroup"
                 }],
@@ -576,32 +639,34 @@
                 },
                 "Path": "/",
                 "Policies": [{
-                    "PolicyDocument": {
-                        "Version": "2012-10-17",
-                        "Statement": [{
-                            "Action": [
-                                "s3:GetObject"
-                            ],
-                            "Resource": {
-                                "Fn::Sub": "arn:aws:s3:::${QSS3BucketName}/${QSS3KeyPrefix}*"
-                            },
-                            "Effect": "Allow"
-                        }]
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [{
+                                "Action": [
+                                    "s3:GetObject"
+                                ],
+                                "Resource": {
+                                    "Fn::Sub": "arn:aws:s3:::${QSS3BucketName}/${QSS3KeyPrefix}*"
+                                },
+                                "Effect": "Allow"
+                            }]
+                        },
+                        "PolicyName": "aws-quick-start-s3-policy"
                     },
-                    "PolicyName": "aws-quick-start-s3-policy"
-                }, {
-                    "PolicyName": "WorkloadSetup",
-                    "PolicyDocument": {
-                        "Statement": [{
-                            "Effect": "Allow",
-                            "Action": [
-                                "autoscaling:Describe*",
-                                "ec2:Describe*"
-                            ],
-                            "Resource": "*"
-                        }]
+                    {
+                        "PolicyName": "WorkloadSetup",
+                        "PolicyDocument": {
+                            "Statement": [{
+                                "Effect": "Allow",
+                                "Action": [
+                                    "autoscaling:Describe*",
+                                    "ec2:Describe*"
+                                ],
+                                "Resource": "*"
+                            }]
+                        }
                     }
-                }]
+                ]
             }
         },
         "SetupRoleProfile": {
@@ -630,7 +695,7 @@
                     "Ref": "NumberOfMaster"
                 },
                 "LaunchConfigurationName": {
-                    "Ref": "OpenShiftASLaunchConfig"
+                    "Ref": "OpenShiftMasterASLaunchConfig"
                 },
                 "Tags": [{
                     "Key": "Name",
@@ -638,12 +703,15 @@
                     "Value": "openshift-master"
                 }],
                 "VPCZoneIdentifier": [{
-                    "Ref": "PublicSubnet1ID"
-                }, {
-                    "Ref": "PublicSubnet2ID"
-                }, {
-                    "Ref": "PublicSubnet3ID"
-                }]
+                        "Ref": "PublicSubnet1ID"
+                    },
+                    {
+                        "Ref": "PublicSubnet2ID"
+                    },
+                    {
+                        "Ref": "PublicSubnet3ID"
+                    }
+                ]
             }
         },
         "OpenShiftEtcdASG": {
@@ -668,12 +736,15 @@
                     "Value": "openshift-etcd"
                 }],
                 "VPCZoneIdentifier": [{
-                    "Ref": "PrivateSubnet1ID"
-                }, {
-                    "Ref": "PrivateSubnet2ID"
-                }, {
-                    "Ref": "PrivateSubnet3ID"
-                }]
+                        "Ref": "PrivateSubnet1ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet2ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet3ID"
+                    }
+                ]
             }
         },
         "OpenShiftNodeASG": {
@@ -698,12 +769,15 @@
                     "Value": "openshift-nodes"
                 }],
                 "VPCZoneIdentifier": [{
-                    "Ref": "PrivateSubnet1ID"
-                }, {
-                    "Ref": "PrivateSubnet2ID"
-                }, {
-                    "Ref": "PrivateSubnet3ID"
-                }]
+                        "Ref": "PrivateSubnet1ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet2ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet3ID"
+                    }
+                ]
             }
         },
         "OpenShiftASLaunchConfig": {
@@ -712,20 +786,13 @@
             "Metadata": {
                 "AWS::CloudFormation::Init": {
                     "configSets": {
-                        "quickstart": ["GetPublicKey", "AddPublicKey", "Ansible", "NetworkManager"]
+                        "quickstart": ["GetPublicKey", "AddPublicKey", "rpms", "NetworkManager"]
                     },
-                    "Ansible": {
+                    "rpms": {
                         "packages": {
                             "yum": {
-                                "ansible": [],
                                 "NetworkManager": []
 
-                            }
-                        },
-                        "commands": {
-                            "disable-host-key-checking": {
-                                "command": "sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg",
-                                "ignoreErrors": "false"
                             }
                         }
                     },
@@ -734,7 +801,8 @@
                             "/root/.ssh/public.key": {
                                 "content": {
                                     "Fn::Join": ["", [
-                                        "#QuickStart Generated\n", {
+                                        "#QuickStart Generated\n",
+                                        {
                                             "Fn::GetAtt": ["GetRSA", "PUB"]
                                         },
                                         "\n"
@@ -763,6 +831,7 @@
                         }
                     }
                 }
+
             },
             "Properties": {
                 "KeyName": {
@@ -770,16 +839,17 @@
                 },
                 "ImageId": {
                     "Fn::FindInMap": [
-                        "AWSAMIRegionMap", {
+                        "AWSAMIRegionMap",
+                        {
                             "Ref": "AWS::Region"
                         },
-                        "RHEL72HVM"
+                        "RHEL74HVM"
                     ]
                 },
                 "BlockDeviceMappings": [{
                     "DeviceName": "/dev/sda1",
                     "Ebs": {
-                        "VolumeSize": "50"
+                        "VolumeSize": "80"
                     }
                 }],
                 "InstanceMonitoring": "true",
@@ -796,13 +866,15 @@
                     "Fn::Base64": {
                         "Fn::Join": [
                             "", [
-                                "#!/bin/bash\n",
-                                "##############################################################################\n",
-                                "# Load QuickStart Common Utils\n",
+                                "#!/bin/bash",
+                                "\n",
+                                "########################################################################################################################\n",
+                                "# Load QuickStart Common Utils",
                                 "#\n",
-                                "curl --retry 5 -s ", {
+                                "UTIL=", {
                                     "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
+                                        {
                                             "S3Region": {
                                                 "Fn::If": [
                                                     "GovCloudCondition",
@@ -813,28 +885,33 @@
                                         }
                                     ]
                                 },
-                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source -o /tmp/quickstart-cfn-tools.source \n",
-                                "source /tmp/quickstart-cfn-tools.source\n",
-                                "#\n",
-                                "##############################################################################\n",
-                                "# Install AWS cfn-bootstrap \n",
+                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source",
+                                "\n",
+                                "P=/tmp/quickstart-cfn-tools.source \n",
+                                "curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do curl -s ${UTIL} -o ${P} && break; n=$[$n+1]; done\n",
+                                "source ${P}",
+                                "\n",
+                                "########################################################################################################################\n",
+                                "# Install AWS cfn-bootstrap",
+                                "\n",
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
-                                "##############################################################################\n",
-                                "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
-                                "pip install awscli --ignore-installed six &> /tmp/awscli_install.log\n",
+                                "########################################################################################################################\n",
                                 "\n",
                                 "#Attach to Subscription pool\n",
                                 "subscription-manager register",
-                                " --username=", {
+                                " --username=",
+                                {
                                     "Ref": "RedhatSubscriptionUserName"
                                 },
-                                " --password=", {
+                                " --password=",
+                                {
                                     "Ref": "RedhatSubscriptionPassword"
                                 },
                                 " --force",
                                 "\n",
-                                "POOL_ID=", {
+                                "POOL_ID=",
+                                {
                                     "Ref": "RedhatSubscriptionPoolD"
                                 },
                                 "\n",
@@ -848,21 +925,180 @@
                                 "--enable=\"rhel-7-server-extras-rpms\" ",
                                 "--enable=\"rhel-7-fast-datapath-rpms\" ",
                                 "\n",
-                                "#Install dependancies\n",
-                                "#yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct\n",
-                                "#yum -y install docker cockpit-docker\n",
-                                "#yum -y update \n",
-                                "#yum -y install atomic-openshift-utils\n",
-                                "#yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
-                                "#atomic-openshift-excluder unexclude\n",
-                                "# Start cfn-init [GetPublicKey, AddPublicKey, Ansible, NetworkManager]\n",
+                                "# Start cfn-init [GetPublicKey, AddPublicKey]\n",
                                 "cfn-init -v ",
-                                " --stack ", {
+                                " --stack ",
+                                {
                                     "Ref": "AWS::StackName"
                                 },
                                 " --resource OpenShiftASLaunchConfig ",
                                 " --configsets quickstart ",
-                                " --region ", {
+                                " --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                "\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "OpenShiftMasterASLaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "DependsOn": "GetRSA",
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "configSets": {
+                        "quickstart": ["GetPublicKey", "AddPublicKey", "rpms", "NetworkManager"]
+                    },
+                    "rpms": {
+                        "packages": {
+                            "yum": {
+                                "NetworkManager": []
+
+                            }
+                        }
+                    },
+                    "GetPublicKey": {
+                        "files": {
+                            "/root/.ssh/public.key": {
+                                "content": {
+                                    "Fn::Join": ["", [
+                                        "#QuickStart Generated\n",
+                                        {
+                                            "Fn::GetAtt": ["GetRSA", "PUB"]
+                                        },
+                                        "\n"
+                                    ]]
+                                },
+                                "mode": "000400",
+                                "owner": "root",
+                                "group": "root"
+                            }
+                        }
+                    },
+                    "AddPublicKey": {
+                        "commands": {
+                            "append-publickey": {
+                                "command": "cat /root/.ssh/public.key >>/root/.ssh/authorized_keys",
+                                "ignoreErrors": "false"
+                            }
+                        }
+                    },
+                    "NetworkManager": {
+                        "commands": {
+                            "start_enable_nm": {
+                                "command": "systemctl start NetworkManager && systemctl enable  NetworkManager",
+                                "ignoreErrors": "false"
+                            }
+                        }
+                    }
+                }
+
+            },
+            "Properties": {
+                "KeyName": {
+                    "Ref": "KeyPairName"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSAMIRegionMap",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        "RHEL74HVM"
+                    ]
+                },
+                "BlockDeviceMappings": [{
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                        "VolumeSize": "80"
+                    }
+                }],
+                "InstanceMonitoring": "true",
+                "IamInstanceProfile": {
+                    "Ref": "SetupRoleProfile"
+                },
+                "InstanceType": {
+                    "Ref": "MasterInstanceType"
+                },
+                "SecurityGroups": [{
+                    "Ref": "OpenShiftSecurityGroup"
+                }],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "", [
+                                "#!/bin/bash",
+                                "\n",
+                                "########################################################################################################################\n",
+                                "# Load QuickStart Common Utils",
+                                "#\n",
+                                "UTIL=", {
+                                    "Fn::Sub": [
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
+                                        {
+                                            "S3Region": {
+                                                "Fn::If": [
+                                                    "GovCloudCondition",
+                                                    "s3-us-gov-west-1",
+                                                    "s3"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source",
+                                "\n",
+                                "P=/tmp/quickstart-cfn-tools.source \n",
+                                "curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do curl -s ${UTIL} -o ${P} && break; n=$[$n+1]; done\n",
+                                "source ${P}",
+                                "\n",
+                                "########################################################################################################################\n",
+                                "# Install AWS cfn-bootstrap",
+                                "\n",
+                                "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
+                                "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
+                                "########################################################################################################################\n",
+                                "\n",
+                                "#Attach to Subscription pool\n",
+                                "subscription-manager register",
+                                " --username=",
+                                {
+                                    "Ref": "RedhatSubscriptionUserName"
+                                },
+                                " --password=",
+                                {
+                                    "Ref": "RedhatSubscriptionPassword"
+                                },
+                                " --force",
+                                "\n",
+                                "POOL_ID=",
+                                {
+                                    "Ref": "RedhatSubscriptionPoolD"
+                                },
+                                "\n",
+                                "subscription-manager attach --pool=${POOL_ID}\n",
+                                "yum-config-manager --disable *\n",
+                                "yum clean all\n",
+                                "yum repolist | grep OpenShift \n",
+                                "subscription-manager repos ",
+                                "--disable=\"rhel-7-server-ose-3.5-rpms\" ",
+                                "--enable=\"rhel-7-server-ose-3.6-rpms\" ",
+                                "--enable=\"rhel-7-server-extras-rpms\" ",
+                                "--enable=\"rhel-7-fast-datapath-rpms\" ",
+                                "\n",
+                                "# Start cfn-init [GetPublicKey, AddPublicKey]\n",
+                                "cfn-init -v ",
+                                " --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --resource OpenShiftASLaunchConfig ",
+                                " --configsets quickstart ",
+                                " --region ",
+                                {
                                     "Ref": "AWS::Region"
                                 },
                                 "\n"
@@ -879,7 +1115,24 @@
                 "AWS::CloudFormation::Init": {
                     "configSets": {
                         "cfg_node_keys": ["GetPublicKey", "AddPublicKey", "SetPrivateKey"],
-                        "cfg_ansible": ["CfgAnsible"]
+                        "cfg_ansible": ["CfgAnsible"],
+                        "cfg_networkmgr": ["rpms", "NetworkManager"]
+                    },
+                    "rpms": {
+                        "packages": {
+                            "yum": {
+                                "NetworkManager": []
+
+                            }
+                        }
+                    },
+                    "NetworkManager": {
+                        "commands": {
+                            "start_enable_nm": {
+                                "command": "systemctl start NetworkManager && systemctl enable  NetworkManager",
+                                "ignoreErrors": "false"
+                            }
+                        }
                     },
                     "SetPrivateKey": {
                         "files": {
@@ -902,7 +1155,8 @@
                             "/root/.ssh/public.key": {
                                 "content": {
                                     "Fn::Join": ["", [
-                                        "#QuickStart Generated\n", {
+                                        "#QuickStart Generated\n",
+                                        {
                                             "Fn::GetAtt": ["GetRSA", "PUB"]
                                         },
                                         "\n"
@@ -943,10 +1197,11 @@
                 },
                 "ImageId": {
                     "Fn::FindInMap": [
-                        "AWSAMIRegionMap", {
+                        "AWSAMIRegionMap",
+                        {
                             "Ref": "AWS::Region"
                         },
-                        "RHEL72HVM"
+                        "RHEL74HVM"
                     ]
                 },
                 "KeyName": {
@@ -978,13 +1233,15 @@
                     "Fn::Base64": {
                         "Fn::Join": [
                             "", [
-                                "#!/bin/bash\n",
-                                "##############################################################################\n",
-                                "# Load QuickStart Common Utils\n",
+                                "#!/bin/bash",
+                                "\n",
+                                "########################################################################################################################\n",
+                                "# Load QuickStart Common Utils",
                                 "#\n",
-                                "curl --retry 5 -s ", {
+                                "UTIL=", {
                                     "Fn::Sub": [
-                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}", {
+                                        "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
+                                        {
                                             "S3Region": {
                                                 "Fn::If": [
                                                     "GovCloudCondition",
@@ -995,73 +1252,91 @@
                                         }
                                     ]
                                 },
-                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source -o /tmp/quickstart-cfn-tools.source \n",
-                                "source /tmp/quickstart-cfn-tools.source\n",
-                                "#\n",
-                                "##############################################################################\n",
-                                "# Install AWS cfn-bootstrap \n",
+                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source\n",
+                                "\n",
+                                "P=/tmp/quickstart-cfn-tools.source \n",
+                                "curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do curl -s ${UTIL} -o ${P} && break; n=$[$n+1]; done\n",
+                                "source ${P}",
+                                "\n",
+                                "########################################################################################################################\n",
+                                "# Install AWS cfn-bootstrap",
+                                "\n",
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
-                                "##############################################################################\n",
+                                "########################################################################################################################\n",
+                                "#Enable epel for inital ansible availability\n",
+                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
-                                "#failsomething || qs_err\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
                                 "# Start cfn-configset [cfg_node_keys]",
                                 "\n",
-                                "aws s3 cp ", {
+                                "aws s3 cp ",
+                                {
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
 
                                 },
                                 "scripts/get_nodes.py  ~/get_nodes.py \n",
                                 "pip install boto3 &> /var/log/userdata.boto3_install.log || qs_err \" boto3 install failed \"\n",
-                                "python ~/get_nodes.py ", {
+                                "python ~/get_nodes.py ",
+                                {
                                     "Ref": "AWS::Region"
-                                }, " ", {
+                                }, " ",
+                                {
                                     "Ref": "OpenShiftMasterASG"
                                 }, " ", "masters ",
                                 " > /tmp/openshift_instances-master",
                                 "\n",
-                                "python ~/get_nodes.py ", {
+                                "python ~/get_nodes.py ",
+                                {
                                     "Ref": "AWS::Region"
-                                }, " ", {
+                                }, " ",
+                                {
                                     "Ref": "OpenShiftEtcdASG"
                                 }, " ", "etcd > /tmp/openshift_instances-etcd",
                                 "\n",
-                                "python ~/get_nodes.py ", {
+                                "python ~/get_nodes.py ",
+                                {
                                     "Ref": "AWS::Region"
-                                }, " ", {
+                                }, " ",
+                                {
                                     "Ref": "OpenShiftNodeASG"
                                 }, " ", "nodes > /tmp/openshift_instances-nodes",
                                 "\n",
                                 "cfn-init -v ",
-                                "--stack ", {
+                                "--stack ",
+                                {
                                     "Ref": "AWS::StackName"
                                 },
                                 " --resource AnsibleConfigServer",
                                 " --configsets cfg_node_keys ",
-                                " --region ", {
+                                " --region ",
+                                {
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
                                 "# Start cfn-configset [cfg_ansible]\n",
                                 "cfn-init -v ",
-                                "   --stack ", {
+                                "   --stack ",
+                                {
                                     "Ref": "AWS::StackName"
                                 },
                                 "   --resource AnsibleConfigServer ",
                                 "   --configsets cfg_ansible ",
-                                "   --region ", {
+                                "   --region ",
+                                {
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
                                 "echo \"Begin OpenShift configuration\"\n",
-                                "aws s3 cp ", {
+                                "aws s3 cp ",
+                                {
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
 
                                 },
                                 "scripts/openshift_config_ose.yml  ~/openshift_config.yml \n",
                                 "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
-                                "ELBDNSNAME=", {
+                                "ELBDNSNAME=",
+                                {
                                     "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
                                 },
                                 "\n",
@@ -1070,19 +1345,23 @@
                                 "\n",
                                 "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
-                                "ansible -m ping all || n=0; until [ $n -ge 25 ]; do ansible -m ping all && break; n=$[$n+1]; done",
+                                "sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg \n",
+                                "ansible -m ping all || n=0; until [[ $n -ge 50 ]]; do ansible -m ping all && break; n=$[$n+1]; done",
                                 "\n",
                                 "#Attach to Subscription pool\n",
                                 "subscription-manager register",
-                                " --username=", {
+                                " --username=",
+                                {
                                     "Ref": "RedhatSubscriptionUserName"
                                 },
-                                " --password=", {
+                                " --password=",
+                                {
                                     "Ref": "RedhatSubscriptionPassword"
                                 },
                                 " --force",
                                 "\n",
-                                "POOL_ID=", {
+                                "POOL_ID=",
+                                {
                                     "Ref": "RedhatSubscriptionPoolD"
                                 },
                                 "\n",
@@ -1101,18 +1380,37 @@
                                 "yum -y update \n",
                                 "yum -y install atomic-openshift-utils\n",
                                 "yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
+                                "PLAYBOOK=\"", {
+                                    "Ref": "AnsiblePlayBookType"
+                                },
+                                "\"\n",
+                                "if [ $PLAYBOOK -eq \"Default: Subscription Version\" ]; then \n",
+                                "  echo \"Using Builtin Playbooks\"\n",
+                                "else\n",
+                                "  echo \"Override Builtin Playbooks\n\"",
+                                "  touch ~/override_Playbooks\n",
+                                "  CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-",
+                                {
+                                    "Ref": "AnsiblePlayBookGitRepoTag"
+                                },
+                                ".tar.gz\n",
+                                "fi",
+                                "\n",
+                                "yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
                                 "atomic-openshift-excluder unexclude\n",
-                                "ansible-playbook -v /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
+                                "ansible-playbook -vvv /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "\n",
                                 "echo \"Start cfn stack signaling\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
                                 "echo \"[qs_status] = $(qs_status)\"\n",
                                 "cfn-signal -e $(qs_status) ",
-                                "   --stack ", {
+                                "   --stack ",
+                                {
                                     "Ref": "AWS::StackName"
                                 },
                                 "   --resource AnsibleConfigServer ",
-                                "   --region ", {
+                                "   --region ",
+                                {
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
@@ -1133,9 +1431,11 @@
         "OpenShiftUI": {
             "Description": "The URL OpenShiftUI",
             "Value": {
-                "Fn::Join": ["", ["http://", {
-                    "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
-                }]]
+                "Fn::Join": ["", ["https://",
+                    {
+                        "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
+                    }, ":8443/"
+                ]]
             }
         }
     }
