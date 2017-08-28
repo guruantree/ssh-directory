@@ -58,7 +58,7 @@
                     "Parameters": [
                         "RedhatSubscriptionUserName",
                         "RedhatSubscriptionPassword",
-                        "RedhatSubscriptionPoolD"
+                        "RedhatSubscriptionPoolID"
                     ]
                 },
                 {
@@ -117,7 +117,7 @@
                 "RedhatSubscriptionPassword": {
                     "default": "Red Hat Subscription Password"
                 },
-                "RedhatSubscriptionPoolD": {
+                "RedhatSubscriptionPoolID": {
                     "default": "Red Hat Pool ID"
                 },
                 "AnsiblePlayBookType": {
@@ -210,7 +210,7 @@
             "Description": "Enter Redhat RHN Password",
             "Type": "String"
         },
-        "RedhatSubscriptionPoolD": {
+        "RedhatSubscriptionPoolID": {
             "Description": "Enter Redhat RHN Pool ID",
             "Type": "String"
         },
@@ -912,7 +912,7 @@
                                 "\n",
                                 "POOL_ID=",
                                 {
-                                    "Ref": "RedhatSubscriptionPoolD"
+                                    "Ref": "RedhatSubscriptionPoolID"
                                 },
                                 "\n",
                                 "subscription-manager attach --pool=${POOL_ID}\n",
@@ -1076,7 +1076,7 @@
                                 "\n",
                                 "POOL_ID=",
                                 {
-                                    "Ref": "RedhatSubscriptionPoolD"
+                                    "Ref": "RedhatSubscriptionPoolID"
                                 },
                                 "\n",
                                 "subscription-manager attach --pool=${POOL_ID}\n",
@@ -1362,7 +1362,7 @@
                                 "\n",
                                 "POOL_ID=",
                                 {
-                                    "Ref": "RedhatSubscriptionPoolD"
+                                    "Ref": "RedhatSubscriptionPoolID"
                                 },
                                 "\n",
                                 "subscription-manager attach --pool=${POOL_ID}\n",
