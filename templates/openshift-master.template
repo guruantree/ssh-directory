@@ -43,7 +43,7 @@
                 "Parameters": [
                     "RedhatSubscriptionUserName",
                     "RedhatSubscriptionPassword",
-                    "RedhatSubscriptionPoolD",
+                    "RedhatSubscriptionPoolID",
                     "NumberOfMaster",
                     "NumberOfEtcd",
                     "NumberOfNodes",
@@ -131,7 +131,7 @@
                 {
                     "default": "Red Hat Subscription Password"
                 },
-                "RedhatSubscriptionPoolD":
+                "RedhatSubscriptionPoolID":
                 {
                     "default": "Red Hat Pool ID"
                 },
@@ -262,7 +262,7 @@
             "Description": "Enter Redhat RHN Password",
             "Type": "String"
         },
-        "RedhatSubscriptionPoolD":
+        "RedhatSubscriptionPoolID":
         {
             "Description": "Enter Redhat RHN Pool ID",
             "Type": "String"
@@ -504,9 +504,9 @@
                     {
                         "Ref": "RedhatSubscriptionPassword"
                     },
-                    "RedhatSubscriptionPoolD":
+                    "RedhatSubscriptionPoolID":
                     {
-                        "Ref": "RedhatSubscriptionPoolD"
+                        "Ref": "RedhatSubscriptionPoolID"
                     },
                     "VPCCIDR":
                     {
