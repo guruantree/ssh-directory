@@ -1312,7 +1312,8 @@
                                 "date >>~/playbooks.info\n",
                                 "echo \" Finish Ansible PlayBook execution\"\n",
                                 "\n",
-                                "# Finish Configure ELB\n",
+                                "# Add users\n",
+                                "ansible masters -a \"htpasswd -b /etc/origin/master/htpasswd  admin admin\"\n"
                                 "echo \"Start cfn stack signaling\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
                                 "echo \"[qs_status] = $(qs_status)\"\n",
