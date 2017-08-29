@@ -491,54 +491,6 @@
                 }]
             }
         },
-        "OpenShiftELBSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "Allow access to the ELB",
-                "VpcId": {
-                    "Ref": "VPCID"
-                },
-                "SecurityGroupIngress": [{
-                        "IpProtocol": "-1",
-                        "CidrIp": {
-                            "Ref": "VPCCIDR"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "8443",
-                        "ToPort": "8444",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "80",
-                        "ToPort": "80",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "443",
-                        "ToPort": "443",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "22",
-                        "ToPort": "22",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
-                        }
-                    }
-                ]
-            }
-        },
         "OpenShiftSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
@@ -587,37 +539,6 @@
                 ]
             }
         },
-        "OpenShiftMasterELB": {
-            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
-            "Properties": {
-                "Subnets": [{
-                        "Ref": "PrivateSubnet1ID"
-                    },
-                    {
-                        "Ref": "PrivateSubnet2ID"
-                    },
-                    {
-                        "Ref": "PrivateSubnet3ID"
-                    }
-                ],
-                "SecurityGroups": [{
-                    "Ref": "OpenShiftELBSecurityGroup"
-                }],
-                "Listeners": [{
-                    "InstancePort": "8443",
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": "8443",
-                    "Protocol": "TCP"
-                }],
-                "HealthCheck": {
-                    "Target": "TCP:22",
-                    "HealthyThreshold": "2",
-                    "UnhealthyThreshold": "3",
-                    "Interval": "30",
-                    "Timeout": "3"
-                }
-            }
-        },
         "SetupRole": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -636,6 +557,7 @@
                 },
                 "Path": "/",
                 "Policies": [{
+                        "PolicyName": "aws-quick-start-s3-policy",
                         "PolicyDocument": {
                             "Version": "2012-10-17",
                             "Statement": [{
@@ -647,8 +569,7 @@
                                 },
                                 "Effect": "Allow"
                             }]
-                        },
-                        "PolicyName": "aws-quick-start-s3-policy"
+                        }
                     },
                     {
                         "PolicyName": "WorkloadSetup",
@@ -663,6 +584,7 @@
                             }]
                         }
                     }
+
                 ]
             }
         },
@@ -677,11 +599,8 @@
         },
         "OpenShiftMasterASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "OpenShiftMasterELB",
+            "DependsOn": "GetRSA",
             "Properties": {
-                "LoadBalancerNames": [{
-                    "Ref": "OpenShiftMasterELB"
-                }],
                 "DesiredCapacity": {
                     "Ref": "NumberOfMaster"
                 },
@@ -1332,14 +1251,6 @@
                                 },
                                 "scripts/openshift_config_ose.yml  ~/openshift_config.yml \n",
                                 "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
-                                "ELBDNSNAME=",
-                                {
-                                    "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
-                                },
-                                "\n",
-                                "#echo openshift_master_cluster_public_hostname=${ELBDNSNAME} >> /etc/ansible/hosts \n",
-                                "#echo openshift_master_cluster_hostname=${ELBDNSNAME} >> /etc/ansible/hosts \n",
-                                "\n",
                                 "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
                                 "sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg \n",
@@ -1395,8 +1306,13 @@
                                 "\n",
                                 "yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
                                 "atomic-openshift-excluder unexclude\n",
-                                "ansible-playbook -vvv /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
+                                "echo \" Start Ansible PlayBook execution\"\n",
+                                "date >>~/playbooks.info\n",
+                                "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
+                                "date >>~/playbooks.info\n",
+                                "echo \" Finish Ansible PlayBook execution\"\n",
                                 "\n",
+                                "# Finish Configure ELB\n",
                                 "echo \"Start cfn stack signaling\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
                                 "echo \"[qs_status] = $(qs_status)\"\n",
@@ -1423,18 +1339,5 @@
                 }
             }
         }
-    },
-    "Outputs": {
-        "OpenShiftUI": {
-            "Description": "The URL OpenShiftUI",
-            "Value": {
-                "Fn::Join": ["", ["https://",
-                    {
-                        "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
-                    }, ":8443/"
-                ]]
-            }
-        }
     }
-
 }

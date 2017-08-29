@@ -62,7 +62,7 @@ def get_ip_address(instanceid, region, label):
                         else:
                             hostdef = "{} {} {}".format(n['PrivateIpAddress'].ljust(15),
                                                         ("openshift_public_ip=" + n['Association']['PublicIp']).ljust(25),
-                                                        ("openshift_public_hostname=" + n['Association']['PublicIp'])
+                                                        ("openshift_public_hostname=" + n['Association']['PublicDnsName'])
                                                         )
                     nodes.append(hostdef)
                 else:
