@@ -632,7 +632,7 @@
         },
         "OpenShiftEtcdASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "OpenShiftMasterASG",
+            "DependsOn": "GetRSA",
             "Properties": {
                 "DesiredCapacity": {
                     "Ref": "NumberOfEtcd"
@@ -665,7 +665,7 @@
         },
         "OpenShiftNodeASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "OpenShiftEtcdASG",
+            "DependsOn": "GetRSA",
             "Properties": {
                 "DesiredCapacity": {
                     "Ref": "NumberOfNodes"
@@ -676,6 +676,7 @@
                 "MinSize": {
                     "Ref": "NumberOfNodes"
                 },
+
                 "LaunchConfigurationName": {
                     "Ref": "OpenShiftASLaunchConfig"
                 },
@@ -763,11 +764,18 @@
                     ]
                 },
                 "BlockDeviceMappings": [{
-                    "DeviceName": "/dev/sda1",
-                    "Ebs": {
-                        "VolumeSize": "80"
-                    }
-                }],
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "VolumeSize": "80"
+                        }
+                    },
+                    {
+                        "DeviceName": "/dev/sdaf",
+                        "Ebs": {
+                            "VolumeSize": "200"
+                        }
+                    },
+                ],
                 "InstanceMonitoring": "true",
                 "IamInstanceProfile": {
                     "Ref": "SetupRoleProfile"
@@ -1313,7 +1321,7 @@
                                 "echo \" Finish Ansible PlayBook execution\"\n",
                                 "\n",
                                 "# Add users\n",
-                                "ansible masters -a \"htpasswd -b /etc/origin/master/htpasswd  admin admin\"\n"
+                                "ansible masters -a \"htpasswd -b /etc/origin/master/htpasswd  admin admin\"\n",
                                 "echo \"Start cfn stack signaling\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
                                 "echo \"[qs_status] = $(qs_status)\"\n",
