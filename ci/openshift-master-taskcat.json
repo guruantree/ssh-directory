@@ -1,15 +1,10 @@
-[
-    {
+[{
         "ParameterKey": "AvailabilityZones",
         "ParameterValue": "$[taskcat_genaz_3]"
     },
     {
         "ParameterKey": "KeyPairName",
         "ParameterValue": "tonynv"
-    },
-    {
-        "ParameterKey": "OperatorEmail",
-        "ParameterValue": "operator@example.com"
     },
     {
         "ParameterKey": "PrivateSubnet1CIDR",

@@ -12,7 +12,6 @@ ansible_ssh_user=root
 openshift_deployment_type=openshift-enterprise
 containerized=false
 openshift_master_cluster_method=native
-openshift_disable_check=docker_storage
 openshift_hosted_router_wait=False
 openshift_hosted_registry_wait=False
 openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
