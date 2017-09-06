@@ -54,23 +54,35 @@ def get_ip_address(instanceid, region, label):
                 if label == 'masters':
                     for n in i['NetworkInterfaces']:
                         if elb_dnsname:
-                            hostdef = "{} {} {}".format(
+                            hostdef = "{} {} {} {} {}".format(
                                 n['PrivateIpAddress'].ljust(15),
-                                ("openshift_ip=" + n['PrivateIpAddress']).ljust(25),
-                                ("openshift_public_hostname=" + elb_dnsname)
+                                ("openshift_hostname=" + n['PrivateIpAddress']).ljust(25),
+                                ("openshift_public_hostname=" + elb_dnsname),
+                                ("openshift_node_labels=\"{'region': 'infra', 'zone': 'default'} \""),
+                                ("openshift_schedulable=false")
                                 )
                         else:
-                            hostdef = "{} {} {}".format(n['PrivateIpAddress'].ljust(15),
+                            hostdef = "{} {} {} {} {}".format(n['PrivateIpAddress'].ljust(15),
+                                                        ("openshift_hostname=" + n['PrivateIpAddress']).ljust(25),
                                                         ("openshift_public_ip=" + n['Association']['PublicIp']).ljust(25),
-                                                        ("openshift_public_hostname=" + n['Association']['PublicDnsName'])
+                                                        ("openshift_node_labels=\"{'region': 'infra', 'zone': 'default'} \""),
+                                                        ("openshift_schedulable=false")
                                                         )
+                    nodes.append(hostdef)
+                elif label == 'nodes':
+                    for n in i['NetworkInterfaces']:
+                        hostdef = "{} {} {}".format(
+                            n['PrivateIpAddress'].ljust(15),
+                            ("openshift_hostname=" + n['PrivateIpAddress']).ljust(25),
+                            ("openshift_node_labels=\"{'region': 'infra', 'zone': 'default'}\"")
+                            )
                     nodes.append(hostdef)
                 else:
                     for n in i['NetworkInterfaces']:
-                        hostdef = "{} {} {}".format(n['PrivateIpAddress'].ljust(15),
-                                                    ("openshift_ip=" + n['PrivateIpAddress']).ljust(25),
-                                                    ("openshift_hostname=" + n['PrivateIpAddress'])
-                                                    )
+                        hostdef = "{} {}".format(
+                            n['PrivateIpAddress'].ljust(15),
+                            ("openshift_hostname=" + n['PrivateIpAddress']).ljust(25)
+                            )
                     nodes.append(hostdef)
     return nodes
 

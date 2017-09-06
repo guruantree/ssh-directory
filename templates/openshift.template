@@ -492,6 +492,14 @@
                     },
                     {
                         "IpProtocol": "tcp",
+                        "FromPort": "9000",
+                        "ToPort": "9000",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
                         "FromPort": "80",
                         "ToPort": "80",
                         "CidrIp": {
@@ -579,6 +587,9 @@
             "Type": "AWS::AutoScaling::AutoScalingGroup",
             "DependsOn": "GetRSA",
             "Properties": {
+                "LoadBalancerNames": [{
+                    "Ref": "OpenShiftMasterELB"
+                }],
                 "DesiredCapacity": {
                     "Ref": "NumberOfMaster"
                 },
@@ -645,6 +656,9 @@
             "Type": "AWS::AutoScaling::AutoScalingGroup",
             "DependsOn": "OpenShiftMasterASG",
             "Properties": {
+                "LoadBalancerNames": [{
+                    "Ref": "OpenShiftNodeELB"
+                }],
                 "DesiredCapacity": {
                     "Ref": "NumberOfNodes"
                 },
@@ -812,13 +826,13 @@
                                 "subscription-manager attach --pool=${POOL_ID}\n",
                                 "yum-config-manager --disable *\n",
                                 "yum clean all\n",
-                                "yum repolist | grep OpenShift \n",
                                 "subscription-manager repos ",
                                 "--disable=\"rhel-7-server-ose-3.5-rpms\" ",
                                 "--enable=\"rhel-7-server-ose-3.6-rpms\" ",
                                 "--enable=\"rhel-7-server-extras-rpms\" ",
                                 "--enable=\"rhel-7-fast-datapath-rpms\" ",
                                 "\n",
+                                "yum repolist | grep OpenShift \n",
                                 "# Start cfn-init [GetPublicKey, AddPublicKey]\n",
                                 "cfn-init -v ",
                                 " --stack ",
@@ -1185,6 +1199,106 @@
                 }
             }
         },
+        "OpenShiftMasterELB": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "Subnets": [{
+                        "Ref": "PublicSubnet1ID"
+                    },
+                    {
+                        "Ref": "PublicSubnet2ID"
+                    },
+                    {
+                        "Ref": "PublicSubnet3ID"
+                    }
+                ],
+                "SecurityGroups": [{
+                    "Ref": "OpenShiftSecurityGroup"
+                }],
+                "Listeners": [{
+                        "InstancePort": "9000",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "9000",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "8443",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "8443",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "80",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "443",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "443",
+                        "Protocol": "TCP"
+                    }
+                ],
+                "HealthCheck": {
+                    "Target": "TCP:22",
+                    "HealthyThreshold": "2",
+                    "UnhealthyThreshold": "3",
+                    "Interval": "30",
+                    "Timeout": "3"
+                }
+            }
+        },
+        "OpenShiftNodeELB": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "Subnets": [{
+                        "Ref": "PrivateSubnet1ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet2ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet3ID"
+                    }
+                ],
+                "SecurityGroups": [{
+                    "Ref": "OpenShiftSecurityGroup"
+                }],
+                "Listeners": [{
+                        "InstancePort": "9000",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "9000",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "8443",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "8443",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "80",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "443",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "443",
+                        "Protocol": "TCP"
+                    }
+                ],
+                "HealthCheck": {
+                    "Target": "TCP:22",
+                    "HealthyThreshold": "2",
+                    "UnhealthyThreshold": "3",
+                    "Interval": "30",
+                    "Timeout": "3"
+                }
+            }
+        },
         "AnsibleConfigServer": {
             "Type": "AWS::EC2::Instance",
             "DependsOn": "OpenShiftNodeASG",
@@ -1345,7 +1459,16 @@
                                 "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
                                 "#\n",
                                 "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
-                                "# Start cfn-configset [cfg_node_keys]",
+                                "# Start cfn-configset [cfg_node_keys]\n",
+                                "MASTER_ELBDNSNAME=",
+                                {
+                                    "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
+                                },
+                                "\n",
+                                "NODE_ELBDNSNAME=",
+                                {
+                                    "Fn::GetAtt": ["OpenShiftNodeELB", "DNSName"]
+                                },
                                 "\n",
                                 "aws s3 cp ",
                                 {
@@ -1412,6 +1535,10 @@
                                 },
                                 "scripts/openshift_config_ose.yml  ~/openshift_config.yml \n",
                                 "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
+
+                                "echo openshift_master_cluster_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "echo openshift_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
                                 "sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg \n",
@@ -1473,7 +1600,7 @@
                                 "atomic-openshift-excluder unexclude\n",
                                 "echo \" Start Ansible PlayBook execution\"\n",
                                 "date >>~/playbooks.info\n",
-                                "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
+                                "ansible-playbook -vvv /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "date >>~/playbooks.info\n",
                                 "echo \" Finish Ansible PlayBook execution\"\n",
                                 "\n",
@@ -1503,6 +1630,18 @@
                 "ResourceSignal": {
                     "Timeout": "PT240M"
                 }
+            }
+        }
+    },
+    "Outputs": {
+        "OpenShiftUI": {
+            "Description": "The URL OpenShiftUI",
+            "Value": {
+                "Fn::Join": ["", ["https://",
+                    {
+                        "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
+                    }, ":8443/"
+                ]]
             }
         }
     }
