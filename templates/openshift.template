@@ -1576,7 +1576,7 @@
                                     "Ref": "AnsiblePlayBookType"
                                 },
                                 "\"\n",
-                                "if [ $PLAYBOOK -eq \"Subscription-Version\" ]; then \n",
+                                "if [ $PLAYBOOK == \"Subscription-Version\" ]; then \n",
                                 "  echo \"Using Builtin Playbooks\"\n",
                                 "else\n",
                                 "  echo \"Override Builtin Playbooks\" \n",
