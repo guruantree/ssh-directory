@@ -62,9 +62,8 @@ def get_ip_address(instanceid, region, label):
                                 ("openshift_schedulable=false")
                                 )
                         else:
-                            hostdef = "{} {} {} {} {}".format(n['PrivateIpAddress'].ljust(15),
+                            hostdef = "{} {} {} {}".format(n['PrivateIpAddress'].ljust(15),
                                                         ("openshift_hostname=" + n['PrivateIpAddress']).ljust(25),
-                                                        ("openshift_public_ip=" + n['Association']['PublicIp']).ljust(25),
                                                         ("openshift_node_labels=\"{'region': 'infra', 'zone': 'default'} \""),
                                                         ("openshift_schedulable=false")
                                                         )

@@ -425,10 +425,10 @@
             "Properties": {
                 "Code": {
                     "S3Bucket": {
-                        "Ref": "QSS3BucketName"
+                        "Fn::Sub": "quickstart-reference-lambda-${AWS::Region}"
                     },
                     "S3Key": {
-                        "Fn::Sub": "${QSS3KeyPrefix}scripts/genrsa_lambda.zip"
+                        "Fn::Sub": "generate_sshkeys/genrsa_lambda.zip"
                     }
                 },
                 "Handler": "service.handler",
@@ -608,13 +608,13 @@
                     "Value": "openshift-master"
                 }],
                 "VPCZoneIdentifier": [{
-                        "Ref": "PublicSubnet1ID"
+                        "Ref": "PrivateSubnet1ID"
                     },
                     {
-                        "Ref": "PublicSubnet2ID"
+                        "Ref": "PrivateSubnet2ID"
                     },
                     {
-                        "Ref": "PublicSubnet3ID"
+                        "Ref": "PrivateSubnet3ID"
                     }
                 ]
             }
@@ -1407,18 +1407,14 @@
                 },
                 "NetworkInterfaces": [{
                     "DeleteOnTermination": "true",
+                    "AssociatePublicIpAddress": "true",
+                    "DeviceIndex": "0",
+                    "GroupSet": [{
+                        "Ref": "OpenShiftSecurityGroup"
+                    }],
                     "SubnetId": {
                         "Ref": "PublicSubnet1ID"
                     },
-                    "DeviceIndex": "0",
-                    "AssociatePublicIpAddress": "true",
-                    "PrivateIpAddresses": [{
-                        "Primary": "true",
-                        "PrivateIpAddress": "10.0.128.10"
-                    }],
-                    "GroupSet": [{
-                        "Ref": "OpenShiftSecurityGroup"
-                    }]
                 }],
                 "UserData": {
                     "Fn::Base64": {
@@ -1600,7 +1596,7 @@
                                 "atomic-openshift-excluder unexclude\n",
                                 "echo \" Start Ansible PlayBook execution\"\n",
                                 "date >>~/playbooks.info\n",
-                                "ansible-playbook -vvv /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
+                                "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "date >>~/playbooks.info\n",
                                 "echo \" Finish Ansible PlayBook execution\"\n",
                                 "\n",
