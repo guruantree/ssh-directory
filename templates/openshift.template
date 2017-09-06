@@ -1202,10 +1202,13 @@
         "OpenShiftMasterELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
+                "ConnectionSettings": {
+                    "IdleTimeout": 1200
+                },
+                "CrossZone": true,
                 "Subnets": [{
                         "Ref": "PublicSubnet1ID"
-                    },
-                    {
+                    }, {
                         "Ref": "PublicSubnet2ID"
                     },
                     {
