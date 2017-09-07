@@ -283,19 +283,18 @@
             "Default": "3",
             "Description": "The desired capacity for the OpenShift Master Nodes",
             "Type": "Number",
-            "AllowedValues": ["2", "3"]
+            "AllowedValues": ["3"]
         },
         "NumberOfEtcd": {
             "Default": "3",
             "Description": "The desired capacity for the OpenShift Master Nodes",
             "Type": "Number",
-            "AllowedValues": ["2", "3"]
+            "AllowedValues": ["3"]
         },
         "NumberOfNodes": {
             "Default": "3",
             "Description": "The desired capacity for the OpenShift Master Nodes",
-            "Type": "Number",
-            "AllowedValues": ["2", "3"]
+            "Type": "Number"
         }
     },
     "Rules": {
@@ -486,30 +485,6 @@
                         "IpProtocol": "tcp",
                         "FromPort": "8443",
                         "ToPort": "8444",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "9000",
-                        "ToPort": "9000",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "80",
-                        "ToPort": "80",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "443",
-                        "ToPort": "443",
                         "CidrIp": {
                             "Ref": "RemoteAccessCIDR"
                         }
@@ -1269,30 +1244,11 @@
                     "Ref": "OpenShiftSecurityGroup"
                 }],
                 "Listeners": [{
-                        "InstancePort": "9000",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "9000",
-                        "Protocol": "TCP"
-                    },
-                    {
-                        "InstancePort": "8443",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8443",
-                        "Protocol": "TCP"
-                    },
-                    {
-                        "InstancePort": "80",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "80",
-                        "Protocol": "TCP"
-                    },
-                    {
-                        "InstancePort": "443",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "443",
-                        "Protocol": "TCP"
-                    }
-                ],
+                    "InstancePort": "8443",
+                    "InstanceProtocol": "TCP",
+                    "LoadBalancerPort": "8443",
+                    "Protocol": "TCP"
+                }],
                 "HealthCheck": {
                     "Target": "TCP:22",
                     "HealthyThreshold": "2",
