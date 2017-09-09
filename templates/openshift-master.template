@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "OpenShift Prototype",
+    "Description": "(qs-1nlhhlq1e) OpenShift, License: Apache 2.0(Please do not remove) September, 7, 2017 ",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
@@ -218,6 +218,7 @@
             "Type": "String"
         },
         "RedhatSubscriptionPassword": {
+            "NoEcho": "true",
             "Description": "Enter Redhat RHN Password",
             "Type": "String"
         },

@@ -18,7 +18,14 @@ global:
     - us-west-1
     - us-west-2
   reporting: true
+  s3bucket: tonynv-redhat-openshift
 tests:
-  workload-master:
-    parameter_input: openshift-master.json
+  openshift:
+    parameter_input: openshift-creds.json
+    regions:
+#      - us-east-1
+      - us-east-2
+#      - us-west-2
+#      - eu-west-1
+#      - ap-southeast-2
     template_file: openshift-master.template
