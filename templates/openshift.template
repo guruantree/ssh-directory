@@ -1099,10 +1099,11 @@
                             "", [
                                 "#!/bin/bash",
                                 "\n",
-                                "########################################################################################################################\n",
-                                "# Load QuickStart Common Utils",
-                                "#\n",
-                                "UTIL=", {
+
+                                "echo \"========================================================================================================================\"\n",
+                                "echo \"\t------------------[] Starting: Load QuickStart Common\"\n",
+                                "\n",
+                                "QSLOCATION=", {
                                     "Fn::Sub": [
                                         "https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}",
                                         {
@@ -1116,45 +1117,55 @@
                                         }
                                     ]
                                 },
-                                "submodules/quickstart-linux-utilities/quickstart-cfn-tools.source",
                                 "\n",
+                                "UTIL=\"${QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source\"\n",
                                 "P=/tmp/quickstart-cfn-tools.source \n",
+                                "#qs_retry_command is not available (use until loop)\n",
                                 "curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do curl -s ${UTIL} -o ${P} && break; n=$[$n+1]; done\n",
-                                "source ${P}",
+                                "source ${P}\n",
+                                "echo \"\t------------------[] Finished: Load QuickStart Common\"\n",
+                                "echo \"========================================================================================================================\"\n",
                                 "\n",
-                                "########################################################################################################################\n",
-                                "# Install AWS cfn-bootstrap",
-                                "\n",
+
+                                "echo \"\t------------------[] Starting: aws cfn-bootstrap installation via [qs_bootstrap_pip, qs_aws-cfn-bootstrap]\"\n",
                                 "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n",
                                 "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n",
-                                "########################################################################################################################\n",
+                                "echo \"\t------------------[] Finished: aws cfn-bootstrap installation\"\n",
                                 "\n",
-                                "#Attach to Subscription pool\n",
-                                "subscription-manager register",
-                                " --username=",
-                                {
-                                    "Ref": "RedhatSubscriptionUserName"
-                                },
-                                " --password=",
-                                {
-                                    "Ref": "RedhatSubscriptionPassword"
-                                },
-                                " --force",
+
+                                "echo \"\t------------------[] Starting: epel configuration via [qs_enable_epel]\"\n",
+                                "# Needed for initial Ansible availability\n",
+                                "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \" enable epel failed \"\n",
+                                "echo \"\t------------------[] Completed epel configuration \"\n",
                                 "\n",
-                                "POOL_ID=",
+
+                                "echo \"\t------------------[] Starting: installation of  awscli \"\n",
+                                "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err \" awscli install failed \"\n",
+                                "echo \"\t------------------[] Completed: install of awscli \"\n",
+                                "\n",
+
+                                "echo \"========================================================================================================================\"\n",
+                                "echo \"\t------------------[] Completed: QuickStart Common Utils \"\n",
+                                "\n",
+
+                                "echo \"========================================================================================================================\"\n",
+                                "echo \"\t------------------[]Attach to Subscription pool\"\n",
+                                "SCRIPT_PATH=",
                                 {
-                                    "Ref": "RedhatSubscriptionPoolID"
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
+
                                 },
                                 "\n",
-                                "subscription-manager attach --pool=${POOL_ID}\n",
-                                "yum-config-manager --disable *\n",
-                                "yum clean all\n",
-                                "yum repolist | grep OpenShift \n",
-                                "subscription-manager repos ",
-                                "--disable=\"rhel-7-server-ose-3.5-rpms\" ",
-                                "--enable=\"rhel-7-server-ose-3.6-rpms\" ",
-                                "--enable=\"rhel-7-server-extras-rpms\" ",
-                                "--enable=\"rhel-7-fast-datapath-rpms\" ",
+                                "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
+                                "chmod 755 ~/redhat_ose-register.sh\n",
+                                "qs_retry_command 20 ~/redhat_ose-register.sh ",
+                                {
+                                    "Fn::Sub": "${RedhatSubscriptionUserName} ${RedhatSubscriptionPassword} ${RedhatSubscriptionPoolID} "
+
+                                },
+                                "\n",
+                                "echo \"========================================================================================================================\"\n",
+
                                 "\n",
                                 "# Start cfn-init [GetPublicKey, AddPublicKey]\n",
                                 "cfn-init -v ",
