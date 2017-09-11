@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "(qs-1nlhhlq1e) OpenShift, License: Apache 2.0(Please do not remove) September, 7, 2017 ",
+    "Description": "(qs-1nltbq5f8) OpenShift, License: Apache 2.0(Please do not remove) September, 11, 2017 ",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
@@ -303,19 +303,19 @@
         },
         "NumberOfMaster": {
             "Default": "3",
-            "Description": " This Deployment use 3 OpenShift Master's",
+            "Description": "This Deployment requires 3 OpenShift Master instances",
             "Type": "Number",
             "AllowedValues": ["3"]
         },
         "NumberOfEtcd": {
             "Default": "3",
-            "Description": "Thist Deployment uses 3 OpenShift Etcd's",
+            "Description": "This Deployment requires 3 OpenShift Etcd instances",
             "Type": "Number",
             "AllowedValues": ["3"]
         },
         "NumberOfNodes": {
             "Default": "3",
-            "Description": "Enter desired capacity for the OpenShift Nodes (Note each node will Red hat Subscription)",
+            "Description": "The desired capacity for the OpenShift node instances",
             "Type": "Number"
         }
     },

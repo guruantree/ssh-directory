@@ -4,43 +4,27 @@
     },
     {
         "ParameterKey": "KeyPairName",
-        "ParameterValue": "tonynv"
+        "ParameterValue": "cikey"
     },
     {
-        "ParameterKey": "PrivateSubnet1CIDR",
-        "ParameterValue": "10.0.0.0/19"
-    },
-    {
-        "ParameterKey": "PrivateSubnet2CIDR",
-        "ParameterValue": "10.0.32.0/19"
-    },
-    {
-        "ParameterKey": "PublicSubnet1CIDR",
-        "ParameterValue": "10.0.128.0/20"
-    },
-    {
-        "ParameterKey": "PublicSubnet2CIDR",
-        "ParameterValue": "10.0.144.0/20"
-    },
-    {
-        "ParameterKey": "RemoteAccessCIDR",
-        "ParameterValue": "0.0.0.0/0"
-    },
-    {
-        "ParameterKey": "QSS3BucketName",
-        "ParameterValue": "tonynv-redhat-openshift"
-    },
-    {
-        "ParameterKey": "QSS3KeyPrefix",
-        "ParameterValue": "quickstart-redhat-openshift/"
-    },
-    {
-        "ParameterKey": "RedhatSubscriptionUserName",
-        "ParameterValue": "awspsa-tonynv"
+        "ParameterKey": "NumberOfNodes",
+        "ParameterValue": "3"
     },
     {
         "ParameterKey": "RedhatSubscriptionPassword",
-        "ParameterValue": "$[taskcat_url_https://s3.amazonaws.com/tonynv-rhn/rhpass]"
+        "ParameterValue": "RHPASS"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionUserName",
+        "ParameterValue": "RHUSER"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionPoolID",
+        "ParameterValue": "8a85f9874011071c01407da00b997cb2"
+    },
+    {
+        "ParameterKey": "RemoteAccessCIDR",
+        "ParameterValue": "1.2.3.4/0"
     },
     {
         "ParameterKey": "VPCCIDR",

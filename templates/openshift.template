@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "(qs-1nlhhlqld) OpenShift+VPC, License: Apache 2.0(Please do not remove) September, 7, 2017 ",
+    "Description": "(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0(Please do not remove) September, 11, 2017 ",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
@@ -181,7 +181,7 @@
         "QSS3KeyPrefix": {
             "AllowedPattern": "^[0-9a-zA-Z-/]*$",
             "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
-            "Default": "redhat/openshift/",
+            "Default": "redhat/openshift/latest/",
             "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
             "Type": "String"
         },
@@ -230,7 +230,9 @@
             "Type": "AWS::EC2::VPC::Id"
         },
         "MasterInstanceType": {
+            "Default": "m4.xlarge",
             "AllowedValues": [
+                "t2.large",
                 "m4.xlarge",
                 "m4.2xlarge",
                 "m4.4xlarge",
@@ -242,12 +244,13 @@
                 "c4.8xlarge"
             ],
             "ConstraintDescription": "Must contain valid instance type",
-            "Default": "m4.xlarge",
-            "Description": "Type of EC2 instance for the Workload instances",
+            "Description": "Type of EC2 instance for the Master instances",
             "Type": "String"
         },
         "EtcdInstanceType": {
+            "Default": "m4.xlarge",
             "AllowedValues": [
+                "t2.large",
                 "m4.xlarge",
                 "m4.2xlarge",
                 "m4.4xlarge",
@@ -259,12 +262,13 @@
                 "c4.8xlarge"
             ],
             "ConstraintDescription": "Must contain valid instance type",
-            "Default": "m4.xlarge",
-            "Description": "Type of EC2 instance for the Workload instances",
+            "Description": "Type of EC2 instance for the Etcd instances",
             "Type": "String"
         },
         "NodesInstanceType": {
+            "Default": "m4.xlarge",
             "AllowedValues": [
+                "t2.large",
                 "m4.xlarge",
                 "m4.2xlarge",
                 "m4.4xlarge",
@@ -276,25 +280,24 @@
                 "c4.8xlarge"
             ],
             "ConstraintDescription": "Must contain valid instance type",
-            "Default": "m4.xlarge",
-            "Description": "Type of EC2 instance for the Workload instances",
+            "Description": "Type of EC2 instance for the Node instances",
             "Type": "String"
         },
         "NumberOfMaster": {
             "Default": "3",
-            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Description": "This Deployment requires 3 OpenShift Master instances",
             "Type": "Number",
             "AllowedValues": ["3"]
         },
         "NumberOfEtcd": {
             "Default": "3",
-            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Description": "This Deployment requires 3 OpenShift Etcd instances",
             "Type": "Number",
             "AllowedValues": ["3"]
         },
         "NumberOfNodes": {
             "Default": "3",
-            "Description": "The desired capacity for the OpenShift Master Nodes",
+            "Description": "The desired capacity for the OpenShift node instances",
             "Type": "Number"
         }
     },
