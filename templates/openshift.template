@@ -1605,7 +1605,6 @@
                                 "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "date >>~/playbooks.info\n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build (Completed Ansible Playbook run!!!)\" \n",
-                                "date >>~/playbooks.info\n",
                                 "\n",
                                 "echo \"[INFO] Adding OpenShift Users\" \n",
                                 "ansible masters -a \"htpasswd -b /etc/origin/master/htpasswd admin admin\"\n",
@@ -1613,8 +1612,7 @@
                                 "echo \"[INFO] Finished OpenShift Cluster Build\" \n",
                                 "echo \"[INFO] Signaling Stack .....\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
-                                "echo \"[qs_status] = $qs_status\"\n",
-                                "cfn-signal -e $qs_status",
+                                "cfn-signal -e $?",
                                 "   --stack ",
                                 {
                                     "Ref": "AWS::StackName"
