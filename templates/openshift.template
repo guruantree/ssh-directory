@@ -42,11 +42,11 @@
                 },
                 {
                     "Label": {
-                        "default": "Ansible PlayBook Configuration"
+                        "default": "Ansible Playbook Configuration"
                     },
                     "Parameters": [
-                        "AnsiblePlayBookType",
-                        "AnsiblePlayBookGitRepoTag"
+                        "AnsiblePlaybookType",
+                        "AnsiblePlaybookGitRepoTag"
                     ]
                 },
                 {
@@ -92,7 +92,7 @@
                     "default": "Public Subnet 3 ID"
                 },
                 "QSS3BucketName": {
-                    "defauS3BucketNamelt": "Quick Start S3 Bucket Name"
+                    "default": "Quick Start S3 Bucket Name"
                 },
                 "QSS3KeyPrefix": {
                     "default": "Quick Start S3 Key Prefix"
@@ -107,18 +107,18 @@
                     "default": "VPC CIDR"
                 },
                 "RedhatSubscriptionUserName": {
-                    "default": "Red Hat Subscription UserName"
+                    "default": "Red Hat Subscription User Name"
                 },
                 "RedhatSubscriptionPassword": {
                     "default": "Red Hat Subscription Password"
                 },
                 "RedhatSubscriptionPoolID": {
-                    "default": "Red Hat PoolID"
+                    "default": "Red Hat Pool ID"
                 },
-                "AnsiblePlayBookType": {
-                    "default": "Ansible PlayBook Mode"
+                "AnsiblePlaybookType": {
+                    "default": "Ansible Playbook Mode"
                 },
-                "AnsiblePlayBookGitRepoTag": {
+                "AnsiblePlaybookGitRepoTag": {
                     "default": "Git Repo Release Version"
                 },
                 "MasterInstanceType": {
@@ -131,13 +131,13 @@
                     "default": "Nodes Instance Type"
                 },
                 "NumberOfMaster": {
-                    "default": "Number of Master's"
+                    "default": "Number of Masters"
                 },
                 "NumberOfEtcd": {
-                    "default": "Number of Etcd's"
+                    "default": "Number of Etcds"
                 },
                 "NumberOfNodes": {
-                    "default": "Number of Nodes's"
+                    "default": "Number of Nodes"
                 }
             }
         }
@@ -192,7 +192,7 @@
             "Type": "String"
         },
         "RedhatSubscriptionUserName": {
-            "Description": "Enter Redhat RHN UserName",
+            "Description": "Enter Redhat RHN User Name",
             "Type": "String"
         },
         "RedhatSubscriptionPassword": {
@@ -204,7 +204,7 @@
             "Description": "Enter Redhat RHN PoolID",
             "Type": "String"
         },
-        "AnsiblePlayBookType": {
+        "AnsiblePlaybookType": {
             "Description": "Note:This QuickStart only supports OpenSource-Version for Development Purposes!",
             "Default": "Subscription-Version",
             "AllowedValues": [
@@ -213,7 +213,7 @@
             ],
             "Type": "String"
         },
-        "AnsiblePlayBookGitRepoTag": {
+        "AnsiblePlaybookGitRepoTag": {
             "Description": "Only Used if [OpenSource-Version] is selected. List of Development Releases available here -> https://github.com/openshift/openshift-ansible/releases",
             "Default": "3.6.173.0.5-5",
             "Type": "String"
@@ -1579,7 +1579,7 @@
                                 "yum -y install atomic-openshift-utils\n",
                                 "yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
                                 "PLAYBOOK=\"", {
-                                    "Ref": "AnsiblePlayBookType"
+                                    "Ref": "AnsiblePlaybookType"
                                 },
                                 "\"\n",
                                 "if [ $PLAYBOOK == \"Subscription-Version\" ]; then \n",
@@ -1589,7 +1589,7 @@
                                 "  touch ~/override_Playbooks \n",
                                 "CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-",
                                 {
-                                    "Ref": "AnsiblePlayBookGitRepoTag"
+                                    "Ref": "AnsiblePlaybookGitRepoTag"
                                 },
                                 ".tar.gz\n",
                                 "curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz \n",

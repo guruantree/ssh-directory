@@ -52,11 +52,11 @@
                 },
                 {
                     "Label": {
-                        "default": "Ansible PlayBook Configuration"
+                        "default": "Ansible Playbook Configuration"
                     },
                     "Parameters": [
-                        "AnsiblePlayBookType",
-                        "AnsiblePlayBookGitRepoTag"
+                        "AnsiblePlaybookType",
+                        "AnsiblePlaybookGitRepoTag"
                     ]
                 },
                 {
@@ -92,7 +92,7 @@
                     "default": "Public Subnet 3 ID"
                 },
                 "QSS3BucketName": {
-                    "defauS3BucketNamelt": "Quick Start S3 Bucket Name"
+                    "default": "Quick Start S3 Bucket Name"
                 },
                 "QSS3KeyPrefix": {
                     "default": "Quick Start S3 Key Prefix"
@@ -107,18 +107,18 @@
                     "default": "VPC CIDR"
                 },
                 "RedhatSubscriptionUserName": {
-                    "default": "Red Hat Subscription UserName"
+                    "default": "Red Hat Subscription User Name"
                 },
                 "RedhatSubscriptionPassword": {
                     "default": "Red Hat Subscription Password"
                 },
                 "RedhatSubscriptionPoolID": {
-                    "default": "Red Hat PoolID"
+                    "default": "Red Hat Pool ID"
                 },
-                "AnsiblePlayBookType": {
-                    "default": "Ansible PlayBook Mode"
+                "AnsiblePlaybookType": {
+                    "default": "Ansible Playbook Mode"
                 },
-                "AnsiblePlayBookGitRepoTag": {
+                "AnsiblePlaybookGitRepoTag": {
                     "default": "Git Repo Release Version"
                 },
                 "MasterInstanceType": {
@@ -131,20 +131,20 @@
                     "default": "Nodes Instance Type"
                 },
                 "NumberOfMaster": {
-                    "default": "Number of Master's"
+                    "default": "Number of Masters"
                 },
                 "NumberOfEtcd": {
-                    "default": "Number of Etcd's"
+                    "default": "Number of Etcds"
                 },
                 "NumberOfNodes": {
-                    "default": "Number of Nodes's"
+                    "default": "Number of Nodes"
                 }
             }
         }
     },
     "Parameters": {
         "AvailabilityZones": {
-            "Description": "List of Availability Zones to use for the subnets in the VPC. Only two Availability Zones are used for this deployment, and the logical order of your selections is preserved.",
+            "Description": "List of Availability Zones to use for the subnets in the VPC. Three Availability Zones are used for this deployment, and the logical order of your selections is preserved.",
             "Type": "List<AWS::EC2::AvailabilityZone::Name>"
         },
         "KeyPairName": {
@@ -214,7 +214,7 @@
             "Type": "String"
         },
         "RedhatSubscriptionUserName": {
-            "Description": "Enter Redhat RHN UserName",
+            "Description": "Enter Redhat RHN User Name",
             "Type": "String"
         },
         "RedhatSubscriptionPassword": {
@@ -226,7 +226,7 @@
             "Description": "Enter Redhat RHN PoolID",
             "Type": "String"
         },
-        "AnsiblePlayBookType": {
+        "AnsiblePlaybookType": {
             "Description": "Note:This QuickStart only supports OpenSource-Version for Development Purposes!",
             "Default": "Subscription-Version",
             "AllowedValues": [
@@ -235,7 +235,7 @@
             ],
             "Type": "String"
         },
-        "AnsiblePlayBookGitRepoTag": {
+        "AnsiblePlaybookGitRepoTag": {
             "Description": "Only Used if [OpenSource-Version] is selected. List of Development Releases available here -> https://github.com/openshift/openshift-ansible/releases",
             "Default": "3.6.173.0.5-5",
             "Type": "String"
@@ -316,7 +316,7 @@
         "NumberOfNodes": {
             "Default": "3",
             "Description": "Enter desired capacity for the OpenShift Nodes (Note each node will Red hat Subscription)",
-            "Type": "Number",
+            "Type": "Number"
         }
     },
     "Resources": {
