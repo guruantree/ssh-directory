@@ -323,49 +323,22 @@
     "Mappings": {
         "AWSAMIRegionMap": {
             "AMI": {
-                "RHEL74HVM": "RHEL-7.2_HVM-20161025-x86_64-1-Hourly2-GP2"
-            },
-            "ap-northeast-1": {
-                "RHEL74HVM": "ami-2265c543"
-            },
-            "ap-northeast-2": {
-                "RHEL74HVM": "ami-a9e532c7"
-            },
-            "ap-south-1": {
-                "RHEL74HVM": "ami-917205fe"
-            },
-            "ap-southeast-1": {
-                "RHEL74HVM": "ami-22953841"
+                "RHEL74HVM": "RHEL-7.4_HVM_GA-20170808-x86_64-2-Hourly2-GP2"
             },
             "ap-southeast-2": {
-                "RHEL74HVM": "ami-91cdf0f2"
-            },
-            "ca-central-1": {
-                "RHEL74HVM": "ami-b764d6d3"
-            },
-            "eu-central-1": {
-                "RHEL74HVM": "ami-7def1712"
+                "RHEL74HVM": "ami-ccecf5af"
             },
             "eu-west-1": {
-                "RHEL74HVM": "ami-b22961c1"
-            },
-            "eu-west-2": {
-                "RHEL74HVM": "ami-b9353fdd"
-            },
-            "sa-east-1": {
-                "RHEL74HVM": "ami-28f66a44"
+                "RHEL74HVM": "ami-bb9a6bc2"
             },
             "us-east-1": {
                 "RHEL74HVM": "ami-c998b6b2"
             },
             "us-east-2": {
-                "RHEL74HVM": "ami-0a33696f"
-            },
-            "us-west-1": {
-                "RHEL74HVM": "ami-f88fc498"
+                "RHEL74HVM": "ami-cfdafaaa"
             },
             "us-west-2": {
-                "RHEL74HVM": "ami-5dd3743d"
+                "RHEL74HVM": "ami-9fa343e7"
             }
         },
         "LinuxAMINameMap": {
