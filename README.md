@@ -15,7 +15,7 @@ The Quick Start offers two deployment options:
 
 You can also use the AWS CloudFormation templates as a starting point for your own implementation.
 
-![Quick Start architecture for OpenShift Enterprise on AWS](https://d0.awsstatic.com/partner-network/QuickStart/datasheets/redhat-openshift-on-aws-architecture.png)
+![Quick Start architecture for OpenShift Container Platform on AWS](https://d0.awsstatic.com/partner-network/QuickStart/datasheets/redhat-openshift-on-aws-architecture.png)
 
 For architectural details, best practices, step-by-step instructions, and customization options, see the [deployment guide](https://s3.amazonaws.com/quickstart-reference/redhat/openshift/latest/doc/red-hat-openshift-on-the-aws-cloud.pdf).
 
