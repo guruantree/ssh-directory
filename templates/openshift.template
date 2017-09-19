@@ -477,6 +477,19 @@
                 ]
             }
         },
+        "OpenShiftInternalSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow access to the Workload instances",
+                "VpcId": {
+                    "Ref": "VPCID"
+                },
+                "SecurityGroupIngress": [{
+                    "IpProtocol": "-1",
+                    "CidrIp": "0.0.0.0/0"
+                }]
+            }
+        },
         "SetupRole": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -516,6 +529,7 @@
                                 "Effect": "Allow",
                                 "Action": [
                                     "autoscaling:Describe*",
+                                    "autoscaling:AttachLoadBalancers",
                                     "ec2:Describe*"
                                 ],
                                 "Resource": "*"
@@ -548,9 +562,7 @@
                 "MaxSize": {
                     "Ref": "NumberOfMaster"
                 },
-                "MinSize": {
-                    "Ref": "NumberOfMaster"
-                },
+                "MinSize": "2",
                 "LaunchConfigurationName": {
                     "Ref": "OpenShiftMasterASLaunchConfig"
                 },
@@ -581,9 +593,7 @@
                 "MaxSize": {
                     "Ref": "NumberOfEtcd"
                 },
-                "MinSize": {
-                    "Ref": "NumberOfEtcd"
-                },
+                "MinSize": "2",
                 "LaunchConfigurationName": {
                     "Ref": "OpenShiftEtcdLaunchConfig"
                 },
@@ -617,10 +627,7 @@
                 "MaxSize": {
                     "Ref": "NumberOfNodes"
                 },
-                "MinSize": {
-                    "Ref": "NumberOfNodes"
-                },
-
+                "MinSize": "2",
                 "LaunchConfigurationName": {
                     "Ref": "OpenShiftNodesLaunchConfig"
                 },
@@ -1237,6 +1244,60 @@
                 }
             }
         },
+        "OpenShiftMasterInternalELB": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "ConnectionSettings": {
+                    "IdleTimeout": 1200
+                },
+                "CrossZone": true,
+                "Scheme": "internal",
+                "Subnets": [{
+                        "Ref": "PrivateSubnet1ID"
+                    }, {
+                        "Ref": "PrivateSubnet2ID"
+                    },
+                    {
+                        "Ref": "PrivateSubnet3ID"
+                    }
+                ],
+                "SecurityGroups": [{
+                    "Ref": "OpenShiftInternalSecurityGroup"
+                }],
+                "Listeners": [{
+                        "InstancePort": "9000",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "9000",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "8443",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "8443",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "80",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "443",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "443",
+                        "Protocol": "TCP"
+                    }
+                ],
+                "HealthCheck": {
+                    "Target": "TCP:22",
+                    "HealthyThreshold": "2",
+                    "UnhealthyThreshold": "3",
+                    "Interval": "30",
+                    "Timeout": "3"
+                }
+            }
+        },
         "OpenShiftNodeELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
@@ -1250,6 +1311,7 @@
                         "Ref": "PrivateSubnet3ID"
                     }
                 ],
+                "Scheme": "internal",
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
                 }],
@@ -1440,6 +1502,20 @@
                                 "echo \"\t------------------[] Completed: QuickStart Common Utils \"\n",
                                 "\n",
 
+                                "echo \"[INFO] Configuring External LoadBalancer for OpenShift UI\" \n",
+                                "aws autoscaling attach-load-balancers --auto-scaling-group-name ",
+                                {
+                                    "Ref": "OpenShiftMasterASG"
+                                },
+                                " --load-balancer-names ",
+                                {
+                                    "Ref": "OpenShiftMasterInternalELB"
+                                },
+                                "   --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                }, "\n",
+
                                 "echo \"========================================================================================================================\"\n",
                                 "echo \"\t------------------[]Attach to Subscription pool\"\n",
                                 "SCRIPT_PATH=",
@@ -1533,15 +1609,20 @@
                                     "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
                                 },
                                 "\n",
+                                "INTERNAL_MASTER_ELBDNSNAME=",
+                                {
+                                    "Fn::GetAtt": ["OpenShiftMasterInternalELB", "DNSName"]
+                                },
+                                "\n",
                                 "NODE_ELBDNSNAME=",
                                 {
                                     "Fn::GetAtt": ["OpenShiftNodeELB", "DNSName"]
                                 },
                                 "\n",
                                 "echo \"[INFO] Configuring OpenShift Variable\" \n",
-                                "#echo openshift_master_cluster_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
-                                "#echo openshift_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "echo openshift_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo \"[INFO] Configured OpenShift Variable\" \n",
                                 "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
@@ -1585,6 +1666,7 @@
                                 "echo \"[INFO] Adding OpenShift Users\" \n",
                                 "ansible masters -a \"htpasswd -b /etc/origin/master/htpasswd admin admin\"\n",
                                 "echo \"[INFO] Added OpenShift Users\" \n",
+
                                 "echo \"[INFO] Finished OpenShift Cluster Build\" \n",
                                 "echo \"[INFO] Signaling Stack .....\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
