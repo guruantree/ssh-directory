@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "(qs-1nltbq5f8) OpenShift, License: Apache 2.0(Please do not remove) September, 11, 2017 ",
+    "Description": "(qs-1nltbq5f8) OpenShift, License: Apache 2.0(Please do not remove) September, 25, 2017",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
