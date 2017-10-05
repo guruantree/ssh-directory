@@ -38,6 +38,7 @@
                         "MasterInstanceType",
                         "EtcdInstanceType",
                         "NodesInstanceType",
+                        "OpenShiftOptions",
                         "OpenShiftAdminPassword"
                     ]
                 },
@@ -109,6 +110,9 @@
                 },
                 "OpenShiftAdminPassword": {
                     "default": "OpenShift UI Password"
+                },
+                "OpenShiftOptions": {
+                    "default": "(Optional)"
                 },
                 "RedhatSubscriptionUserName": {
                     "default": "Red Hat Subscription User Name"
@@ -202,6 +206,11 @@
             "MaxLength": "12",
             "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
             "NoEcho": "true"
+        },
+        "OpenShiftOptions": {
+            "Description": "(Optional) Leave Blank Unless",
+            "Default": "",
+            "Type": "String"
         },
         "RedhatSubscriptionUserName": {
             "Description": "Enter Redhat RHN User Name",
@@ -1615,6 +1624,11 @@
                                 },
                                 "scripts/openshift_config_ose.yml  ~/openshift_config.yml \n",
                                 "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
+                                "echo \"", {
+                                    "Ref": "OpenShiftOptions"
+                                },
+                                "\"",
+                                ">>/etc/ansible/hosts \n",
                                 "echo \"[INFO] Ansible Generated\" \n",
                                 "MASTER_ELBDNSNAME=",
                                 {
