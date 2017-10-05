@@ -37,7 +37,8 @@
                         "NumberOfNodes",
                         "MasterInstanceType",
                         "EtcdInstanceType",
-                        "NodesInstanceType"
+                        "NodesInstanceType",
+                        "OpenShiftAdminPassword"
                     ]
                 },
                 {
@@ -105,6 +106,9 @@
                 },
                 "VPCCIDR": {
                     "default": "VPC CIDR"
+                },
+                "OpenShiftAdminPassword": {
+                    "default": "OpenShift UI Password"
                 },
                 "RedhatSubscriptionUserName": {
                     "default": "Red Hat Subscription User Name"
@@ -212,6 +216,14 @@
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
             "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
             "Type": "String"
+        },
+        "OpenShiftAdminPassword": {
+            "Description": "Password for OpenShift Admin UI Must be at least 8 characters containing letters and (minimum 1 capital letter), numbers and symbols",
+            "Type": "String",
+            "MinLength": "8",
+            "MaxLength": "12",
+            "AllowedPattern": "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*",
+            "NoEcho": "true"
         },
         "RedhatSubscriptionUserName": {
             "Description": "Enter Redhat RHN User Name",
@@ -423,6 +435,9 @@
                     },
                     "QSS3KeyPrefix": {
                         "Ref": "QSS3KeyPrefix"
+                    },
+                    "OpenShiftAdminPassword": {
+                        "Ref": "OpenShiftAdminPassword"
                     },
                     "RedhatSubscriptionUserName": {
                         "Ref": "RedhatSubscriptionUserName"

@@ -11,6 +11,10 @@
         "ParameterValue": "3"
     },
     {
+        "ParameterKey": "OpenShiftAdminPassword",
+        "ParameterValue": "1redhatAdm!"
+    },
+    {
         "ParameterKey": "RedhatSubscriptionPassword",
         "ParameterValue": "RHPASS"
     },
