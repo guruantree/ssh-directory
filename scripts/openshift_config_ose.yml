@@ -18,3 +18,4 @@ openshift_registry_selector='region=infra'
 #openshift_hosted_manage_registry=false
 #openshift_hosted_manage_router=false
 openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+
