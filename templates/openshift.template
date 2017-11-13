@@ -836,6 +836,24 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
+                                "yum install -y atomic-openshift-docker-excluder \ ",
+                                "  atomic-openshift-node \ ",
+                                "  atomic-openshift-sdn-ovs \ ",
+                                "  ceph-common \ ",
+                                "  conntrack-tools \ ",
+                                "  dnsmasq \ ",
+                                "  docker \ ",
+                                "  docker-client \ ",
+                                "  docker-common \ ",
+                                "  docker-rhel-push-plugin \ ",
+                                "  glusterfs \ ",
+                                "  glusterfs-client-xlators \ ",
+                                "  glusterfs-fuse \ ",
+                                "  glusterfs-libs \ ",
+                                "  iptables-services \ ",
+                                "  iscsi-initiator-utils \ ",
+                                "  iscsi-initiator-utils-iscsiuio \ ",
+                                " tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -1030,6 +1048,24 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
+                                "yum install -y atomic-openshift-docker-excluder \ ",
+                                "  atomic-openshift-node \ ",
+                                "  atomic-openshift-sdn-ovs \ ",
+                                "  ceph-common \ ",
+                                "  conntrack-tools \ ",
+                                "  dnsmasq \ ",
+                                "  docker \ ",
+                                "  docker-client \ ",
+                                "  docker-common \ ",
+                                "  docker-rhel-push-plugin \ ",
+                                "  glusterfs \ ",
+                                "  glusterfs-client-xlators \ ",
+                                "  glusterfs-fuse \ ",
+                                "  glusterfs-libs \ ",
+                                "  iptables-services \ ",
+                                "  iscsi-initiator-utils \ ",
+                                "  iscsi-initiator-utils-iscsiuio \ ",
+                                " tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -1205,6 +1241,24 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
+                                "yum install -y atomic-openshift-docker-excluder \ ",
+                                "  atomic-openshift-node \ ",
+                                "  atomic-openshift-sdn-ovs \ ",
+                                "  ceph-common \ ",
+                                "  conntrack-tools \ ",
+                                "  dnsmasq \ ",
+                                "  docker \ ",
+                                "  docker-client \ ",
+                                "  docker-common \ ",
+                                "  docker-rhel-push-plugin \ ",
+                                "  glusterfs \ ",
+                                "  glusterfs-client-xlators \ ",
+                                "  glusterfs-fuse \ ",
+                                "  glusterfs-libs \ ",
+                                "  iptables-services \ ",
+                                "  iscsi-initiator-utils \ ",
+                                "  iscsi-initiator-utils-iscsiuio \ ",
+                                " tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
