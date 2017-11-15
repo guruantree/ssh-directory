@@ -836,6 +836,7 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
+                                "\n",
                                 "yum install -y atomic-openshift-docker-excluder \ ",
                                 "  atomic-openshift-node \ ",
                                 "  atomic-openshift-sdn-ovs \ ",
@@ -1048,6 +1049,7 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
+                                "\n",
                                 "yum install -y atomic-openshift-docker-excluder \ ",
                                 "  atomic-openshift-node \ ",
                                 "  atomic-openshift-sdn-ovs \ ",
@@ -1241,6 +1243,7 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
+                                "\n",
                                 "yum install -y atomic-openshift-docker-excluder \ ",
                                 "  atomic-openshift-node \ ",
                                 "  atomic-openshift-sdn-ovs \ ",
