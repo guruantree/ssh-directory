@@ -1910,13 +1910,13 @@
                 ]]
             }
         },
-        "ExternalAccess": {
-            "Description": "ContainerAccess",
+        "ContainerAccessELBName": {
+            "Description": "Use this ELB to expose ports to the internet",
             "Value": {
                 "Fn::Join": ["", ["http://",
                     {
                         "Fn::GetAtt": ["ContainerAccessELB", "DNSName"]
-                    }, ":8080/"
+                    }
                 ]]
             }
         }
