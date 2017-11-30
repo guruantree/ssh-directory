@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "(qs-1nltbq5f8) OpenShift, License: Apache 2.0(Please do not remove) November, 30, 2017",
+    "Description": "(qs-1nltbq5f8) OpenShift, License: Apache 2.0 (Please do not remove) November, 29, 2017",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
@@ -100,10 +100,10 @@
                     "default": "Quick Start S3 Key Prefix"
                 },
                 "RemoteAccessCIDR": {
-                    "default": "Allowed External Access CIDR"
+                    "default": "Allowed External Access CIDR (OCP UI)"
                 },
                 "ContainerAccessCIDR": {
-                    "default": " Public Access CIDR"
+                    "default": "Allowed External Access CIDR (OCP Router)"
                 },
                 "VPCID": {
                     "default": "VPC ID"

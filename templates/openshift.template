@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0(Please do not remove) November, 30, 2017",
+    "Description": "(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not remove) November, 29, 2017",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
@@ -101,10 +101,10 @@
                     "default": "Quick Start S3 Key Prefix"
                 },
                 "RemoteAccessCIDR": {
-                    "default": "Allowed External Access CIDR"
+                    "default": "Allowed External Access CIDR (OCP UI)"
                 },
                 "ContainerAccessCIDR": {
-                    "default": " Public Access CIDR"
+                    "default": "Allowed External Access CIDR (OCP Router)"
                 },
                 "VPCID": {
                     "default": "VPC ID"
@@ -882,24 +882,7 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
-                                "yum install -y atomic-openshift-docker-excluder \ ",
-                                "  atomic-openshift-node \ ",
-                                "  atomic-openshift-sdn-ovs \ ",
-                                "  ceph-common \ ",
-                                "  conntrack-tools \ ",
-                                "  dnsmasq \ ",
-                                "  docker \ ",
-                                "  docker-client \ ",
-                                "  docker-common \ ",
-                                "  docker-rhel-push-plugin \ ",
-                                "  glusterfs \ ",
-                                "  glusterfs-client-xlators \ ",
-                                "  glusterfs-fuse \ ",
-                                "  glusterfs-libs \ ",
-                                "  iptables-services \ ",
-                                "  iscsi-initiator-utils \ ",
-                                "  iscsi-initiator-utils-iscsiuio \ ",
-                                " tuned-profiles-atomic-openshift-node",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -1095,24 +1078,7 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
-                                "yum install -y atomic-openshift-docker-excluder \ ",
-                                "  atomic-openshift-node \ ",
-                                "  atomic-openshift-sdn-ovs \ ",
-                                "  ceph-common \ ",
-                                "  conntrack-tools \ ",
-                                "  dnsmasq \ ",
-                                "  docker \ ",
-                                "  docker-client \ ",
-                                "  docker-common \ ",
-                                "  docker-rhel-push-plugin \ ",
-                                "  glusterfs \ ",
-                                "  glusterfs-client-xlators \ ",
-                                "  glusterfs-fuse \ ",
-                                "  glusterfs-libs \ ",
-                                "  iptables-services \ ",
-                                "  iscsi-initiator-utils \ ",
-                                "  iscsi-initiator-utils-iscsiuio \ ",
-                                " tuned-profiles-atomic-openshift-node",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -1289,24 +1255,7 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
-                                "yum install -y atomic-openshift-docker-excluder \ ",
-                                "  atomic-openshift-node \ ",
-                                "  atomic-openshift-sdn-ovs \ ",
-                                "  ceph-common \ ",
-                                "  conntrack-tools \ ",
-                                "  dnsmasq \ ",
-                                "  docker \ ",
-                                "  docker-client \ ",
-                                "  docker-common \ ",
-                                "  docker-rhel-push-plugin \ ",
-                                "  glusterfs \ ",
-                                "  glusterfs-client-xlators \ ",
-                                "  glusterfs-fuse \ ",
-                                "  glusterfs-libs \ ",
-                                "  iptables-services \ ",
-                                "  iscsi-initiator-utils \ ",
-                                "  iscsi-initiator-utils-iscsiuio \ ",
-                                " tuned-profiles-atomic-openshift-node",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
