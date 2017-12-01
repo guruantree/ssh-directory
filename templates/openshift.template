@@ -790,7 +790,7 @@
                     "Ref": "SetupRoleProfile"
                 },
                 "InstanceType": {
-                    "Ref": "MasterInstanceType"
+                    "Ref": "EtcdInstanceType"
                 },
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
@@ -975,7 +975,7 @@
                     "Ref": "SetupRoleProfile"
                 },
                 "InstanceType": {
-                    "Ref": "MasterInstanceType"
+                    "Ref": "NodeInstanceType"
                 },
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
