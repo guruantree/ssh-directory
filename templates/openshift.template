@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0(Please do not remove) November, 1, 2017",
+    "Description": "(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not remove) November, 29, 2017",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [{
@@ -16,7 +16,8 @@
                         "PublicSubnet1ID",
                         "PublicSubnet2ID",
                         "PublicSubnet3ID",
-                        "RemoteAccessCIDR"
+                        "RemoteAccessCIDR",
+                        "ContainerAccessCIDR"
                     ]
                 },
                 {
@@ -100,7 +101,10 @@
                     "default": "Quick Start S3 Key Prefix"
                 },
                 "RemoteAccessCIDR": {
-                    "default": "Allowed External Access CIDR"
+                    "default": "Allowed External Access CIDR (OCP UI)"
+                },
+                "ContainerAccessCIDR": {
+                    "default": "Allowed External Access CIDR (OCP Router)"
                 },
                 "VPCID": {
                     "default": "VPC ID"
@@ -194,6 +198,12 @@
             "Type": "String"
         },
         "RemoteAccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+            "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
+            "Type": "String"
+        },
+        "ContainerAccessCIDR": {
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
             "Description": "The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.",
@@ -345,6 +355,9 @@
         "AWSAMIRegionMap": {
             "AMI": {
                 "RHEL74HVM": "RHEL-7.4_HVM_GA-20170808-x86_64-2-Hourly2-GP2"
+            },
+            "eu-central-1": {
+                "RHEL74HVM": "ami-d74be5b8"
             },
             "ap-southeast-2": {
                 "RHEL74HVM": "ami-ccecf5af"
@@ -498,6 +511,38 @@
                 ]
             }
         },
+        "OpenShiftNodeSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow access to the Workload instances",
+                "VpcId": {
+                    "Ref": "VPCID"
+                },
+                "SecurityGroupIngress": [{
+                        "IpProtocol": "-1",
+                        "CidrIp": {
+                            "Ref": "VPCCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8080",
+                        "ToPort": "8080",
+                        "CidrIp": {
+                            "Ref": "ContainerAccessCIDR"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": {
+                            "Ref": "ContainerAccessCIDR"
+                        }
+                    }
+                ]
+            }
+        },
         "OpenShiftInternalSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
@@ -640,7 +685,7 @@
             "DependsOn": "OpenShiftMasterASG",
             "Properties": {
                 "LoadBalancerNames": [{
-                    "Ref": "OpenShiftNodeELB"
+                    "Ref": "OpenShiftNodeInternalELB"
                 }],
                 "DesiredCapacity": {
                     "Ref": "NumberOfNodes"
@@ -745,7 +790,7 @@
                     "Ref": "SetupRoleProfile"
                 },
                 "InstanceType": {
-                    "Ref": "MasterInstanceType"
+                    "Ref": "EtcdInstanceType"
                 },
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
@@ -836,24 +881,8 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
-                                "yum install -y atomic-openshift-docker-excluder \ ",
-                                "  atomic-openshift-node \ ",
-                                "  atomic-openshift-sdn-ovs \ ",
-                                "  ceph-common \ ",
-                                "  conntrack-tools \ ",
-                                "  dnsmasq \ ",
-                                "  docker \ ",
-                                "  docker-client \ ",
-                                "  docker-common \ ",
-                                "  docker-rhel-push-plugin \ ",
-                                "  glusterfs \ ",
-                                "  glusterfs-client-xlators \ ",
-                                "  glusterfs-fuse \ ",
-                                "  glusterfs-libs \ ",
-                                "  iptables-services \ ",
-                                "  iscsi-initiator-utils \ ",
-                                "  iscsi-initiator-utils-iscsiuio \ ",
-                                " tuned-profiles-atomic-openshift-node",
+                                "\n",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -946,7 +975,7 @@
                     "Ref": "SetupRoleProfile"
                 },
                 "InstanceType": {
-                    "Ref": "MasterInstanceType"
+                    "Ref": "NodeInstanceType"
                 },
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
@@ -1048,24 +1077,8 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
-                                "yum install -y atomic-openshift-docker-excluder \ ",
-                                "  atomic-openshift-node \ ",
-                                "  atomic-openshift-sdn-ovs \ ",
-                                "  ceph-common \ ",
-                                "  conntrack-tools \ ",
-                                "  dnsmasq \ ",
-                                "  docker \ ",
-                                "  docker-client \ ",
-                                "  docker-common \ ",
-                                "  docker-rhel-push-plugin \ ",
-                                "  glusterfs \ ",
-                                "  glusterfs-client-xlators \ ",
-                                "  glusterfs-fuse \ ",
-                                "  glusterfs-libs \ ",
-                                "  iptables-services \ ",
-                                "  iscsi-initiator-utils \ ",
-                                "  iscsi-initiator-utils-iscsiuio \ ",
-                                " tuned-profiles-atomic-openshift-node",
+                                "\n",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -1241,24 +1254,8 @@
                                 {
                                     "Ref": "AWS::Region"
                                 },
-                                "yum install -y atomic-openshift-docker-excluder \ ",
-                                "  atomic-openshift-node \ ",
-                                "  atomic-openshift-sdn-ovs \ ",
-                                "  ceph-common \ ",
-                                "  conntrack-tools \ ",
-                                "  dnsmasq \ ",
-                                "  docker \ ",
-                                "  docker-client \ ",
-                                "  docker-common \ ",
-                                "  docker-rhel-push-plugin \ ",
-                                "  glusterfs \ ",
-                                "  glusterfs-client-xlators \ ",
-                                "  glusterfs-fuse \ ",
-                                "  glusterfs-libs \ ",
-                                "  iptables-services \ ",
-                                "  iscsi-initiator-utils \ ",
-                                "  iscsi-initiator-utils-iscsiuio \ ",
-                                " tuned-profiles-atomic-openshift-node",
+                                "\n",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -1319,6 +1316,47 @@
                 }
             }
         },
+        "ContainerAccessELB": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "ConnectionSettings": {
+                    "IdleTimeout": 1200
+                },
+                "CrossZone": true,
+                "Subnets": [{
+                        "Ref": "PublicSubnet1ID"
+                    }, {
+                        "Ref": "PublicSubnet2ID"
+                    },
+                    {
+                        "Ref": "PublicSubnet3ID"
+                    }
+                ],
+                "SecurityGroups": [{
+                    "Ref": "OpenShiftNodeSecurityGroup"
+                }],
+                "Listeners": [{
+                        "InstancePort": "8080",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "8080",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "80",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "TCP"
+                    }
+                ],
+                "HealthCheck": {
+                    "Target": "TCP:22",
+                    "HealthyThreshold": "2",
+                    "UnhealthyThreshold": "3",
+                    "Interval": "30",
+                    "Timeout": "3"
+                }
+            }
+        },
         "OpenShiftMasterInternalELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
@@ -1340,12 +1378,6 @@
                     "Ref": "OpenShiftInternalSecurityGroup"
                 }],
                 "Listeners": [{
-                        "InstancePort": "9000",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "9000",
-                        "Protocol": "TCP"
-                    },
-                    {
                         "InstancePort": "8443",
                         "InstanceProtocol": "TCP",
                         "LoadBalancerPort": "8443",
@@ -1373,29 +1405,35 @@
                 }
             }
         },
-        "OpenShiftNodeELB": {
+        "OpenShiftNodeInternalELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
+                "Scheme": "internal",
                 "Subnets": [{
                         "Ref": "PrivateSubnet1ID"
-                    },
-                    {
+                    }, {
                         "Ref": "PrivateSubnet2ID"
                     },
                     {
                         "Ref": "PrivateSubnet3ID"
                     }
                 ],
-                "Scheme": "internal",
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
                 }],
                 "Listeners": [{
-                    "InstancePort": "8443",
-                    "InstanceProtocol": "TCP",
-                    "LoadBalancerPort": "8443",
-                    "Protocol": "TCP"
-                }],
+                        "InstancePort": "8080",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "8080",
+                        "Protocol": "TCP"
+                    },
+                    {
+                        "InstancePort": "80",
+                        "InstanceProtocol": "TCP",
+                        "LoadBalancerPort": "80",
+                        "Protocol": "TCP"
+                    }
+                ],
                 "HealthCheck": {
                     "Target": "TCP:22",
                     "HealthyThreshold": "2",
@@ -1591,6 +1629,21 @@
                                     "Ref": "AWS::Region"
                                 }, "\n",
 
+                                "echo \"[INFO] Configuring External LoadBalancer for ContainerAccess UI\" \n",
+                                "aws autoscaling attach-load-balancers --auto-scaling-group-name ",
+                                {
+                                    "Ref": "OpenShiftNodeASG"
+                                },
+                                " --load-balancer-names ",
+                                {
+                                    "Ref": "ContainerAccessELB"
+                                },
+                                "   --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                }, "\n",
+
+
                                 "echo \"========================================================================================================================\"\n",
                                 "echo \"\t------------------[]Attach to Subscription pool\"\n",
                                 "SCRIPT_PATH=",
@@ -1696,7 +1749,7 @@
                                 "\n",
                                 "NODE_ELBDNSNAME=",
                                 {
-                                    "Fn::GetAtt": ["OpenShiftNodeELB", "DNSName"]
+                                    "Fn::GetAtt": ["ContainerAccessELB", "DNSName"]
                                 },
                                 "\n",
                                 "echo \"[INFO] Configuring OpenShift Variable\" \n",
@@ -1803,6 +1856,16 @@
                     {
                         "Fn::GetAtt": ["OpenShiftMasterELB", "DNSName"]
                     }, ":8443/"
+                ]]
+            }
+        },
+        "ContainerAccessELBName": {
+            "Description": "Use this ELB to expose ports to the internet",
+            "Value": {
+                "Fn::Join": ["", ["http://",
+                    {
+                        "Fn::GetAtt": ["ContainerAccessELB", "DNSName"]
+                    }
                 ]]
             }
         }
