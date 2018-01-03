@@ -975,7 +975,7 @@
                     "Ref": "SetupRoleProfile"
                 },
                 "InstanceType": {
-                    "Ref": "NodeInstanceType"
+                    "Ref": "NodesInstanceType"
                 },
                 "SecurityGroups": [{
                     "Ref": "OpenShiftSecurityGroup"
