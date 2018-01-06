@@ -454,10 +454,10 @@
             "Properties": {
                 "Code": {
                     "S3Bucket": {
-                        "Fn::Sub": "quickstart-reference-lambda-${AWS::Region}"
+                        "Ref": "LambdaZipsBucket"
                     },
                     "S3Key": {
-                        "Fn::Sub": "generate_sshkeys/genrsa_lambda.zip"
+                        "Fn::Sub": "${QSS3KeyPrefix}functions/packages/KeyGen/lambda.zip"
                     }
                 },
                 "Handler": "service.handler",
@@ -1145,7 +1145,7 @@
                                 "\n",
                                 "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
-                                "qs_retry_command 20 ~/redhat_ose-register.sh ",
+                                "qs_retry_command 25 ~/redhat_ose-register.sh ",
                                 {
                                     "Fn::Sub": "${RedhatSubscriptionUserName} ${RedhatSubscriptionPassword} ${RedhatSubscriptionPoolID} "
 
@@ -1330,7 +1330,7 @@
                                 "\n",
                                 "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
-                                "qs_retry_command 20 ~/redhat_ose-register.sh ",
+                                "qs_retry_command 25 ~/redhat_ose-register.sh ",
                                 {
                                     "Fn::Sub": "${RedhatSubscriptionUserName} ${RedhatSubscriptionPassword} ${RedhatSubscriptionPoolID} "
 
@@ -1518,7 +1518,7 @@
                                 "\n",
                                 "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
-                                "qs_retry_command 20 ~/redhat_ose-register.sh ",
+                                "qs_retry_command 25 ~/redhat_ose-register.sh ",
                                 {
                                     "Fn::Sub": "${RedhatSubscriptionUserName} ${RedhatSubscriptionPassword} ${RedhatSubscriptionPoolID} "
 
@@ -1939,7 +1939,7 @@
                                 "\n",
                                 "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
-                                "qs_retry_command 20 ~/redhat_ose-register.sh ",
+                                "qs_retry_command 25 ~/redhat_ose-register.sh ",
                                 {
                                     "Fn::Sub": "${RedhatSubscriptionUserName} ${RedhatSubscriptionPassword} ${RedhatSubscriptionPoolID} "
 

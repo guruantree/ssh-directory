@@ -67,7 +67,8 @@
                     },
                     "Parameters": [
                         "QSS3BucketName",
-                        "QSS3KeyPrefix"
+                        "QSS3KeyPrefix",
+                        "OutputBucketName"
                     ]
                 }
             ],
@@ -146,7 +147,10 @@
                 },
                 "NumberOfNodes": {
                     "default": "Number of Nodes"
-                }
+                },
+                "OutputBucketName": {
+                    "default": "Output S3 Bucket Name"
+                },
             }
         }
     },
@@ -339,6 +343,11 @@
             "Default": "3",
             "Description": "The desired capacity for the OpenShift node instances",
             "Type": "Number"
+        },
+        "OutputBucketName": {
+            "Description": "OPTIONAL: Bucket Name where the zip file output should be placed, if left blank a bucket name will be automatically generated.",
+            "Type": "String",
+            "Default": ""
         }
     },
     "Resources": {
@@ -460,6 +469,9 @@
                     },
                     "RedhatSubscriptionPoolID": {
                         "Ref": "RedhatSubscriptionPoolID"
+                    },
+                    "OutputBucketName": {
+                        "Ref": "OutputBucketName"
                     },
                     "VPCCIDR": {
                         "Ref": "VPCCIDR"
