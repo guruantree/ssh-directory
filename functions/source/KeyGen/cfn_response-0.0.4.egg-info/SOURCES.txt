@@ -1,0 +1,9 @@
+cfnresponse.py
+setup.cfg
+setup.py
+cfn_response.egg-info/PKG-INFO
+cfn_response.egg-info/SOURCES.txt
+cfn_response.egg-info/dependency_links.txt
+cfn_response.egg-info/not-zip-safe
+cfn_response.egg-info/pbr.json
+cfn_response.egg-info/top_level.txt
