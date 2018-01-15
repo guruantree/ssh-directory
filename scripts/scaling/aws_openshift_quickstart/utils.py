@@ -343,6 +343,9 @@ class InventoryScaling(object):
         _ao_remove = []
         with open(jout_file,'r') as f:
             all_output = f.readlines()
+        dt = datetime.datetime.now()
+        jout_logfile="/var/log/quickstart-ansible-run_{}_{}-{}-{}T{}:{}.log".format(category, dt.year, dt.month, dt.day, dt.hour, dt.minute)
+        os.copy(jout_file, jout_logfile)
 
         if len(all_output) > 1:
             idx, _ = max(enumerate(all_output), key=operator.itemgetter(1))
