@@ -20,7 +20,7 @@ You can also use the AWS CloudFormation templates as a starting point for your o
 For architectural details, best practices, step-by-step instructions, and customization options, see the [deployment guide](https://s3.amazonaws.com/quickstart-reference/redhat/openshift/latest/doc/red-hat-openshift-on-the-aws-cloud.pdf).
 
 To post feedback, submit feature ideas, or report bugs, use the **Issues** section of this GitHub repo.
-If you'd like to submit code for this Quick Start, please review the [AWS Quick Start Contributor's Kit](https://aws-quickstart.github.io/). 
+If you'd like to submit code for this Quick Start, please review the [AWS Quick Start Contributor's Kit](https://aws-quickstart.github.io/).
 
 ## Usage
 Using this Quick Start requires credentials for a Red Hat account that includes a subscription for Red Hat OpenShift Enterprise (note that that may require a non-personal email address registration).
@@ -60,7 +60,7 @@ If you do not already have access to a Red Hat account then go to the following 
 
 [https://www.redhat.com/wapps/eval/index.html?evaluation_id=1026](https://www.redhat.com/wapps/eval/index.html?evaluation_id=1026)
 
-Below is a write up of how to expose an application to the public internet. 
+Below is a write up of how to expose an application to the public internet.
 Note: you can still limit access use the `ContainerAccessCIDR`
 
 ## Create a Demo Project with external access
@@ -72,7 +72,7 @@ Choose `Ruby` form the Catalog:
 ![s3 2](https://user-images.githubusercontent.com/5912128/33403198-40527ef8-d514-11e7-9eb3-4c38a169396e.jpg)
 
 Keep the default setting click select:
-![s3 3](https://user-images.githubusercontent.com/5912128/33403230-5c4ab2b0-d514-11e7-8657-b56fee47ba2f.jpg) 
+![s3 3](https://user-images.githubusercontent.com/5912128/33403230-5c4ab2b0-d514-11e7-8657-b56fee47ba2f.jpg)
 
 Provide a value for Name and Git Repo
 `Name:`  external-ruby-app
@@ -82,7 +82,7 @@ Provide a value for Name and Git Repo
 Enter the ELB DNS Name in **lowercase**
 _Hint: ELB DNS Name is provided in the cloud formation outputs tab under the UI link_
 
-Specfies replicas: `3` 
+Specfies replicas: `3`
 ![ruby3](https://user-images.githubusercontent.com/5912128/33403504-8463928e-d515-11e7-911c-fa9f872df5d3.jpg)
 
 Click `Create`
@@ -97,4 +97,3 @@ When the build is complete screen will update to show `3` pods and build at `100
 
 Choose the `link` provided to access the application
 ![ruby7](https://user-images.githubusercontent.com/5912128/33403749-6dfee0a6-d516-11e7-82ba-1abe647eaebd.jpg)
-
