@@ -3,7 +3,8 @@
     "Description": "(qs-1nltbq5f8) OpenShift, License: Apache 2.0 (Please do not remove) January, 5, 2018",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
-            "ParameterGroups": [{
+            "ParameterGroups": [
+                {
                     "Label": {
                         "default": "Network Configuration"
                     },
@@ -150,7 +151,7 @@
                 },
                 "OutputBucketName": {
                     "default": "Output S3 Bucket Name"
-                },
+                }
             }
         }
     },
@@ -331,13 +332,17 @@
             "Default": "3",
             "Description": "This Deployment requires 3 OpenShift Master instances",
             "Type": "Number",
-            "AllowedValues": ["3"]
+            "AllowedValues": [
+                "3"
+            ]
         },
         "NumberOfEtcd": {
             "Default": "3",
             "Description": "This Deployment requires 3 OpenShift Etcd instances",
             "Type": "Number",
-            "AllowedValues": ["3"]
+            "AllowedValues": [
+                "3"
+            ]
         },
         "NumberOfNodes": {
             "Default": "3",
