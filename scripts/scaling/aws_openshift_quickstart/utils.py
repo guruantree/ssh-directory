@@ -344,7 +344,6 @@ class InventoryScaling(object):
         _ao_remove = []
         with open(jout_file,'r') as f:
             all_output = f.readlines()
-        os.mre
         if len(all_output) > 1:
             idx, _ = max(enumerate(all_output), key=operator.itemgetter(1))
         else:
