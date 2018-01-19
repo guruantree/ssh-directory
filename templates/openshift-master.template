@@ -77,23 +77,23 @@
                 "KeyPairName": {
                     "default": "SSH Key Name"
                 },
-                "PrivateSubnet1ID": {
-                    "default": "Private Subnet 1 ID"
+                "PrivateSubnet1CIDR": {
+                    "default": "Private Subnet 1 CIDR"
                 },
-                "PrivateSubnet2ID": {
-                    "default": "Private Subnet 2 ID"
+                "PrivateSubnet2CIDR": {
+                    "default": "Private Subnet 2 CIDR"
                 },
-                "PrivateSubnet3ID": {
-                    "default": "Private Subnet 3 ID"
+                "PrivateSubnet3CIDR": {
+                    "default": "Private Subnet 3 CIDR"
                 },
-                "PublicSubnet1ID": {
-                    "default": "Public Subnet 1 ID"
+                "PublicSubnet1CIDR": {
+                    "default": "Public Subnet 1 CIDR"
                 },
-                "PublicSubnet2ID": {
-                    "default": "Public Subnet 2 ID"
+                "PublicSubnet2CIDR": {
+                    "default": "Public Subnet 2 CIDR"
                 },
-                "PublicSubnet3ID": {
-                    "default": "Public Subnet 3 ID"
+                "PublicSubnet3CIDR": {
+                    "default": "Public Subnet 3 CIDR"
                 },
                 "QSS3BucketName": {
                     "default": "Quick Start S3 Bucket Name"
@@ -107,8 +107,8 @@
                 "ContainerAccessCIDR": {
                     "default": "Allowed External Access CIDR (OCP Router)"
                 },
-                "VPCID": {
-                    "default": "VPC ID"
+                "VPCCIDR": {
+                    "default": "VPC CIDR"
                 },
                 "VPCCIDR": {
                     "default": "VPC CIDR"
