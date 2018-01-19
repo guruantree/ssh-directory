@@ -679,6 +679,62 @@
                 ]
             }
         },
+        "OpenShiftScalingCWEventRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "events.amazonaws.com"
+                                ]
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "OpenShift-QuickStart-SSM-RunCommand",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": "ssm:SendCommand",
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:ec2:",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    ":",
+                                                    {
+                                                        "Ref": "AWS::AccountId"
+                                                    },
+                                                    ":instance/",
+                                                    {
+                                                        "Fn::Sub": "${AnsibleConfigServer}"
+                                                    }
+                                                ]
+                                            ]
+                                        },
+                                        "arn:aws:ssm:us-east-1:*:document/AWS-RunShellScript"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
         "CopyZipsRole": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -1946,25 +2002,12 @@
                                 "ignoreErrors": "false"
                             }
                         }
-                    },
-                    "CfgAnsible": {
-                        "packages": {
-                            "yum": {
-                                "ansible": []
-                            }
-                        },
-                        "commands": {
-                            "disable-host-key-checking": {
-                                "command": "sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg",
-                                "ignoreErrors": "false"
-                            }
-                        }
                     }
                 }
             },
             "Properties": {
-                "IamInstanceProfile": {
-                    "Ref": "SetupRoleProfile"
+                "KeyName": {
+                    "Ref": "KeyPairName"
                 },
                 "ImageId": {
                     "Fn::FindInMap": [
@@ -1975,31 +2018,32 @@
                         "RHEL74HVM"
                     ]
                 },
-                "KeyName": {
-                    "Ref": "KeyPairName"
-                },
-                "Tags": [
+                "BlockDeviceMappings": [
                     {
-                        "Key": "Name",
-                        "Value": "ansible-configserver"
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "VolumeSize": "80",
+                            "VolumeType": "gp2"
+                        }
+                    },
+                    {
+                        "DeviceName": "/dev/xvdb",
+                        "Ebs": {
+                            "VolumeSize": "110",
+                            "VolumeType": "gp2"
+                        }
                     }
                 ],
+                "InstanceMonitoring": "true",
+                "IamInstanceProfile": {
+                    "Ref": "SetupRoleProfile"
+                },
                 "InstanceType": {
                     "Ref": "MasterInstanceType"
                 },
-                "NetworkInterfaces": [
+                "SecurityGroups": [
                     {
-                        "DeleteOnTermination": "true",
-                        "AssociatePublicIpAddress": "true",
-                        "DeviceIndex": "0",
-                        "GroupSet": [
-                            {
-                                "Ref": "OpenShiftSecurityGroup"
-                            }
-                        ],
-                        "SubnetId": {
-                            "Ref": "PublicSubnet1ID"
-                        }
+                        "Ref": "OpenShiftSecurityGroup"
                     }
                 ],
                 "UserData": {
@@ -2090,7 +2134,7 @@
                                 "\n",
                                 "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
-                                "qs_retry_command 25 ~/redhat_ose-register.sh ",
+                                "qs_retry_command 20 ~/redhat_ose-register.sh ",
                                 {
                                     "Fn::Sub": "${RedhatSubscriptionUserName} ${RedhatSubscriptionPassword} ${RedhatSubscriptionPoolID} "
                                 },
@@ -2209,9 +2253,11 @@
                                 "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo openshift_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo \"[INFO] Configured OpenShift Variable\" \n",
-                                "cat /tmp/openshift_instances-* >>/etc/ansible/hosts \n",
+                                "/bin/aws-ose-qs-scale --generate-initial-inventory \n",
+                                "cat /tmp/openshift_ansible_inventory* >> /etc/ansible/hosts \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
                                 "sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg \n",
+                                "sed -i 's/#stdout_callback.*/stdout_callback = json/g' /etc/ansible/ansible.cfg \n",
                                 "echo \"[INFO] Poll till all nodes are under Ansible (max tries = 50)\" \n",
                                 "qs_retry_command 50 ansible -m ping all \n",
                                 "\n",
@@ -2220,6 +2266,9 @@
                                 "yum -y update \n",
                                 "yum -y install atomic-openshift-utils\n",
                                 "yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder\n",
+                                "yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm \n",
+                                "systemctl start amazon-ssm-agent \n",
+                                "systemctl enable amazon-ssm-agent \n",
                                 "PLAYBOOK=\"",
                                 {
                                     "Ref": "AnsiblePlaybookType"
@@ -2245,6 +2294,12 @@
                                 "atomic-openshift-excluder unexclude\n",
                                 "echo \"[INFO] Starting OpenShift Cluster Build (Beginning Ansible Playbook run!!!)\" \n",
                                 "date >>~/playbooks.info\n",
+                                "date >>~/playbooks.info\n",
+                                "aws s3 cp ",
+                                {
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
+                                },
+                                "scripts/scaleup_wrapper.yml  /usr/share/ansible/openshift-ansible/\n",
                                 "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "date >>~/playbooks.info\n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build (Completed Ansible Playbook run!!!)\" \n",
@@ -2274,7 +2329,7 @@
                                 "echo \"\t#################[] End of main execution block \" \n",
                                 "else\n",
                                 "echo \" \t#################[] Start of else block \" \n",
-                                "echo \"[REASON] Failed to Acquire OpenShift Entitlement, Check you PoolID and RHN UserName/Password \" >~/failure_reason\n",
+                                "echo \"[REASON] Failed to Acquire OpenShift Entitlement, Check your PoolID and RHN UserName/Password \" >~/failure_reason\n",
                                 "echo \"[INFO] Signaling Stack .....\"\n",
                                 "cfn-signal -e 1",
                                 "   --stack ",
@@ -2293,11 +2348,62 @@
                         ]
                     }
                 }
-            },
-            "CreationPolicy": {
-                "ResourceSignal": {
-                    "Timeout": "PT240M"
-                }
+            }
+        },
+        "OpenShiftScalingCWEventRule": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+                "Description": "CWEvent rule to trigger OpenShift Scaling scripts within the Ansible config server. (AWS QuickStart)",
+                "Name": "OpenshiftQuickstart-TriggerAnsibleScaling",
+                "State": "ENABLED",
+                "EventPattern": {
+                    "source": [
+                        "aws.autoscaling"
+                    ],
+                    "detail-type": [
+                        "EC2 Instance Launch Successful",
+                        "EC2 Instance Terminate Successful",
+                        "EC2 Instance Terminate Unsuccessful"
+                    ],
+                    "detail": {
+                        "AutoScalingGroupName": [
+                            {
+                                "Ref": "OpenShiftMasterASG"
+                            },
+                            {
+                                "Ref": "OpenShiftEtcdASG"
+                            },
+                            {
+                                "Ref": "OpenShiftNodeASG"
+                            }
+                        ]
+                    }
+                },
+                "Targets": [
+                    {
+                        "Id": "OSEScalingSSMTarget1",
+                        "Arn": "arn:aws:ssm:us-east-1::document/AWS-RunShellScript",
+                        "Input": "{\"commands\":[\"/bin/aws-ose-qs-scale --scale-in-progress\"],\"workingDirectory\":[\"/\"],\"executionTimeout\":[\"3600\"]}",
+                        "RoleArn": {
+                            "Fn::GetAtt": [
+                                "OpenShiftScalingCWEventRole",
+                                "Arn"
+                            ]
+                        },
+                        "RunCommandParameters": {
+                            "RunCommandTargets": [
+                                {
+                                    "Key": "InstanceIds",
+                                    "Values": [
+                                        {
+                                            "Ref": "AnsibleConfigServer"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
             }
         }
     },

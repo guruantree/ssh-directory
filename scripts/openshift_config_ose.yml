@@ -8,9 +8,9 @@ etcd
 
 # Set variables common for all OSEv3 hosts
 [OSEv3:vars]
-openshift_use_crio=true
 ansible_ssh_user=root
 openshift_deployment_type=openshift-enterprise
+deployment_type=openshift-enterprise
 containerized=false
 openshift_master_cluster_method=native
 openshift_router_selector='region=infra'
@@ -19,4 +19,3 @@ openshift_registry_selector='region=infra'
 #openshift_hosted_manage_registry=false
 #openshift_hosted_manage_router=false
 openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
-
