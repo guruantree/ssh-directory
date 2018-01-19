@@ -264,7 +264,7 @@
         },
         "AnsiblePlaybookGitRepoTag": {
             "Description": "Only Used if [OpenSource-Version] is selected. List of Development Releases available here -> https://github.com/openshift/openshift-ansible/releases",
-            "Default": "3.6.173.0.5-5",
+            "Default": "3.7.23-1",
             "Type": "String"
         },
         "VPCCIDR": {
