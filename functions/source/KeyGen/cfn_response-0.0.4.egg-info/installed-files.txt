@@ -1,9 +1,0 @@
-../cfnresponse.py
-../cfnresponse.pyc
-.
-top_level.txt
-not-zip-safe
-PKG-INFO
-dependency_links.txt
-pbr.json
-SOURCES.txt
