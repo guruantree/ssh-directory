@@ -110,9 +110,6 @@
                 "VPCCIDR": {
                     "default": "VPC CIDR"
                 },
-                "VPCCIDR": {
-                    "default": "VPC CIDR"
-                },
                 "OpenShiftAdminPassword": {
                     "default": "OpenShift UI Password"
                 },
