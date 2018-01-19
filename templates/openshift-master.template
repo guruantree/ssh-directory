@@ -492,5 +492,25 @@
                 }
             }
         }
+    },
+    "Outputs": {
+        "OpenShiftUI": {
+            "Description": "The URL OpenShiftUI",
+            "Value": {
+                        "Fn::GetAtt": [
+                            "OpenShiftStack",
+                            "Outputs.OpenShiftUI"
+                        ]
+                    }
+        },
+        "ContainerAccessELBName": {
+            "Description": "Use this ELB to expose ports to the internet",
+            "Value": {
+                        "Fn::GetAtt": [
+                            "OpenShiftStack",
+                            "Outputs.ContainerAccessELBName"
+                        ]
+                    }
+        }
     }
 }
