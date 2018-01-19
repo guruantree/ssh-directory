@@ -486,7 +486,9 @@
                             "VPCStack",
                             "Outputs.VPCID"
                         ]
-                    }
+                    },
+                    "AnsiblePlaybookGitRepoTag": { "Ref": "AnsiblePlaybookGitRepoTag" },
+                    "AnsiblePlaybookType": { "Ref": "AnsiblePlaybookType" }
                 }
             }
         }
