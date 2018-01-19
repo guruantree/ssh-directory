@@ -484,8 +484,12 @@
                             "Outputs.VPCID"
                         ]
                     },
-                    "AnsiblePlaybookGitRepoTag": { "Ref": "AnsiblePlaybookGitRepoTag" },
-                    "AnsiblePlaybookType": { "Ref": "AnsiblePlaybookType" }
+                    "AnsiblePlaybookGitRepoTag": {
+                        "Ref": "AnsiblePlaybookGitRepoTag"
+                    },
+                    "AnsiblePlaybookType": {
+                        "Ref": "AnsiblePlaybookType"
+                    }
                 }
             }
         }
@@ -494,20 +498,20 @@
         "OpenShiftUI": {
             "Description": "The URL OpenShiftUI",
             "Value": {
-                        "Fn::GetAtt": [
-                            "OpenShiftStack",
-                            "Outputs.OpenShiftUI"
-                        ]
-                    }
+                "Fn::GetAtt": [
+                    "OpenShiftStack",
+                    "Outputs.OpenShiftUI"
+                ]
+            }
         },
         "ContainerAccessELBName": {
             "Description": "Use this ELB to expose ports to the internet",
             "Value": {
-                        "Fn::GetAtt": [
-                            "OpenShiftStack",
-                            "Outputs.ContainerAccessELBName"
-                        ]
-                    }
+                "Fn::GetAtt": [
+                    "OpenShiftStack",
+                    "Outputs.ContainerAccessELBName"
+                ]
+            }
         }
     }
 }
