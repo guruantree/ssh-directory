@@ -726,7 +726,9 @@
                                                 ]
                                             ]
                                         },
-                                        "arn:aws:ssm:us-east-1:*:document/AWS-RunShellScript"
+                                        {
+                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript"
+                        }
                                     ]
                                 }
                             ]
@@ -2397,7 +2399,9 @@
                 "Targets": [
                     {
                         "Id": "OSEScalingSSMTarget1",
-                        "Arn": "arn:aws:ssm:us-east-1::document/AWS-RunShellScript",
+                        "Arn": {
+                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript"
+                        },
                         "Input": "{\"commands\":[\"/bin/aws-ose-qs-scale --scale-in-progress\"],\"workingDirectory\":[\"/\"],\"executionTimeout\":[\"3600\"]}",
                         "RoleArn": {
                             "Fn::GetAtt": [
