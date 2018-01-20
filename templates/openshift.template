@@ -2034,16 +2034,31 @@
                         }
                     }
                 ],
-                "InstanceMonitoring": "true",
                 "IamInstanceProfile": {
                     "Ref": "SetupRoleProfile"
                 },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "ansible-configserver"
+                    }
+                ],
                 "InstanceType": {
                     "Ref": "MasterInstanceType"
                 },
-                "SecurityGroups": [
+                "NetworkInterfaces": [
                     {
-                        "Ref": "OpenShiftSecurityGroup"
+                        "DeleteOnTermination": "true",
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "OpenShiftSecurityGroup"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "PublicSubnet1ID"
+                        }
                     }
                 ],
                 "UserData": {
