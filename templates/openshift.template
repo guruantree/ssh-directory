@@ -1305,7 +1305,7 @@
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
                                 "\n",
-                                "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
+                                "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh ~/redhat_ose-register.sh\n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
                                 "qs_retry_command 25 ~/redhat_ose-register.sh ",
                                 {
@@ -1442,7 +1442,7 @@
                         "Fn::Join": [
                             "",
                             [
-                                "#!/bin/bash",
+                                "#!/bin/bash -x",
                                 "\n",
                                 "echo \"========================================================================================================================\"\n",
                                 "echo \"\t------------------[] Starting: Load QuickStart Common\"\n",
@@ -1636,7 +1636,7 @@
                         "Fn::Join": [
                             "",
                             [
-                                "#!/bin/bash",
+                                "#!/bin/bash -x",
                                 "\n",
                                 "echo \"========================================================================================================================\"\n",
                                 "echo \"\t------------------[] Starting: Load QuickStart Common\"\n",
@@ -2068,7 +2068,7 @@
                         "Fn::Join": [
                             "",
                             [
-                                "#!/bin/bash",
+                                "#!/bin/bash -x",
                                 "\n",
                                 "echo \"========================================================================================================================\"\n",
                                 "echo \"\t------------------[] Starting: Load QuickStart Common\"\n",
