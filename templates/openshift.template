@@ -2004,6 +2004,19 @@
                                 "ignoreErrors": "false"
                             }
                         }
+                    },
+                    "CfgAnsible": {
+                        "packages": {
+                            "yum": {
+                                "ansible": []
+                            }
+                        },
+                        "commands": {
+                            "disable-host-key-checking": {
+                                "command": "sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg",
+                                "ignoreErrors": "false"
+                            }
+                        }
                     }
                 }
             },
@@ -2020,22 +2033,6 @@
                         "RHEL74HVM"
                     ]
                 },
-                "BlockDeviceMappings": [
-                    {
-                        "DeviceName": "/dev/sda1",
-                        "Ebs": {
-                            "VolumeSize": "80",
-                            "VolumeType": "gp2"
-                        }
-                    },
-                    {
-                        "DeviceName": "/dev/xvdb",
-                        "Ebs": {
-                            "VolumeSize": "110",
-                            "VolumeType": "gp2"
-                        }
-                    }
-                ],
                 "IamInstanceProfile": {
                     "Ref": "SetupRoleProfile"
                 },
@@ -2149,7 +2146,7 @@
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
                                 "\n",
-                                "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
+                                "aws s3 cp ${SCRIPT/_PATH}scriptsredhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
                                 "qs_retry_command 20 ~/redhat_ose-register.sh ",
                                 {
@@ -2364,6 +2361,11 @@
                             ]
                         ]
                     }
+                }
+            },
+            "CreationPolicy": {
+                "ResourceSignal": {
+                    "Timeout": "PT240M"
                 }
             }
         },
