@@ -1249,7 +1249,7 @@
                         "Fn::Join": [
                             "",
                             [
-                                "#!/bin/bash",
+                                "#!/bin/bash -x",
                                 "\n",
                                 "echo \"========================================================================================================================\"\n",
                                 "echo \"\t------------------[] Starting: Load QuickStart Common\"\n",
@@ -2146,7 +2146,7 @@
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
                                 "\n",
-                                "aws s3 cp ${SCRIPT/_PATH}scriptsredhat_ose-register.sh  ~/redhat_ose-register.sh \n",
+                                "aws s3 cp ${SCRIPT/_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
                                 "qs_retry_command 20 ~/redhat_ose-register.sh ",
                                 {
@@ -2162,42 +2162,13 @@
                                 "then \n",
                                 "echo \"\t------------------[] Starting OpenShift Configuration\" \n",
                                 "echo \"[INFO] Generating Ansible inventory \" \n",
-                                "aws s3 cp ${SCRIPT_PATH}scripts/get_nodes.py  ~/get_nodes.py \n",
                                 "pip install boto3 &> /var/log/userdata.boto3_install.log || qs_err \" boto3 install failed \"\n",
-                                "python ~/get_nodes.py ",
+                                "aws s3 cp ",
                                 {
-                                    "Ref": "AWS::Region"
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
-                                " ",
-                                {
-                                    "Ref": "OpenShiftMasterASG"
-                                },
-                                " ",
-                                "masters ",
-                                " > /tmp/openshift_instances-master",
-                                "\n",
-                                "python ~/get_nodes.py ",
-                                {
-                                    "Ref": "AWS::Region"
-                                },
-                                " ",
-                                {
-                                    "Ref": "OpenShiftEtcdASG"
-                                },
-                                " ",
-                                "etcd > /tmp/openshift_instances-etcd",
-                                "\n",
-                                "python ~/get_nodes.py ",
-                                {
-                                    "Ref": "AWS::Region"
-                                },
-                                " ",
-                                {
-                                    "Ref": "OpenShiftNodeASG"
-                                },
-                                " ",
-                                "nodes > /tmp/openshift_instances-nodes",
-                                "\n",
+                                "scripts/scaling /root/ose_scaling --recursive \n",
+                                "pip install /root/ose_scaling \n",
                                 "# Start cfn-configset [cfg_node_keys]\n",
                                 "cfn-init -v ",
                                 "--stack ",
