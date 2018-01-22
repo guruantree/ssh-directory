@@ -2149,7 +2149,7 @@
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
                                 "\n",
-                                "aws s3 cp ${SCRIPT/_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
+                                "aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register.sh  ~/redhat_ose-register.sh \n",
                                 "chmod 755 ~/redhat_ose-register.sh\n",
                                 "qs_retry_command 20 ~/redhat_ose-register.sh ",
                                 {
