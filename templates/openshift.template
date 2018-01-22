@@ -990,6 +990,9 @@
                     ]
                 },
                 "Path": "/",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+                ],
                 "Policies": [
                     {
                         "PolicyName": "aws-quick-start-s3-policy",
