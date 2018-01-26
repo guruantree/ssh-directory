@@ -727,8 +727,8 @@
                                             ]
                                         },
                                         {
-                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript"
-                        }
+                                            "Fn::Sub": "arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript"
+                                        }
                                     ]
                                 }
                             ]
@@ -1617,6 +1617,13 @@
                         "Ebs": {
                             "VolumeSize": "80"
                         }
+                    },
+                    {
+                        "DeviceName": "/dev/xvdb",
+                        "Ebs": {
+                            "VolumeSize": "110",
+                            "VolumeType": "gp2"
+                        }
                     }
                 ],
                 "InstanceMonitoring": "true",
@@ -1698,6 +1705,17 @@
                                 "\n",
                                 "echo \"========================================================================================================================\"\n",
                                 "\n",
+                                "# Configure Storage\n",
+                                "yum install docker -y \n",
+                                "systemctl enable docker.service \n",
+                                "systemctl start docker.service \n",
+                                "echo \"CONTAINER_THINPOOL=docker-pool\" >> /etc/sysconfig/docker-storage-setup \n",
+                                "echo \"DEVS=/dev/xvdb\" >> /etc/sysconfig/docker-storage-setup \n",
+                                "echo \"VG=docker-vg\" >>/etc/sysconfig/docker-storage-setup \n",
+                                "echo \"STORAGE_DRIVER=devicemapper\" >> /etc/sysconfig/docker-storage-setup \n",
+                                "docker-storage-setup\n",
+                                "rm -rf /var/lib/docker\n",
+                                "systemctl restart  docker\n",
                                 "# Start cfn-init [GetPublicKey, AddPublicKey]\n",
                                 "cfn-init -v ",
                                 " --stack ",

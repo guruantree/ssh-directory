@@ -15,9 +15,20 @@ def generate_inital_inventory_nodes():
     """
     Generates the initial ansible inventory. Instances only.
     """
+
+    # Need to have the masters placed in the nodes section as well
+    for group in ClusterGroups.groups:
+        if group.openshift_config_category == 'masters':
+            masters = group.node_hostdefs
+
     for group in ClusterGroups.groups:
         with open('/tmp/openshift_ansible_inventory_{}'.format(group.openshift_config_category), 'w') as f:
             f.write('[{}]\n'.format(group.openshift_config_category))
+
+            if group.openshift_config_category == 'nodes':
+                f.write('\n'.join(masters))
+                f.write('\n')
+
             f.write('\n'.join(group.node_hostdefs))
             f.write('\n\n')
     return True
