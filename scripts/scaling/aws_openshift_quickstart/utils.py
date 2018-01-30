@@ -356,7 +356,7 @@ class InventoryScaling(object):
         del j['localhost']
         for h in j.keys():
             if j[h]['unreachable'] != 0:
-                unreacheble.append(h)
+                unreachable.append(h)
             elif j[h]['failures'] !=0:
                 failed.append(h)
             else:
@@ -492,7 +492,7 @@ class LocalASG(object):
           self.log.info("Awesome! This ASG is in the openshift cluster:" + self.name)
           return True
         self.log.debug("{} != {} for ASG: {}".format(self.stack_id, InventoryConfig.stack_id, self.name))
-        selflog.info("This ASG is not in the openshift cluster")
+        self.log.info("This ASG is not in the openshift cluster")
         return False
 
     def _grab_current_scaling_events(self):
