@@ -535,7 +535,7 @@ class LocalASG(object):
         """
         Generates the host definition for populating the Ansible Inventory.
         """
-        i=0
+        i = 0
         while i < len(self._instances['list']):
             instance_id = self._instances['list'][i]
             node = self._instances[instance_id]
@@ -543,10 +543,10 @@ class LocalASG(object):
             if node.State['Code'] not in [0, 16]:
                 i+=1
                 continue
-            _1 = node.PrivateIpAddress
-            _2 = "openshift_hostname=" + node.PrivateIpAddress
+            _1 = node.PrivateDnsName
+            _2 = ''
             _3 = ''
-            _4 = "openshift_node_labels=\"{'region': 'infra', 'zone': 'default'} \""
+            _4 = "openshift_node_labels=\"{'application_node': 'yes', 'registry_node': 'yes', 'router_node': 'yes', 'region': 'infra', 'zone': 'default'} \""
             _5 = ''
             _6 = '# '+ instance_id
 
@@ -590,6 +590,7 @@ class LocalASInstance(object):
         i=0
         while i < len(network_json):
             yield network_json[i]['PrivateIpAddress']
+            yield network_json[i]['PrivateDnsName']
             i+=1
 
 class ClusterGroups(object):
