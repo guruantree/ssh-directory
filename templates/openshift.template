@@ -920,6 +920,12 @@
                             "Ref": "RemoteAccessCIDR"
                         }
                     }
+                ],
+                "Tags": [
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Value": "owned"
+                    }
                 ]
             }
         },
@@ -953,6 +959,12 @@
                             "Ref": "ContainerAccessCIDR"
                         }
                     }
+                ],
+                "Tags": [
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Value": "owned"
+                    }
                 ]
             }
         },
@@ -967,6 +979,12 @@
                     {
                         "IpProtocol": "-1",
                         "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Value": "owned"
                     }
                 ]
             }
@@ -1065,6 +1083,11 @@
                         "Key": "Name",
                         "PropagateAtLaunch": "true",
                         "Value": "openshift-master"
+                    },
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "PropagateAtLaunch": "true",
+                        "Value": "owned"
                     }
                 ],
                 "VPCZoneIdentifier": [
@@ -1138,6 +1161,11 @@
                         "Key": "Name",
                         "PropagateAtLaunch": "true",
                         "Value": "openshift-nodes"
+                    },
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "PropagateAtLaunch": "true",
+                        "Value": "owned"
                     }
                 ],
                 "VPCZoneIdentifier": [
@@ -1504,6 +1532,15 @@
                                 "\n",
                                 "echo \"========================================================================================================================\"\n",
                                 "\n",
+                                "echo \"\t------------------[]Setup aws cloud provider prereqs \"\n",
+                                "mkdir -p /etc/aws/",
+                                "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\" > /etc/aws/aws.conf\n",
+                                "printf \"KubernetesClusterTag=",
+                                { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                                "\n\" >> /etc/aws/aws.conf\n",
+                                "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n",
+                                "echo \"========================================================================================================================\"\n",
+                                "\n",
                                 "# Configure Storage\n",
                                 "yum install docker -y \n",
                                 "systemctl enable docker.service \n",
@@ -1705,6 +1742,15 @@
                                 "\n",
                                 "echo \"========================================================================================================================\"\n",
                                 "\n",
+                                "echo \"\t------------------[]Setup aws cloud provider prereqs \"\n",
+                                "mkdir -p /etc/aws/",
+                                "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\" > /etc/aws/aws.conf\n",
+                                "printf \"KubernetesClusterTag=",
+                                { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                                "\n\" >> /etc/aws/aws.conf\n",
+                                "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n",
+                                "echo \"========================================================================================================================\"\n",
+                                "\n",
                                 "# Configure Storage\n",
                                 "yum install docker -y \n",
                                 "systemctl enable docker.service \n",
@@ -1792,7 +1838,13 @@
                     "UnhealthyThreshold": "3",
                     "Interval": "30",
                     "Timeout": "3"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Value": "owned"
+                    }
+                ]
             }
         },
         "ContainerAccessELB": {
@@ -1838,7 +1890,13 @@
                     "UnhealthyThreshold": "3",
                     "Interval": "30",
                     "Timeout": "3"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Value": "owned"
+                    }
+                ]
             }
         },
         "OpenShiftMasterInternalELB": {
@@ -1891,7 +1949,13 @@
                     "UnhealthyThreshold": "3",
                     "Interval": "30",
                     "Timeout": "3"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Value": "owned"
+                    }
+                ]
             }
         },
         "OpenShiftNodeInternalELB": {
@@ -1934,7 +1998,13 @@
                     "UnhealthyThreshold": "3",
                     "Interval": "30",
                     "Timeout": "3"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Value": "owned"
+                    }
+                ]
             }
         },
         "AnsibleConfigServer": {
@@ -2257,7 +2327,6 @@
                                 "echo \"[INFO] Configuring OpenShift Variable\" \n",
                                 "echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
-                                "echo openshift_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo \"[INFO] Configured OpenShift Variable\" \n",
                                 "/bin/aws-ose-qs-scale --generate-initial-inventory \n",
                                 "cat /tmp/openshift_ansible_inventory* >> /etc/ansible/hosts \n",
