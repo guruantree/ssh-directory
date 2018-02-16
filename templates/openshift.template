@@ -2597,9 +2597,9 @@
                                 "\"\n",
                                 "echo \"[INFO] Added OpenShift Users\" \n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build\" \n",
-                                "echo \"[INFO] Installing the AWS Service Broker\" \n",
-                                "AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\\[masters\\]' | tail -n 1 | awk '{print $1}')\n",
-                                "ssh $AWSSB_SETUP_HOST 'SCRIPT_PATH=",
+                                "# echo \"[INFO] Installing the AWS Service Broker\" \n",
+                                "# AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\\[masters\\]' | tail -n 1 | awk '{print $1}')\n",
+                                "# ssh $AWSSB_SETUP_HOST 'SCRIPT_PATH=",
                                 {
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
@@ -2629,7 +2629,7 @@
                                 "done ; ",
                                 "oc replace -f ./aws-sb-config.yaml -n aws-service-broker && ",
                                 "oc rollout latest aws-asb -n aws-service-broker'\n",
-                                "echo \"[INFO] Finished Installing the AWS Service Broker\" \n",
+                                "# echo \"[INFO] Finished Installing the AWS Service Broker\" \n",
                                 "echo \"[INFO] Signaling Stack .....\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
                                 "cfn-signal -e $?",
