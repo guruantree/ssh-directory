@@ -230,7 +230,7 @@
             "Type": "String"
         },
         "OpenShiftAdminPassword": {
-            "Description": "Password for OpenShift Admin UI Must be at least 8 characters containing letters and (minimum 1 capital letter), numbers and symbols",
+            "Description": "Password for OpenShift Admin UI Must be at least 8 and no more than 12 characters containing letters and (minimum 1 capital letter), numbers and symbols",
             "Type": "String",
             "MinLength": "8",
             "MaxLength": "12",
