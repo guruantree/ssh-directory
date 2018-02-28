@@ -2595,9 +2595,11 @@
                                     "Ref": "OpenShiftAdminPassword"
                                 },
                                 "\"\n",
+                                "echo \"[INFO] Added OpenShift Users\" \n",
+                                "echo \"[INFO] Refresh all services\" \n",
                                 "ansible all -a \"systemctl restart dbus\" \n",
                                 "ansible all -a \"systemctl restart atomic*\" \n",
-                                "echo \"[INFO] Added OpenShift Users\" \n",
+                                "ansible all -a \"systemctl restart NetworkManager\" \n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build\" \n",
                                 "# echo \"[INFO] Installing the AWS Service Broker\" \n",
                                 "# AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\\[masters\\]' | tail -n 1 | awk '{print $1}')\n",
