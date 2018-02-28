@@ -2595,6 +2595,7 @@
                                     "Ref": "OpenShiftAdminPassword"
                                 },
                                 "\"\n",
+                                "ansible all -a \"systemctl restart dbus\" \n",
                                 "echo \"[INFO] Added OpenShift Users\" \n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build\" \n",
                                 "# echo \"[INFO] Installing the AWS Service Broker\" \n",
