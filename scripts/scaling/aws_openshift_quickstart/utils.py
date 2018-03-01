@@ -120,11 +120,16 @@ class InventoryConfig(object):
                     cls.inventory_nodes[category].append(ip)
                     cls.log.debug("I just added {} to the {} category".format(ip, category))
                     _pattern = re.compile(cls._instance_pattern)
-                    _instance_id = _pattern.search(inventory_config.get(subcategory, key))
+                    _host_kv = inventory_config.get(subcategory, key)
+                    if _host_kv == None:
+                        _search_string = key
+                    else:
+                        _search_string = _host_kv
+                    _instance_id = _pattern.search(_search_string).group()
                     if _instance_id:
-                        cls.known_instances[_instance_id.group()] = ip
+                        cls.known_instances[_instance_id] = ip
                         cls.known_instances_iplist.append(ip)
-                        cls.log.debug("The Instance ID {} has been tied to the Private IP: {}".format(_instance_id, ip))
+                        cls.log.debug("The Instance ID {} has been tied to the Private DNS Entry: {}".format(_instance_id, ip))
                     else:
                         cls.log.debug("No instance ID was found!")
 
@@ -589,7 +594,6 @@ class LocalASInstance(object):
         """
         i=0
         while i < len(network_json):
-            yield network_json[i]['PrivateIpAddress']
             yield network_json[i]['PrivateDnsName']
             i+=1
 
