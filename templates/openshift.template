@@ -2636,14 +2636,23 @@
                                                     "chmod +x deploy_aws_broker.sh && ",
                                                     "./deploy_aws_broker.sh && ",
                                                     "aws s3 cp ${SCRIPT_PATH}scripts/secrets.yaml ./secrets.yaml && ",
-                                                    "sed -i \"s/<CFN_ROLE_ARN>/$(echo ",
-                                                    {"Fn::GetAtt" : ["AWSServiceBrokerCFNRole", "Arn"] },
-                                                    " | sed \\\"s/\\//\\\\\\//g\\\")/\" ./secrets.yaml &&",
-                                                    "sed -i \"s/<REGION>/",
-                                                    { "Ref": "AWS::Region" },
+                                                    "sed -i \"s~<CFN_ROLE_ARN>~",
+                                                    {
+                                                        "Fn::GetAtt" : [
+                                                            "AWSServiceBrokerCFNRole",
+                                                            "Arn"
+                                                        ]
+                                                    },
+                                                    "~\" ./secrets.yaml &&",
+                                                   "sed -i \"s/<REGION>/",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
                                                     "/\" ./secrets.yaml && ",
                                                     "sed -i \"s/<VPC_ID>/",
-                                                    { "Ref": "VPCID" },
+                                                    {
+                                                        "Ref": "VPCID"
+                                                    },
                                                     "/\" ./secrets.yaml && ",
                                                     "oc create -f ./secrets.yaml -n aws-service-broker && ",
                                                     "oc get configmap broker-config -n aws-service-broker -o yaml > aws-sb-config.yaml && ",
