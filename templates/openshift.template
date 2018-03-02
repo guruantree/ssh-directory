@@ -373,6 +373,19 @@
             "Default": "",
             "Description": "OPTIONAL: Service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
             "Type": "String"
+        },
+        "HostedZoneID": {
+            "Description": "OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53 will not be configured and DNS must be setup manually",
+            "Type": "String"
+        },
+        "DomainName": {
+            "Description": "domain name configured for the cluster",
+            "Type": "String"
+        },
+        "SubDomainPrefix": {
+            "Default": "",
+            "Description": "OPTIONAL: Subdomain to use, if left blank DomainName will be used without a prefix",
+            "Type": "String"
         }
     },
     "Rules": {
@@ -475,9 +488,144 @@
                     ]
                 }
             ]
+        },
+        "SetupRoute53": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "HostedZoneID"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "SetupSubdomain": {
+            "Fn::And": [
+                {
+                    "Fn::Not": [
+                            {
+                            "Fn::Equals": [
+                                {
+                                    "Ref": "SubDomainPrefix"
+                                },
+                                ""
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "Fn::Not": [
+                        {
+                            "Fn::Equals": [
+                                {
+                                    "Ref": "HostedZoneID"
+                                },
+                                ""
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "UseSubdomain": {
+            "Fn::Not": [
+                    {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "SubDomainPrefix"
+                        },
+                        ""
+                    ]
+                }
+            ]
         }
     },
     "Resources": {
+        "Route53HostedZone": {
+            "Condition": "SetupSubdomain",
+            "Type": "AWS::Route53::HostedZone",
+            "Properties": {
+                "Name": {
+                    "Fn::Sub": "${SubDomainPrefix}.${DomainName}"
+                }
+            }
+        },
+        "Route53SubdomainNS": {
+            "Condition": "SetupSubdomain",
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "HostedZoneId": { "Ref": "HostedZoneID" },
+                "Name": {
+                    "Fn::Sub": "${SubDomainPrefix}.${DomainName}"
+                },
+                "ResourceRecords": { "Fn::GetAtt": [ "Route53HostedZone", "NameServers" ] },
+                "Type": "NS",
+                "TTL": "600"
+            }
+        },
+        "Route53WildCard": {
+            "Condition": "SetupRoute53",
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "Type": "A",
+                "Name": {
+                    "Fn::Join": [
+                        "", [
+                            "*.",
+                            {
+                                "Fn::If": [
+                                    "SetupSubdomain",
+                                    { "Fn::Sub": "${SubDomainPrefix}." },
+                                    ""
+                                ]
+                            },
+                            { "Ref": "DomainName" }
+                        ]
+                    ]
+                },
+                "AliasTarget": {
+                    "HostedZoneId": { "Fn::GetAtt" : [ "ContainerAccessELB", "CanonicalHostedZoneNameID" ] },
+                    "DNSName": { "Fn::GetAtt" : [ "ContainerAccessELB", "DNSName" ] }
+                },
+                "HostedZoneId": { "Fn::If": [
+                    "SetupSubdomain",
+                    { "Ref": "Route53HostedZone" },
+                    { "Ref": "HostedZoneID" }
+                ] }
+            }
+        },
+        "Route53Console": {
+            "Condition": "SetupRoute53",
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "Type": "A",
+                "Name": {
+                    "Fn::Join": [
+                        "", [
+                            {
+                                "Fn::If": [
+                                    "SetupSubdomain",
+                                    { "Fn::Sub": "${SubDomainPrefix}." },
+                                    ""
+                                ]
+                            },
+                            { "Ref": "DomainName" }
+                        ]
+                    ]
+                },
+                "AliasTarget": {
+                    "HostedZoneId": { "Fn::GetAtt" : [ "OpenShiftMasterELB", "CanonicalHostedZoneNameID" ] },
+                    "DNSName": { "Fn::GetAtt" : [ "OpenShiftMasterELB", "DNSName" ] }
+                },
+                "HostedZoneId": { "Fn::If": [
+                    "SetupSubdomain",
+                    { "Ref": "Route53HostedZone" },
+                    { "Ref": "HostedZoneID" }
+                ] }
+            }
+        },
         "LambdaExecutionRole": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -2078,13 +2226,7 @@
                     "UnhealthyThreshold": "3",
                     "Interval": "30",
                     "Timeout": "3"
-                },
-                "Tags": [
-                    {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
-                        "Value": "owned"
-                    }
-                ]
+                }
             }
         },
         "ContainerAccessELB": {
@@ -2570,9 +2712,17 @@
                                 "echo \"[INFO] Ansible Generated\" \n",
                                 "MASTER_ELBDNSNAME=",
                                 {
-                                    "Fn::GetAtt": [
-                                        "OpenShiftMasterELB",
-                                        "DNSName"
+                                    "Fn::Join": [
+                                        "", [
+                                            {
+                                                "Fn::If": [
+                                                    "UseSubdomain",
+                                                    { "Fn::Sub": "${SubDomainPrefix}." },
+                                                    ""
+                                                ]
+                                            },
+                                            { "Ref": "DomainName" }
+                                        ]
                                     ]
                                 },
                                 "\n",
@@ -2580,14 +2730,6 @@
                                 {
                                     "Fn::GetAtt": [
                                         "OpenShiftMasterInternalELB",
-                                        "DNSName"
-                                    ]
-                                },
-                                "\n",
-                                "NODE_ELBDNSNAME=",
-                                {
-                                    "Fn::GetAtt": [
-                                        "ContainerAccessELB",
                                         "DNSName"
                                     ]
                                 },
@@ -2828,9 +2970,17 @@
                     [
                         "https://",
                         {
-                            "Fn::GetAtt": [
-                                "OpenShiftMasterELB",
-                                "DNSName"
+                            "Fn::Join": [
+                                "", [
+                                    {
+                                        "Fn::If": [
+                                            "UseSubdomain",
+                                            { "Fn::Sub": "${SubDomainPrefix}." },
+                                            ""
+                                        ]
+                                    },
+                                    { "Ref": "DomainName" }
+                                ]
                             ]
                         },
                         ":8443/"
