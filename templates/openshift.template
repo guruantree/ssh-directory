@@ -46,6 +46,15 @@
                 },
                 {
                     "Label": {
+                        "default": "OpenShift Service Catalog Configuration"
+                    },
+                    "Parameters": [
+                        "AWSServiceBroker",
+                        "AWSServiceBrokerRoleArn"
+                    ]
+                },
+                {
+                    "Label": {
                         "default": "Ansible Playbook Configuration"
                     },
                     "Parameters": [
@@ -155,6 +164,12 @@
                 },
                 "OutputBucketName": {
                     "default": "Output S3 Bucket Name"
+                },
+                "AWSServiceBroker": {
+                    "default": "AWS Service Broker"
+                },
+                "AWSServiceBrokerRoleArn": {
+                    "default": "AWS Service Broker Role ARN"
                 }
             }
         }
@@ -344,6 +359,20 @@
             "Description": "OPTIONAL: Bucket Name where the zip file output should be placed, if left blank a bucket name will be automatically generated.",
             "Type": "String",
             "Default": ""
+        },
+        "AWSServiceBroker": {
+            "Default": "Enabled",
+            "Description": "Enable the AWS Service Broker",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
+        },
+        "AWSServiceBrokerRoleArn": {
+            "Default": "",
+            "Description": "OPTIONAL: Service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
+            "Type": "String"
         }
     },
     "Rules": {
@@ -369,11 +398,6 @@
         }
     },
     "Mappings": {
-        "Config": {
-            "OpenShift": {
-                "AWSServiceBroker": "Disabled"
-            }
-        },
         "AWSAMIRegionMap": {
             "AMI": {
                 "RHEL74HVM": "RHEL-7.4_HVM_GA-20170808-x86_64-2-Hourly2-GP2"
@@ -424,16 +448,32 @@
                 }
             ]
         },
-        "EnableAWSServiceBroker": {
+                "EnableAWSServiceBroker": {
             "Fn::Equals": [
                 {
-                    "Fn::FindInMap": [
-                        "Config",
-                        "OpenShift",
-                        "AWSServiceBroker"
-                    ]
+                    "Ref": "AWSServiceBroker"
                 },
                 "Enabled"
+            ]
+        },
+        "CreateAWSServiceBrokerRole": {
+            "Fn::And": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "AWSServiceBroker"
+                        },
+                        "Enabled"
+                    ]
+                },
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "AWSServiceBrokerRoleArn"
+                        },
+                        ""
+                    ]
+                }
             ]
         }
     },
@@ -2208,7 +2248,7 @@
             }
         },
         "AWSServiceBrokerCFNRole": {
-            "Condition": "EnableAWSServiceBroker",
+            "Condition": "CreateAWSServiceBrokerRole",
             "Type": "AWS::IAM::Role",
             "Properties": {
                 "AssumeRolePolicyDocument": {
@@ -2638,9 +2678,17 @@
                                                     "aws s3 cp ${SCRIPT_PATH}scripts/secrets.yaml ./secrets.yaml && ",
                                                     "sed -i \"s~<CFN_ROLE_ARN>~",
                                                     {
-                                                        "Fn::GetAtt" : [
-                                                            "AWSServiceBrokerCFNRole",
-                                                            "Arn"
+                                                        "Fn::If": [
+                                                            "CreateAWSServiceBrokerRole",
+                                                            {
+                                                                "Fn::GetAtt" : [
+                                                                    "AWSServiceBrokerCFNRole",
+                                                                    "Arn"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWSServiceBrokerRoleArn"
+                                                            }
                                                         ]
                                                     },
                                                     "~\" ./secrets.yaml &&",

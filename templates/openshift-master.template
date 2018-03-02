@@ -45,6 +45,15 @@
                 },
                 {
                     "Label": {
+                        "default": "OpenShift Service Catalog Configuration"
+                    },
+                    "Parameters": [
+                        "AWSServiceBroker",
+                        "AWSServiceBrokerRoleArn"
+                    ]
+                },
+                {
+                    "Label": {
                         "default": "Red Hat Subscription Information"
                     },
                     "Parameters": [
@@ -148,6 +157,12 @@
                 },
                 "OutputBucketName": {
                     "default": "Output S3 Bucket Name"
+                },
+                "AWSServiceBroker": {
+                    "default": "AWS Service Broker"
+                },
+                "AWSServiceBrokerRoleArn": {
+                    "default": "AWS Service Broker Role ARN"
                 }
             }
         }
@@ -350,7 +365,21 @@
             "Description": "OPTIONAL: Bucket Name where the zip file output should be placed, if left blank a bucket name will be automatically generated.",
             "Type": "String",
             "Default": ""
-        }
+        },
+        "AWSServiceBroker": {
+            "Default": "Enabled",
+            "Description": "Enable the AWS Service Broker",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
+        },
+        "AWSServiceBrokerRoleArn": {
+            "Default": "",
+            "Description": "OPTIONAL: Service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
+            "Type": "String"
+        },
     },
     "Resources": {
         "VPCStack": {
@@ -489,6 +518,12 @@
                     },
                     "AnsiblePlaybookType": {
                         "Ref": "AnsiblePlaybookType"
+                    },
+                    "AWSServiceBroker": {
+                        "Ref": "AWSServiceBroker"
+                    },
+                    "AWSServiceBrokerRoleArn": {
+                        "Ref": "AWSServiceBrokerRoleArn"
                     }
                 }
             }
