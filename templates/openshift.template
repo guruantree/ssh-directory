@@ -2616,8 +2616,11 @@
                                 "echo \"[INFO] Added OpenShift Users\" \n",
                                 "echo \"[INFO] Refresh all services\" \n",
                                 "ansible all -a \"systemctl restart dbus\" \n",
+                                "ansible all -a \"systemctl restart dnsmasq\" \n",
+                                "ansible all -m wait_for -a \"path=/var/run/dbus/system_bus_socket\" \n",
                                 "ansible all -a \"systemctl restart atomic*\" \n",
                                 "ansible all -a \"systemctl restart NetworkManager\" \n",
+                                "ansible all -a \"systemctl restart systemd-logind\" \n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build\" \n",
                                 {
                                     "Fn::If": [
