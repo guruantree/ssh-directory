@@ -382,7 +382,7 @@ class InventoryScaling(object):
                 'unreachable': [x for x in unreachable if x in cls._incoming_instances[category]]
             }
         cls.ansible_results[category] = cat_results
-        cls.log.debug("- [{}] playbook run results: {}".format(category, cat_results))
+        cls.log.info("- [{}] playbook run results: {}".format(category, cat_results))
         final_logfile = "/var/log/aws-quickstart-openshift-scaling.{}-{}-{}T{}{}".format(dt.year, dt.month, dt.day, dt.hour, dt.minute)
         os.rename(jout_file, final_logfile)
         cls.log.info("The json output logfile has been moved to %s" %(final_logfile))
