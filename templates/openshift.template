@@ -1158,8 +1158,8 @@
                     },
                     {
                         "IpProtocol": "tcp",
-                        "FromPort": "8080",
-                        "ToPort": "8080",
+                        "FromPort": "443",
+                        "ToPort": "443",
                         "CidrIp": {
                             "Ref": "ContainerAccessCIDR"
                         }
@@ -2489,10 +2489,15 @@
                 ],
                 "Listeners": [
                     {
-                        "InstancePort": "8080",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8080",
-                        "Protocol": "TCP"
+                        "InstancePort": "443",
+                        "InstanceProtocol": "SSL",
+                        "LoadBalancerPort": "443",
+                        "Protocol": "SSL",
+                        "SSLCertificateId": { "Fn::If": [
+                            "SetupRoute53",
+                            { "Fn::GetAtt": [ "ACMCertificateDNS", "Arn" ] },
+                            { "Ref": "ACMCertificateEmail" }
+                        ] }
                     },
                     {
                         "InstancePort": "80",
@@ -2541,12 +2546,6 @@
                     }
                 ],
                 "Listeners": [
-                    {
-                        "InstancePort": "8443",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8443",
-                        "Protocol": "TCP"
-                    },
                     {
                         "InstancePort": "80",
                         "InstanceProtocol": "TCP",
@@ -2597,9 +2596,9 @@
                 ],
                 "Listeners": [
                     {
-                        "InstancePort": "8080",
+                        "InstancePort": "443",
                         "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8080",
+                        "LoadBalancerPort": "443",
                         "Protocol": "TCP"
                     },
                     {
