@@ -2217,6 +2217,13 @@
                                 {
                                     "Effect": "Allow",
                                     "Action": [
+                                        "lambda:InvokeFunction"
+                                    ],
+                                    "Resource": [ "*" ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
                                         "route53:ChangeResourceRecordSets"
                                     ],
                                     "Resource": [
@@ -2257,7 +2264,6 @@
                                 "import boto3",
                                 "import cfnresponse",
                                 "import time",
-                                "import sys",
                                 "acm_client = boto3.client('acm')",
                                 "r53_client = boto3.client('route53')",
                                 "lambda_client = boto3.client('lambda')",
@@ -2266,17 +2272,21 @@
                                 "    status = cfnresponse.SUCCESS",
                                 "    physical_resource_id = None",
                                 "    data={}",
+                                "    cfn_signal=True",
                                 "    try:",
                                 "        if event['RequestType'] == 'Create':",
                                 "            token = ''.join(ch for ch in str(event['StackId'] + event['LogicalResourceId']) if ch.isalnum())",
                                 "            token = token[len(token)-32:]",
                                 "            arn = acm_client.request_certificate(ValidationMethod='DNS', DomainName=event['ResourceProperties']['HostNames'][0], SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:], IdempotencyToken=token)['CertificateArn']",
                                 "            rs={}",
-                                "            while 'ResourceRecord' not in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions'][0].keys():",
-                                "                print('waiting for ResourceRecord to be available')",
-                                "                time.sleep(2)",
-                                "            for d in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']:",
-                                "                rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']",
+                                "            while True:",
+                                "                try:",
+                                "                    for d in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']:",
+                                "                        rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']",
+                                "                    break",
+                                "                except KeyError:",
+                                "                    print('waiting for ResourceRecord to be available')",
+                                "                    time.sleep(2)",
                                 "            rs = [{'Action': 'CREATE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]",
                                 "            try:",
                                 "                r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})",
@@ -2288,13 +2298,13 @@
                                 "                if (context.get_remaining_time_in_millis() / 1000.00) > 20.0:",
                                 "                    time.sleep(15)",
                                 "                else:",
-                                "                    lambda_client.invoke(FunctionName=context.function_name, InvocationType='Event', Payload=json.loads(event))",
-                                "                    logging.warning('Ran out of time waiting for validation, passed the torch to another lambda')",
-                                "                    sys.exit(0)",
+                                "                    lambda_client.invoke(FunctionName=context.function_name, InvocationType='Event', Payload=bytes(json.dumps(event)))",
+                                "                    logging.warning('validation timed out, invoking a new lambda')",
+                                "                    cfn_signal=False",
                                 "            for r in [v['ValidationStatus'] for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:",
                                 "                if r != 'SUCCESS':",
                                 "                    status = cfnresponse.FAILED",
-                                "                    logging.error('Exception: One or more domains failed to validate')",
+                                "                    logging.error('One or more domains failed to validate')",
                                 "            physical_resource_id = arn",
                                 "            data['Arn'] = arn",
                                 "        elif event['RequestType'] == 'Update':",
@@ -2308,12 +2318,19 @@
                                 "                rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']",
                                 "            rs = [{'Action': 'DELETE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]",
                                 "            r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})",
-                                "            acm_client.delete_certificate(CertificateArn=physical_resource_id)",
+                                "            while True:",
+                                "                try:",
+                                "                    acm_client.delete_certificate(CertificateArn=physical_resource_id)",
+                                "                    break",
+                                "                except Exception as e:",
+                                "                    if not str(e).endswith('is in use.'):",
+                                "                        raise",
                                 "    except Exception as e:",
                                 "        logging.error('Exception: %s' % e, exc_info=True)",
                                 "        status = cfnresponse.FAILED",
                                 "    finally:",
-                                "        cfnresponse.send(event, context, status, data, physical_resource_id)"
+                                "        if cfn_signal:",
+                                "            cfnresponse.send(event, context, status, data, physical_resource_id)"
                             ]
                         ]
                     }
