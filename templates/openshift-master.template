@@ -45,11 +45,12 @@
                 },
                 {
                     "Label": {
-                        "default": "OpenShift Service Catalog Configuration"
+                        "default": "OpenShift Feature Configuration"
                     },
                     "Parameters": [
                         "AWSServiceBroker",
-                        "ExistingAWSServiceBrokerRole"
+                        "ExistingAWSServiceBrokerRole",
+                        "HawkularMetrics"
                     ]
                 },
                 {
@@ -163,6 +164,9 @@
                 },
                 "ExistingAWSServiceBrokerRole": {
                     "default": "Existing AWS Service Broker Role ARN"
+                },
+                "HawkularMetrics": {
+                    "default": "Hawkular Metrics"
                 }
             }
         }
@@ -392,6 +396,15 @@
             "Default": "",
             "Description": "OPTIONAL: Subdomain to use, if left blank DomainName will be used without a prefix",
             "Type": "String"
+        },
+        "HawkularMetrics": {
+            "Default": "Enabled",
+            "Description": "Enable Hawkular cluster metrics",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
         }
     },
     "Resources": {
@@ -540,7 +553,8 @@
                     },
                     "HostedZoneID": { "Ref": "HostedZoneID" },
                     "DomainName": { "Ref": "DomainName" },
-                    "SubDomainPrefix": { "Ref": "SubDomainPrefix" }
+                    "SubDomainPrefix": { "Ref": "SubDomainPrefix" },
+                    "HawkularMetrics": { "Ref": "HawkularMetrics" }
                 }
             }
         }
