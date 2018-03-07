@@ -2669,7 +2669,7 @@
                                 },
                                 "echo \"[INFO] Signaling Stack .....\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
-                                "cfn-signal -e $?",
+                                "cfn-signal -e $(qs_status)",
                                 "   --stack ",
                                 {
                                     "Ref": "AWS::StackName"
