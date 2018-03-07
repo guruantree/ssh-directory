@@ -380,6 +380,19 @@
             "Description": "OPTIONAL: Existing service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
             "Type": "String"
         },
+        "HostedZoneID": {
+            "Description": "OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53 will not be configured and DNS must be setup manually",
+            "Type": "String"
+        },
+        "DomainName": {
+            "Description": "domain name configured for the cluster",
+            "Type": "String"
+        },
+        "SubDomainPrefix": {
+            "Default": "",
+            "Description": "OPTIONAL: Subdomain to use, if left blank DomainName will be used without a prefix",
+            "Type": "String"
+        }
     },
     "Resources": {
         "VPCStack": {
@@ -524,7 +537,10 @@
                     },
                     "ExistingAWSServiceBrokerRole": {
                         "Ref": "ExistingAWSServiceBrokerRole"
-                    }
+                    },
+                    "HostedZoneID": { "Ref": "HostedZoneID" },
+                    "DomainName": { "Ref": "DomainName" },
+                    "SubDomainPrefix": { "Ref": "SubDomainPrefix" }
                 }
             }
         }
