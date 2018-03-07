@@ -50,7 +50,7 @@
                     },
                     "Parameters": [
                         "AWSServiceBroker",
-                        "AWSServiceBrokerRoleArn"
+                        "ExistingAWSServiceBrokerRole"
                     ]
                 },
                 {
@@ -168,8 +168,8 @@
                 "AWSServiceBroker": {
                     "default": "AWS Service Broker"
                 },
-                "AWSServiceBrokerRoleArn": {
-                    "default": "AWS Service Broker Role ARN"
+                "ExistingAWSServiceBrokerRole": {
+                    "default": "Existing AWS Service Broker Role ARN"
                 }
             }
         }
@@ -369,9 +369,9 @@
                 "Disabled"
             ]
         },
-        "AWSServiceBrokerRoleArn": {
+        "ExistingAWSServiceBrokerRole": {
             "Default": "",
-            "Description": "OPTIONAL: Service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
+            "Description": "OPTIONAL: Existing service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
             "Type": "String"
         }
     },
@@ -469,7 +469,7 @@
                 {
                     "Fn::Equals": [
                         {
-                            "Ref": "AWSServiceBrokerRoleArn"
+                            "Ref": "ExistingAWSServiceBrokerRole"
                         },
                         ""
                     ]
@@ -2687,7 +2687,7 @@
                                                                 ]
                                                             },
                                                             {
-                                                                "Ref": "AWSServiceBrokerRoleArn"
+                                                                "Ref": "ExistingAWSServiceBrokerRole"
                                                             }
                                                         ]
                                                     },
