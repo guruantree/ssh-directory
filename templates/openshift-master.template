@@ -49,7 +49,7 @@
                     },
                     "Parameters": [
                         "AWSServiceBroker",
-                        "AWSServiceBrokerRoleArn"
+                        "ExistingAWSServiceBrokerRole"
                     ]
                 },
                 {
@@ -161,8 +161,8 @@
                 "AWSServiceBroker": {
                     "default": "AWS Service Broker"
                 },
-                "AWSServiceBrokerRoleArn": {
-                    "default": "AWS Service Broker Role ARN"
+                "ExistingAWSServiceBrokerRole": {
+                    "default": "Existing AWS Service Broker Role ARN"
                 }
             }
         }
@@ -245,7 +245,7 @@
             "Type": "String"
         },
         "OpenShiftAdminPassword": {
-            "Description": "Password for OpenShift Admin UI Must be at least 8 characters containing letters and (minimum 1 capital letter), numbers and symbols",
+            "Description": "Password for OpenShift Admin UI Must be at least 8 and no more than 12 characters containing letters and (minimum 1 capital letter), numbers and symbols",
             "Type": "String",
             "MinLength": "8",
             "MaxLength": "12",
@@ -375,9 +375,9 @@
                 "Disabled"
             ]
         },
-        "AWSServiceBrokerRoleArn": {
+        "ExistingAWSServiceBrokerRole": {
             "Default": "",
-            "Description": "OPTIONAL: Service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
+            "Description": "OPTIONAL: Existing service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
             "Type": "String"
         },
         "HostedZoneID": {
@@ -535,8 +535,8 @@
                     "AWSServiceBroker": {
                         "Ref": "AWSServiceBroker"
                     },
-                    "AWSServiceBrokerRoleArn": {
-                        "Ref": "AWSServiceBrokerRoleArn"
+                    "ExistingAWSServiceBrokerRole": {
+                        "Ref": "ExistingAWSServiceBrokerRole"
                     },
                     "HostedZoneID": { "Ref": "HostedZoneID" },
                     "DomainName": { "Ref": "DomainName" },

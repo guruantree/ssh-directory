@@ -18,6 +18,7 @@ openshift_registry_selector='registry_node=yes'
 osm_default_node_selector='application_node=yes'
 openshift_clusterid=owned
 openshift_cloudprovider_kind=aws
+openshift_disable_check=package_version # workaround for https://bugzilla.redhat.com/show_bug.cgi?id=1551862
 
 openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
 

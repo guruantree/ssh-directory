@@ -50,7 +50,7 @@
                     },
                     "Parameters": [
                         "AWSServiceBroker",
-                        "AWSServiceBrokerRoleArn"
+                        "ExistingAWSServiceBrokerRole"
                     ]
                 },
                 {
@@ -168,8 +168,8 @@
                 "AWSServiceBroker": {
                     "default": "AWS Service Broker"
                 },
-                "AWSServiceBrokerRoleArn": {
-                    "default": "AWS Service Broker Role ARN"
+                "ExistingAWSServiceBrokerRole": {
+                    "default": "Existing AWS Service Broker Role ARN"
                 }
             }
         }
@@ -369,9 +369,9 @@
                 "Disabled"
             ]
         },
-        "AWSServiceBrokerRoleArn": {
+        "ExistingAWSServiceBrokerRole": {
             "Default": "",
-            "Description": "OPTIONAL: Service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
+            "Description": "OPTIONAL: Existing service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
             "Type": "String"
         },
         "HostedZoneID": {
@@ -482,7 +482,7 @@
                 {
                     "Fn::Equals": [
                         {
-                            "Ref": "AWSServiceBrokerRoleArn"
+                            "Ref": "ExistingAWSServiceBrokerRole"
                         },
                         ""
                     ]
@@ -3050,6 +3050,13 @@
                                 },
                                 "\"\n",
                                 "echo \"[INFO] Added OpenShift Users\" \n",
+                                "echo \"[INFO] Refresh all services\" \n",
+                                "ansible all -a \"systemctl restart dbus\" \n",
+                                "ansible all -a \"systemctl restart dnsmasq\" \n",
+                                "ansible all -m wait_for -a \"path=/var/run/dbus/system_bus_socket\" \n",
+                                "ansible all -a \"systemctl restart atomic*\" \n",
+                                "ansible all -a \"systemctl restart NetworkManager\" \n",
+                                "ansible all -a \"systemctl restart systemd-logind\" \n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build\" \n",
                                 {
                                     "Fn::If": [
@@ -3083,7 +3090,7 @@
                                                                 ]
                                                             },
                                                             {
-                                                                "Ref": "AWSServiceBrokerRoleArn"
+                                                                "Ref": "ExistingAWSServiceBrokerRole"
                                                             }
                                                         ]
                                                     },
@@ -3105,7 +3112,7 @@
                                                     "  sed -i \"s/^kind: ConfigMap$/      - {apb_name: $apb, secret: aws-secret, title: aws-secret}\\n&/\" aws-sb-config.yaml ; ",
                                                     "done ; ",
                                                     "oc replace -f ./aws-sb-config.yaml -n aws-service-broker && ",
-                                                    "oc rollout latest aws-asb -n aws-service-broker'\n",
+                                                    "oc rollout latest aws-asb -n aws-service-broker' || qs_err \" failed to setup the AWS Service Broker\"\n",
                                                     "echo \"[INFO] Finished Installing the AWS Service Broker\" \n"
                                                 ]
                                             ]
@@ -3115,7 +3122,7 @@
                                 },
                                 "echo \"[INFO] Signaling Stack .....\"\n",
                                 "# Signal resource using [qs_status] via cfn-init\n",
-                                "cfn-signal -e $?",
+                                "cfn-signal -e $(qs_status)",
                                 "   --stack ",
                                 {
                                     "Ref": "AWS::StackName"
