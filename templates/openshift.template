@@ -551,7 +551,7 @@
         }
     },
     "Resources": {
-        "Route53HostedZone": {
+        "Route53HostedSubdomainZone": {
             "Condition": "SetupSubdomain",
             "Type": "AWS::Route53::HostedZone",
             "Properties": {
@@ -568,7 +568,7 @@
                 "Name": {
                     "Fn::Sub": "${SubDomainPrefix}.${DomainName}"
                 },
-                "ResourceRecords": { "Fn::GetAtt": [ "Route53HostedZone", "NameServers" ] },
+                "ResourceRecords": { "Fn::GetAtt": [ "Route53HostedSubdomainZone", "NameServers" ] },
                 "Type": "NS",
                 "TTL": "600"
             }
@@ -599,12 +599,12 @@
                 },
                 "HostedZoneId": { "Fn::If": [
                     "SetupSubdomain",
-                    { "Ref": "Route53HostedZone" },
+                    { "Ref": "Route53HostedSubdomainZone" },
                     { "Ref": "HostedZoneID" }
                 ] }
             }
         },
-        "Route53Console": {
+        "Route53MasterELBRecord": {
             "Condition": "SetupRoute53",
             "Type": "AWS::Route53::RecordSet",
             "Properties": {
@@ -629,7 +629,7 @@
                 },
                 "HostedZoneId": { "Fn::If": [
                     "SetupSubdomain",
-                    { "Ref": "Route53HostedZone" },
+                    { "Ref": "Route53HostedSubdomainZone" },
                     { "Ref": "HostedZoneID" }
                 ] }
             }
@@ -2229,7 +2229,7 @@
                                     "Resource": [
                                         { "Fn::If": [
                                             "SetupSubdomain",
-                                            { "Fn::Sub": "arn:aws:route53:::hostedzone/${Route53HostedZone}" },
+                                            { "Fn::Sub": "arn:aws:route53:::hostedzone/${Route53HostedSubdomainZone}" },
                                             { "Fn::Sub": "arn:aws:route53:::hostedzone/${HostedZoneID}" }
                                         ] }
                                     ]
@@ -2346,7 +2346,7 @@
                 },
                 "HostedZoneId": { "Fn::If": [
                     "SetupSubdomain",
-                    { "Ref": "Route53HostedZone" },
+                    { "Ref": "Route53HostedSubdomainZone" },
                     { "Ref": "HostedZoneID" }
                 ] },
                 "HostNames": [
