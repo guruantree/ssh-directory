@@ -2175,7 +2175,7 @@
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
                 "ConnectionSettings": {
-                    "IdleTimeout": 1200
+                    "IdleTimeout": 300
                 },
                 "CrossZone": true,
                 "Subnets": [
@@ -2233,7 +2233,7 @@
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
                 "ConnectionSettings": {
-                    "IdleTimeout": 1200
+                    "IdleTimeout": 300
                 },
                 "CrossZone": true,
                 "Subnets": [
@@ -2285,7 +2285,7 @@
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
                 "ConnectionSettings": {
-                    "IdleTimeout": 1200
+                    "IdleTimeout": 300
                 },
                 "CrossZone": true,
                 "Scheme": "internal",
