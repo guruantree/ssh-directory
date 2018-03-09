@@ -2556,7 +2556,7 @@
                                 "echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo \"[INFO] Configured OpenShift Variable\" \n",
-                                "/bin/aws-ose-qs-scale --generate-initial-inventory \n",
+                                "/bin/aws-ose-qs-scale --generate-initial-inventory --debug \n",
                                 "cat /tmp/openshift_ansible_inventory* >> /etc/ansible/hosts \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
                                 "sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg \n",
@@ -2745,7 +2745,7 @@
                         "Arn": {
                             "Fn::Sub": "arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript"
                         },
-                        "Input": "{\"commands\":[\"/bin/aws-ose-qs-scale --scale-in-progress\"],\"workingDirectory\":[\"/\"],\"executionTimeout\":[\"3600\"]}",
+                        "Input": "{\"commands\":[\"/bin/aws-ose-qs-scale --scale-in-progress --debug\"],\"workingDirectory\":[\"/\"],\"executionTimeout\":[\"3600\"]}",
                         "RoleArn": {
                             "Fn::GetAtt": [
                                 "OpenShiftScalingCWEventRole",
