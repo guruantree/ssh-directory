@@ -46,11 +46,12 @@
                 },
                 {
                     "Label": {
-                        "default": "OpenShift Service Catalog Configuration"
+                        "default": "OpenShift Feature Configuration"
                     },
                     "Parameters": [
                         "AWSServiceBroker",
-                        "ExistingAWSServiceBrokerRole"
+                        "ExistingAWSServiceBrokerRole",
+                        "HawkularMetrics"
                     ]
                 },
                 {
@@ -170,6 +171,9 @@
                 },
                 "ExistingAWSServiceBrokerRole": {
                     "default": "Existing AWS Service Broker Role ARN"
+                },
+                "HawkularMetrics": {
+                    "default": "Hawkular Metrics"
                 }
             }
         }
@@ -387,6 +391,15 @@
             "Default": "",
             "Description": "OPTIONAL: Subdomain to use, if left blank DomainName will be used without a prefix",
             "Type": "String"
+        },
+        "HawkularMetrics": {
+            "Default": "Enabled",
+            "Description": "Enable Hawkular cluster metrics",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
         }
     },
     "Rules": {
@@ -548,6 +561,14 @@
                         ""
                     ]
                 }
+            ]
+        },
+        "EnableHawkular": {
+            "Fn::Equals": [
+                {
+                    "Ref": "HawkularMetrics"
+                },
+                "Enabled"
             ]
         }
     },
@@ -2990,6 +3011,23 @@
                                 "echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo openshift_master_default_subdomain=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                {
+                                    "Fn::If": [
+                                        "EnableHawkular",
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "echo openshift_metrics_hawkular_hostname=metrics.${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                                    "echo openshift_metrics_install_metrics=true >> /etc/ansible/hosts \n",
+                                                    "echo openshift_metrics_start_cluster=true >> /etc/ansible/hosts \n",
+                                                    "echo openshift_metrics_cassandra_storage_type=dynamic >> /etc/ansible/hosts \n"
+                                                ]
+                                            ]
+                                        },
+                                        ""
+                                    ]
+                                },
                                 "echo openshift_master_api_port=443 >> /etc/ansible/hosts \n",
                                 "echo openshift_master_console_port=443 >> /etc/ansible/hosts \n",
                                 "echo \"[INFO] Configured OpenShift Variable\" \n",
