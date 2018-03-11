@@ -551,10 +551,18 @@
                     "ExistingAWSServiceBrokerRole": {
                         "Ref": "ExistingAWSServiceBrokerRole"
                     },
-                    "HostedZoneID": { "Ref": "HostedZoneID" },
-                    "DomainName": { "Ref": "DomainName" },
-                    "SubDomainPrefix": { "Ref": "SubDomainPrefix" },
-                    "HawkularMetrics": { "Ref": "HawkularMetrics" }
+                    "HostedZoneID": {
+                        "Ref": "HostedZoneID"
+                    },
+                    "DomainName": {
+                        "Ref": "DomainName"
+                    },
+                    "SubDomainPrefix": {
+                        "Ref": "SubDomainPrefix"
+                    },
+                    "HawkularMetrics": {
+                        "Ref": "HawkularMetrics"
+                    }
                 }
             }
         }

@@ -475,7 +475,7 @@
                 }
             ]
         },
-                "EnableAWSServiceBroker": {
+        "EnableAWSServiceBroker": {
             "Fn::Equals": [
                 {
                     "Ref": "AWSServiceBroker"
@@ -527,7 +527,7 @@
             "Fn::And": [
                 {
                     "Fn::Not": [
-                            {
+                        {
                             "Fn::Equals": [
                                 {
                                     "Ref": "SubDomainPrefix"
@@ -553,7 +553,7 @@
         },
         "UseSubdomain": {
             "Fn::Not": [
-                    {
+                {
                     "Fn::Equals": [
                         {
                             "Ref": "SubDomainPrefix"
@@ -586,11 +586,18 @@
             "Condition": "SetupSubdomain",
             "Type": "AWS::Route53::RecordSet",
             "Properties": {
-                "HostedZoneId": { "Ref": "HostedZoneID" },
+                "HostedZoneId": {
+                    "Ref": "HostedZoneID"
+                },
                 "Name": {
                     "Fn::Sub": "${SubDomainPrefix}.${DomainName}"
                 },
-                "ResourceRecords": { "Fn::GetAtt": [ "Route53HostedSubdomainZone", "NameServers" ] },
+                "ResourceRecords": {
+                    "Fn::GetAtt": [
+                        "Route53HostedSubdomainZone",
+                        "NameServers"
+                    ]
+                },
                 "Type": "NS",
                 "TTL": "600"
             }
@@ -602,28 +609,49 @@
                 "Type": "A",
                 "Name": {
                     "Fn::Join": [
-                        "", [
+                        "",
+                        [
                             "*.",
                             {
                                 "Fn::If": [
                                     "SetupSubdomain",
-                                    { "Fn::Sub": "${SubDomainPrefix}." },
+                                    {
+                                        "Fn::Sub": "${SubDomainPrefix}."
+                                    },
                                     ""
                                 ]
                             },
-                            { "Ref": "DomainName" }
+                            {
+                                "Ref": "DomainName"
+                            }
                         ]
                     ]
                 },
                 "AliasTarget": {
-                    "HostedZoneId": { "Fn::GetAtt" : [ "ContainerAccessELB", "CanonicalHostedZoneNameID" ] },
-                    "DNSName": { "Fn::GetAtt" : [ "ContainerAccessELB", "DNSName" ] }
+                    "HostedZoneId": {
+                        "Fn::GetAtt": [
+                            "ContainerAccessELB",
+                            "CanonicalHostedZoneNameID"
+                        ]
+                    },
+                    "DNSName": {
+                        "Fn::GetAtt": [
+                            "ContainerAccessELB",
+                            "DNSName"
+                        ]
+                    }
                 },
-                "HostedZoneId": { "Fn::If": [
-                    "SetupSubdomain",
-                    { "Ref": "Route53HostedSubdomainZone" },
-                    { "Ref": "HostedZoneID" }
-                ] }
+                "HostedZoneId": {
+                    "Fn::If": [
+                        "SetupSubdomain",
+                        {
+                            "Ref": "Route53HostedSubdomainZone"
+                        },
+                        {
+                            "Ref": "HostedZoneID"
+                        }
+                    ]
+                }
             }
         },
         "Route53MasterELBRecord": {
@@ -633,27 +661,48 @@
                 "Type": "A",
                 "Name": {
                     "Fn::Join": [
-                        "", [
+                        "",
+                        [
                             {
                                 "Fn::If": [
                                     "SetupSubdomain",
-                                    { "Fn::Sub": "${SubDomainPrefix}." },
+                                    {
+                                        "Fn::Sub": "${SubDomainPrefix}."
+                                    },
                                     ""
                                 ]
                             },
-                            { "Ref": "DomainName" }
+                            {
+                                "Ref": "DomainName"
+                            }
                         ]
                     ]
                 },
                 "AliasTarget": {
-                    "HostedZoneId": { "Fn::GetAtt" : [ "OpenShiftMasterELB", "CanonicalHostedZoneNameID" ] },
-                    "DNSName": { "Fn::GetAtt" : [ "OpenShiftMasterELB", "DNSName" ] }
+                    "HostedZoneId": {
+                        "Fn::GetAtt": [
+                            "OpenShiftMasterELB",
+                            "CanonicalHostedZoneNameID"
+                        ]
+                    },
+                    "DNSName": {
+                        "Fn::GetAtt": [
+                            "OpenShiftMasterELB",
+                            "DNSName"
+                        ]
+                    }
                 },
-                "HostedZoneId": { "Fn::If": [
-                    "SetupSubdomain",
-                    { "Ref": "Route53HostedSubdomainZone" },
-                    { "Ref": "HostedZoneID" }
-                ] }
+                "HostedZoneId": {
+                    "Fn::If": [
+                        "SetupSubdomain",
+                        {
+                            "Ref": "Route53HostedSubdomainZone"
+                        },
+                        {
+                            "Ref": "HostedZoneID"
+                        }
+                    ]
+                }
             }
         },
         "LambdaExecutionRole": {
@@ -1158,7 +1207,9 @@
                 ],
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -1197,7 +1248,9 @@
                 ],
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -1218,7 +1271,9 @@
                 ],
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -1503,7 +1558,9 @@
                         "Value": "openshift-master"
                     },
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "PropagateAtLaunch": "true",
                         "Value": "owned"
                     }
@@ -1581,7 +1638,9 @@
                         "Value": "openshift-nodes"
                     },
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "PropagateAtLaunch": "true",
                         "Value": "owned"
                     }
@@ -1954,7 +2013,9 @@
                                 "mkdir -p /etc/aws/",
                                 "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\" > /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterTag=",
-                                { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                                {
+                                    "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                                },
                                 "\n\" >> /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n",
                                 "echo \"========================================================================================================================\"\n",
@@ -2164,7 +2225,9 @@
                                 "mkdir -p /etc/aws/",
                                 "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\" > /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterTag=",
-                                { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                                {
+                                    "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                                },
                                 "\n\" >> /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n",
                                 "echo \"========================================================================================================================\"\n",
@@ -2234,14 +2297,18 @@
                                         "acm:DescribeCertificate",
                                         "acm:DeleteCertificate"
                                     ],
-                                    "Resource": [ "*" ]
+                                    "Resource": [
+                                        "*"
+                                    ]
                                 },
                                 {
                                     "Effect": "Allow",
                                     "Action": [
                                         "lambda:InvokeFunction"
                                     ],
-                                    "Resource": [ "*" ]
+                                    "Resource": [
+                                        "*"
+                                    ]
                                 },
                                 {
                                     "Effect": "Allow",
@@ -2249,11 +2316,17 @@
                                         "route53:ChangeResourceRecordSets"
                                     ],
                                     "Resource": [
-                                        { "Fn::If": [
-                                            "SetupSubdomain",
-                                            { "Fn::Sub": "arn:aws:route53:::hostedzone/${Route53HostedSubdomainZone}" },
-                                            { "Fn::Sub": "arn:aws:route53:::hostedzone/${HostedZoneID}" }
-                                        ] }
+                                        {
+                                            "Fn::If": [
+                                                "SetupSubdomain",
+                                                {
+                                                    "Fn::Sub": "arn:aws:route53:::hostedzone/${Route53HostedSubdomainZone}"
+                                                },
+                                                {
+                                                    "Fn::Sub": "arn:aws:route53:::hostedzone/${HostedZoneID}"
+                                                }
+                                            ]
+                                        }
                                     ]
                                 }
                             ]
@@ -2364,40 +2437,59 @@
             "Type": "AWS::CloudFormation::CustomResource",
             "Properties": {
                 "ServiceToken": {
-                    "Fn::GetAtt": [ "ACMCertificateLambda", "Arn" ]
+                    "Fn::GetAtt": [
+                        "ACMCertificateLambda",
+                        "Arn"
+                    ]
                 },
-                "HostedZoneId": { "Fn::If": [
-                    "SetupSubdomain",
-                    { "Ref": "Route53HostedSubdomainZone" },
-                    { "Ref": "HostedZoneID" }
-                ] },
+                "HostedZoneId": {
+                    "Fn::If": [
+                        "SetupSubdomain",
+                        {
+                            "Ref": "Route53HostedSubdomainZone"
+                        },
+                        {
+                            "Ref": "HostedZoneID"
+                        }
+                    ]
+                },
                 "HostNames": [
                     {
                         "Fn::Join": [
-                            "", [
+                            "",
+                            [
                                 {
                                     "Fn::If": [
                                         "UseSubdomain",
-                                        { "Fn::Sub": "${SubDomainPrefix}." },
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
                                         ""
                                     ]
                                 },
-                                { "Ref": "DomainName" }
+                                {
+                                    "Ref": "DomainName"
+                                }
                             ]
                         ]
                     },
                     {
                         "Fn::Join": [
-                            "", [
+                            "",
+                            [
                                 "*.",
                                 {
                                     "Fn::If": [
                                         "UseSubdomain",
-                                        { "Fn::Sub": "${SubDomainPrefix}." },
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
                                         ""
                                     ]
                                 },
-                                { "Ref": "DomainName" }
+                                {
+                                    "Ref": "DomainName"
+                                }
                             ]
                         ]
                     }
@@ -2410,51 +2502,68 @@
             "Properties": {
                 "DomainName": {
                     "Fn::Join": [
-                        "", [
+                        "",
+                        [
                             {
                                 "Fn::If": [
                                     "UseSubdomain",
-                                    { "Fn::Sub": "${SubDomainPrefix}." },
+                                    {
+                                        "Fn::Sub": "${SubDomainPrefix}."
+                                    },
                                     ""
                                 ]
                             },
-                            { "Ref": "DomainName" }
+                            {
+                                "Ref": "DomainName"
+                            }
                         ]
                     ]
                 },
                 "SubjectAlternativeNames": [
                     {
                         "Fn::Join": [
-                            "", [
+                            "",
+                            [
                                 "*.",
                                 {
                                     "Fn::If": [
                                         "UseSubdomain",
-                                        { "Fn::Sub": "${SubDomainPrefix}." },
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
                                         ""
                                     ]
                                 },
-                                { "Ref": "DomainName" }
+                                {
+                                    "Ref": "DomainName"
+                                }
                             ]
                         ]
                     }
                 ],
                 "DomainValidationOptions": {
-                    "DomainName" : {
+                    "DomainName": {
                         "Fn::Join": [
-                            "", [
+                            "",
+                            [
                                 {
                                     "Fn::If": [
                                         "UseSubdomain",
-                                        { "Fn::Sub": "${SubDomainPrefix}." },
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
                                         ""
                                     ]
                                 },
-                                { "Ref": "DomainName" }
+                                {
+                                    "Ref": "DomainName"
+                                }
                             ]
                         ]
                     },
-                    "ValidationDomain" : { "Ref": "DomainName" }
+                    "ValidationDomain": {
+                        "Ref": "DomainName"
+                    }
                 }
             }
         },
@@ -2487,11 +2596,20 @@
                         "InstanceProtocol": "SSL",
                         "LoadBalancerPort": "443",
                         "Protocol": "SSL",
-                        "SSLCertificateId": { "Fn::If": [
-                            "SetupRoute53",
-                            { "Fn::GetAtt": [ "ACMCertificateDNS", "Arn" ] },
-                            { "Ref": "ACMCertificateEmail" }
-                        ] }
+                        "SSLCertificateId": {
+                            "Fn::If": [
+                                "SetupRoute53",
+                                {
+                                    "Fn::GetAtt": [
+                                        "ACMCertificateDNS",
+                                        "Arn"
+                                    ]
+                                },
+                                {
+                                    "Ref": "ACMCertificateEmail"
+                                }
+                            ]
+                        }
                     }
                 ],
                 "HealthCheck": {
@@ -2532,11 +2650,20 @@
                         "InstanceProtocol": "SSL",
                         "LoadBalancerPort": "443",
                         "Protocol": "SSL",
-                        "SSLCertificateId": { "Fn::If": [
-                            "SetupRoute53",
-                            { "Fn::GetAtt": [ "ACMCertificateDNS", "Arn" ] },
-                            { "Ref": "ACMCertificateEmail" }
-                        ] }
+                        "SSLCertificateId": {
+                            "Fn::If": [
+                                "SetupRoute53",
+                                {
+                                    "Fn::GetAtt": [
+                                        "ACMCertificateDNS",
+                                        "Arn"
+                                    ]
+                                },
+                                {
+                                    "Ref": "ACMCertificateEmail"
+                                }
+                            ]
+                        }
                     },
                     {
                         "InstancePort": "80",
@@ -2554,7 +2681,9 @@
                 },
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -2607,7 +2736,9 @@
                 },
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -2656,7 +2787,9 @@
                 },
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -2986,15 +3119,20 @@
                                 "MASTER_ELBDNSNAME=",
                                 {
                                     "Fn::Join": [
-                                        "", [
+                                        "",
+                                        [
                                             {
                                                 "Fn::If": [
                                                     "UseSubdomain",
-                                                    { "Fn::Sub": "${SubDomainPrefix}." },
+                                                    {
+                                                        "Fn::Sub": "${SubDomainPrefix}."
+                                                    },
                                                     ""
                                                 ]
                                             },
-                                            { "Ref": "DomainName" }
+                                            {
+                                                "Ref": "DomainName"
+                                            }
                                         ]
                                     ]
                                 },
@@ -3102,7 +3240,8 @@
                                         "EnableAWSServiceBroker",
                                         {
                                             "Fn::Join": [
-                                                "", [
+                                                "",
+                                                [
                                                     "echo \"[INFO] Installing the AWS Service Broker\" \n",
                                                     "AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\\[masters\\]' | tail -n 1 | awk '{print $1}')\n",
                                                     "ssh $AWSSB_SETUP_HOST 'SCRIPT_PATH=",
@@ -3123,7 +3262,7 @@
                                                         "Fn::If": [
                                                             "CreateAWSServiceBrokerRole",
                                                             {
-                                                                "Fn::GetAtt" : [
+                                                                "Fn::GetAtt": [
                                                                     "AWSServiceBrokerCFNRole",
                                                                     "Arn"
                                                                 ]
@@ -3134,7 +3273,7 @@
                                                         ]
                                                     },
                                                     "~\" ./secrets.yaml &&",
-                                                   "sed -i \"s/<REGION>/",
+                                                    "sed -i \"s/<REGION>/",
                                                     {
                                                         "Ref": "AWS::Region"
                                                     },
@@ -3271,15 +3410,20 @@
                         "https://",
                         {
                             "Fn::Join": [
-                                "", [
+                                "",
+                                [
                                     {
                                         "Fn::If": [
                                             "UseSubdomain",
-                                            { "Fn::Sub": "${SubDomainPrefix}." },
+                                            {
+                                                "Fn::Sub": "${SubDomainPrefix}."
+                                            },
                                             ""
                                         ]
                                     },
-                                    { "Ref": "DomainName" }
+                                    {
+                                        "Ref": "DomainName"
+                                    }
                                 ]
                             ]
                         }
