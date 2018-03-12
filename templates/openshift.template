@@ -23,6 +23,16 @@
                 },
                 {
                     "Label": {
+                        "default": "DNS Configuration"
+                    },
+                    "Parameters": [
+                        "DomainName",
+                        "HostedZoneID",
+                        "SubDomainPrefix"
+                    ]
+                },
+                {
+                    "Label": {
                         "default": "Amazon EC2 Configuration"
                     },
                     "Parameters": [
@@ -174,6 +184,15 @@
                 },
                 "HawkularMetrics": {
                     "default": "Hawkular Metrics"
+                },
+                "DomainName": {
+                    "default": "Domain Name"
+                },
+                "HostedZoneID": {
+                    "default": "Route 53 Hosted Zone ID"
+                },
+                "SubDomainPrefix": {
+                    "default": "Subdomain Prefix"
                 }
             }
         }
