@@ -415,6 +415,12 @@
                     "NumberOfMaster": {
                         "Ref": "NumberOfMaster"
                     },
+                    "NumberOfEtcd": {
+                        "Ref": "NumberOfEtcd"
+                    },
+                    "NumberOfNodes": {
+                        "Ref": "NumberOfNodes"
+                    },
                     "KeyPairName": {
                         "Ref": "KeyPairName"
                     },
