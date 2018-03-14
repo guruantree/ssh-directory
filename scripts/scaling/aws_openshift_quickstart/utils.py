@@ -16,6 +16,7 @@ class EqualsSpaceRemover:
     Methods:
         write: Writes the modified file to disk.
     """
+
     output_file = None
     def __init__( self, new_output_file ):
         self.output_file = new_output_file
@@ -120,11 +121,16 @@ class InventoryConfig(object):
                     cls.inventory_nodes[category].append(ip)
                     cls.log.debug("I just added {} to the {} category".format(ip, category))
                     _pattern = re.compile(cls._instance_pattern)
-                    _instance_id = _pattern.search(inventory_config.get(subcategory, key))
+                    _host_kv = inventory_config.get(subcategory, key)
+                    if _host_kv == None:
+                        _search_string = key
+                    else:
+                        _search_string = _host_kv
+                    _instance_id = _pattern.search(_search_string).group()
                     if _instance_id:
-                        cls.known_instances[_instance_id.group()] = ip
+                        cls.known_instances[_instance_id] = ip
                         cls.known_instances_iplist.append(ip)
-                        cls.log.debug("The Instance ID {} has been tied to the Private IP: {}".format(_instance_id, ip))
+                        cls.log.debug("The Instance ID {} has been tied to the Private DNS Entry: {}".format(_instance_id, ip))
                     else:
                         cls.log.debug("No instance ID was found!")
 
@@ -340,16 +346,24 @@ class InventoryScaling(object):
 
         The results are put in (Class).ansible_results, keyed by category name.
         """
+        # The json_end_idx reference below is important. The playbook run is in json output,
+        # however the text we're opening here is a mix of free-text and json.
+        # it's formatted like this.
+        #   <optional> free text
+        #   Giant Glob of JSON
+        #   <optional> free text.
+        # The json_end_idx variable in this function defines the end of the json.
+        # Without it, JSON parsing will fail.
         dt = datetime.datetime.now()
-        _ao_remove = []
-        with open(jout_file,'r') as f:
+        with open(jout_file, 'r') as f:
             all_output = f.readlines()
         if len(all_output) > 1:
-            idx, _ = max(enumerate(all_output), key=operator.itemgetter(1))
+            json_start_idx = all_output.index('{\n')
+            json_end_idx, _ = max(enumerate(all_output), key=operator.itemgetter(1))
         else:
             idx = 0
 
-        j = json.loads(all_output[idx])['stats']
+        j = json.loads(''.join(all_output[json_start_idx:json_end_idx+1]))['stats']
         unreachable = []
         failed = []
         succeeded = []
@@ -368,7 +382,7 @@ class InventoryScaling(object):
                 'unreachable': [x for x in unreachable if x in cls._incoming_instances[category]]
             }
         cls.ansible_results[category] = cat_results
-        cls.log.debug("- [{}] playbook run results: {}".format(category, cat_results))
+        cls.log.info("- [{}] playbook run results: {}".format(category, cat_results))
         final_logfile = "/var/log/aws-quickstart-openshift-scaling.{}-{}-{}T{}{}".format(dt.year, dt.month, dt.day, dt.hour, dt.minute)
         os.rename(jout_file, final_logfile)
         cls.log.info("The json output logfile has been moved to %s" %(final_logfile))
@@ -509,7 +523,7 @@ class LocalASG(object):
             if not _se.type:
                 continue
             _diff = _now - _se.start_time
-            if _diff.days == 0 and (_diff.days <= self._cooldown_upperlimit):
+            if _diff.days == 0 and (_diff.seconds <= self._cooldown_upperlimit):
                 yield _se
 
     def _grab_instance_metadata(self, json_doc):
@@ -589,7 +603,6 @@ class LocalASInstance(object):
         """
         i=0
         while i < len(network_json):
-            yield network_json[i]['PrivateIpAddress']
             yield network_json[i]['PrivateDnsName']
             i+=1
 
