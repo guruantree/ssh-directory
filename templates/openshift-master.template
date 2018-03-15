@@ -480,8 +480,20 @@
                     "MasterInstanceType": {
                         "Ref": "MasterInstanceType"
                     },
+                    "NodesInstanceType": {
+                        "Ref": "NodesInstanceType"
+                    },
+                    "EtcdInstanceType": {
+                        "Ref": "EtcdInstanceType"
+                    },
                     "NumberOfMaster": {
                         "Ref": "NumberOfMaster"
+                    },
+                    "NumberOfEtcd": {
+                        "Ref": "NumberOfEtcd"
+                    },
+                    "NumberOfNodes": {
+                        "Ref": "NumberOfNodes"
                     },
                     "KeyPairName": {
                         "Ref": "KeyPairName"
