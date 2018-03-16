@@ -1851,7 +1851,7 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
-                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -2040,7 +2040,7 @@
                                 "echo \"========================================================================================================================\"\n",
                                 "\n",
                                 "# Configure Storage\n",
-                                "yum install docker -y \n",
+                                "yum install docker-client-1.12.6 docker-common-1.12.6 docker-rhel-push-plugin-1.12.6 docker-1.12.6 -y \n",
                                 "systemctl enable docker.service \n",
                                 "systemctl start docker.service \n",
                                 "echo \"CONTAINER_THINPOOL=docker-pool\" >> /etc/sysconfig/docker-storage-setup \n",
@@ -2063,7 +2063,7 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
-                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
@@ -2252,7 +2252,7 @@
                                 "echo \"========================================================================================================================\"\n",
                                 "\n",
                                 "# Configure Storage\n",
-                                "yum install docker -y \n",
+                                "yum install docker-client-1.12.6 docker-common-1.12.6 docker-rhel-push-plugin-1.12.6 docker-1.12.6 -y \n",
                                 "systemctl enable docker.service \n",
                                 "systemctl start docker.service \n",
                                 "echo \"CONTAINER_THINPOOL=docker-pool\" >> /etc/sysconfig/docker-storage-setup \n",
@@ -2275,7 +2275,7 @@
                                     "Ref": "AWS::Region"
                                 },
                                 "\n",
-                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq docker docker-client docker-common docker-rhel-push-plugin glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
+                                "yum install -y atomic-openshift-docker-excluder atomic-openshift-node atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node",
                                 "\n"
                             ]
                         ]
