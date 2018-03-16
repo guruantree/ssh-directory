@@ -23,6 +23,16 @@
                 },
                 {
                     "Label": {
+                        "default": "DNS Configuration"
+                    },
+                    "Parameters": [
+                        "DomainName",
+                        "HostedZoneID",
+                        "SubDomainPrefix"
+                    ]
+                },
+                {
+                    "Label": {
                         "default": "Amazon EC2 Configuration"
                     },
                     "Parameters": [
@@ -41,6 +51,16 @@
                         "EtcdInstanceType",
                         "NodesInstanceType",
                         "OpenShiftAdminPassword"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "OpenShift Feature Configuration"
+                    },
+                    "Parameters": [
+                        "AWSServiceBroker",
+                        "ExistingAWSServiceBrokerRole",
+                        "HawkularMetrics"
                     ]
                 },
                 {
@@ -148,6 +168,24 @@
                 },
                 "OutputBucketName": {
                     "default": "Output S3 Bucket Name"
+                },
+                "AWSServiceBroker": {
+                    "default": "AWS Service Broker"
+                },
+                "ExistingAWSServiceBrokerRole": {
+                    "default": "Existing AWS Service Broker Role ARN"
+                },
+                "HawkularMetrics": {
+                    "default": "Hawkular Metrics"
+                },
+                "DomainName": {
+                    "default": "Domain Name"
+                },
+                "HostedZoneID": {
+                    "default": "Route 53 Hosted Zone ID"
+                },
+                "SubDomainPrefix": {
+                    "default": "Subdomain Prefix"
                 }
             }
         }
@@ -350,6 +388,42 @@
             "Description": "OPTIONAL: Bucket Name where the zip file output should be placed, if left blank a bucket name will be automatically generated.",
             "Type": "String",
             "Default": ""
+        },
+        "AWSServiceBroker": {
+            "Default": "Enabled",
+            "Description": "Enable the AWS Service Broker",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
+        },
+        "ExistingAWSServiceBrokerRole": {
+            "Default": "",
+            "Description": "OPTIONAL: Existing service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
+            "Type": "String"
+        },
+        "HostedZoneID": {
+            "Description": "OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53 will not be configured and DNS must be setup manually",
+            "Type": "String"
+        },
+        "DomainName": {
+            "Description": "domain name configured for the cluster",
+            "Type": "String"
+        },
+        "SubDomainPrefix": {
+            "Default": "",
+            "Description": "OPTIONAL: Subdomain to use, if left blank DomainName will be used without a prefix",
+            "Type": "String"
+        },
+        "HawkularMetrics": {
+            "Default": "Enabled",
+            "Description": "Enable Hawkular cluster metrics",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
         }
     },
     "Resources": {
@@ -501,6 +575,24 @@
                     },
                     "AnsiblePlaybookType": {
                         "Ref": "AnsiblePlaybookType"
+                    },
+                    "AWSServiceBroker": {
+                        "Ref": "AWSServiceBroker"
+                    },
+                    "ExistingAWSServiceBrokerRole": {
+                        "Ref": "ExistingAWSServiceBrokerRole"
+                    },
+                    "HostedZoneID": {
+                        "Ref": "HostedZoneID"
+                    },
+                    "DomainName": {
+                        "Ref": "DomainName"
+                    },
+                    "SubDomainPrefix": {
+                        "Ref": "SubDomainPrefix"
+                    },
+                    "HawkularMetrics": {
+                        "Ref": "HawkularMetrics"
                     }
                 }
             }

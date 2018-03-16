@@ -23,6 +23,16 @@
                 },
                 {
                     "Label": {
+                        "default": "DNS Configuration"
+                    },
+                    "Parameters": [
+                        "DomainName",
+                        "HostedZoneID",
+                        "SubDomainPrefix"
+                    ]
+                },
+                {
+                    "Label": {
                         "default": "Amazon EC2 Configuration"
                     },
                     "Parameters": [
@@ -42,6 +52,16 @@
                         "NodesInstanceType",
                         "OpenShiftOptions",
                         "OpenShiftAdminPassword"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "OpenShift Feature Configuration"
+                    },
+                    "Parameters": [
+                        "AWSServiceBroker",
+                        "ExistingAWSServiceBrokerRole",
+                        "HawkularMetrics"
                     ]
                 },
                 {
@@ -155,6 +175,24 @@
                 },
                 "OutputBucketName": {
                     "default": "Output S3 Bucket Name"
+                },
+                "AWSServiceBroker": {
+                    "default": "AWS Service Broker"
+                },
+                "ExistingAWSServiceBrokerRole": {
+                    "default": "Existing AWS Service Broker Role ARN"
+                },
+                "HawkularMetrics": {
+                    "default": "Hawkular Metrics"
+                },
+                "DomainName": {
+                    "default": "Domain Name"
+                },
+                "HostedZoneID": {
+                    "default": "Route 53 Hosted Zone ID"
+                },
+                "SubDomainPrefix": {
+                    "default": "Subdomain Prefix"
                 }
             }
         }
@@ -344,6 +382,43 @@
             "Description": "OPTIONAL: Bucket Name where the zip file output should be placed, if left blank a bucket name will be automatically generated.",
             "Type": "String",
             "Default": ""
+        },
+        "AWSServiceBroker": {
+            "Default": "Enabled",
+            "Description": "Enable the AWS Service Broker",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
+        },
+        "ExistingAWSServiceBrokerRole": {
+            "Default": "",
+            "Description": "OPTIONAL: Existing service role ARN for the AWS Service Broker. If left blank a role with AdministratorAccess will be created",
+            "Type": "String"
+        },
+        "HostedZoneID": {
+            "Description": "OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53 will not be configured and DNS must be setup manually",
+            "Type": "String",
+            "MaxLength": "32"
+        },
+        "DomainName": {
+            "Description": "domain name configured for the cluster",
+            "Type": "String"
+        },
+        "SubDomainPrefix": {
+            "Default": "",
+            "Description": "OPTIONAL: Subdomain to use, if left blank DomainName will be used without a prefix",
+            "Type": "String"
+        },
+        "HawkularMetrics": {
+            "Default": "Enabled",
+            "Description": "Enable Hawkular cluster metrics",
+            "Type": "String",
+            "AllowedValues": [
+                "Enabled",
+                "Disabled"
+            ]
         }
     },
     "Rules": {
@@ -369,11 +444,6 @@
         }
     },
     "Mappings": {
-        "Config": {
-            "OpenShift": {
-                "AWSServiceBroker": "Disabled"
-            }
-        },
         "AWSAMIRegionMap": {
             "AMI": {
                 "RHEL74HVM": "RHEL-7.4_HVM_GA-20170808-x86_64-2-Hourly2-GP2"
@@ -427,17 +497,233 @@
         "EnableAWSServiceBroker": {
             "Fn::Equals": [
                 {
-                    "Fn::FindInMap": [
-                        "Config",
-                        "OpenShift",
-                        "AWSServiceBroker"
+                    "Ref": "AWSServiceBroker"
+                },
+                "Enabled"
+            ]
+        },
+        "CreateAWSServiceBrokerRole": {
+            "Fn::And": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "AWSServiceBroker"
+                        },
+                        "Enabled"
                     ]
+                },
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "ExistingAWSServiceBrokerRole"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "SetupRoute53": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "HostedZoneID"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "UseEmailForACMValidation": {
+            "Fn::Equals": [
+                {
+                    "Ref": "HostedZoneID"
+                },
+                ""
+            ]
+        },
+        "SetupSubdomain": {
+            "Fn::And": [
+                {
+                    "Fn::Not": [
+                        {
+                            "Fn::Equals": [
+                                {
+                                    "Ref": "SubDomainPrefix"
+                                },
+                                ""
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "Fn::Not": [
+                        {
+                            "Fn::Equals": [
+                                {
+                                    "Ref": "HostedZoneID"
+                                },
+                                ""
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "UseSubdomain": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "SubDomainPrefix"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "EnableHawkular": {
+            "Fn::Equals": [
+                {
+                    "Ref": "HawkularMetrics"
                 },
                 "Enabled"
             ]
         }
     },
     "Resources": {
+        "Route53HostedSubdomainZone": {
+            "Condition": "SetupSubdomain",
+            "Type": "AWS::Route53::HostedZone",
+            "Properties": {
+                "Name": {
+                    "Fn::Sub": "${SubDomainPrefix}.${DomainName}"
+                }
+            }
+        },
+        "Route53SubdomainNS": {
+            "Condition": "SetupSubdomain",
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "HostedZoneId": {
+                    "Ref": "HostedZoneID"
+                },
+                "Name": {
+                    "Fn::Sub": "${SubDomainPrefix}.${DomainName}"
+                },
+                "ResourceRecords": {
+                    "Fn::GetAtt": [
+                        "Route53HostedSubdomainZone",
+                        "NameServers"
+                    ]
+                },
+                "Type": "NS",
+                "TTL": "600"
+            }
+        },
+        "Route53WildCard": {
+            "Condition": "SetupRoute53",
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "Type": "A",
+                "Name": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            "*.",
+                            {
+                                "Fn::If": [
+                                    "SetupSubdomain",
+                                    {
+                                        "Fn::Sub": "${SubDomainPrefix}."
+                                    },
+                                    ""
+                                ]
+                            },
+                            {
+                                "Ref": "DomainName"
+                            }
+                        ]
+                    ]
+                },
+                "AliasTarget": {
+                    "HostedZoneId": {
+                        "Fn::GetAtt": [
+                            "ContainerAccessELB",
+                            "CanonicalHostedZoneNameID"
+                        ]
+                    },
+                    "DNSName": {
+                        "Fn::GetAtt": [
+                            "ContainerAccessELB",
+                            "DNSName"
+                        ]
+                    }
+                },
+                "HostedZoneId": {
+                    "Fn::If": [
+                        "SetupSubdomain",
+                        {
+                            "Ref": "Route53HostedSubdomainZone"
+                        },
+                        {
+                            "Ref": "HostedZoneID"
+                        }
+                    ]
+                }
+            }
+        },
+        "Route53MasterELBRecord": {
+            "Condition": "SetupRoute53",
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "Type": "A",
+                "Name": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Fn::If": [
+                                    "SetupSubdomain",
+                                    {
+                                        "Fn::Sub": "${SubDomainPrefix}."
+                                    },
+                                    ""
+                                ]
+                            },
+                            {
+                                "Ref": "DomainName"
+                            }
+                        ]
+                    ]
+                },
+                "AliasTarget": {
+                    "HostedZoneId": {
+                        "Fn::GetAtt": [
+                            "OpenShiftMasterELB",
+                            "CanonicalHostedZoneNameID"
+                        ]
+                    },
+                    "DNSName": {
+                        "Fn::GetAtt": [
+                            "OpenShiftMasterELB",
+                            "DNSName"
+                        ]
+                    }
+                },
+                "HostedZoneId": {
+                    "Fn::If": [
+                        "SetupSubdomain",
+                        {
+                            "Ref": "Route53HostedSubdomainZone"
+                        },
+                        {
+                            "Ref": "HostedZoneID"
+                        }
+                    ]
+                }
+            }
+        },
         "LambdaExecutionRole": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -910,7 +1196,7 @@
         "OpenShiftSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
-                "GroupDescription": "Allow access to the Workload instances",
+                "GroupDescription": "Allow console access to the master instances",
                 "VpcId": {
                     "Ref": "VPCID"
                 },
@@ -923,8 +1209,8 @@
                     },
                     {
                         "IpProtocol": "tcp",
-                        "FromPort": "8443",
-                        "ToPort": "8444",
+                        "FromPort": "443",
+                        "ToPort": "443",
                         "CidrIp": {
                             "Ref": "RemoteAccessCIDR"
                         }
@@ -940,7 +1226,9 @@
                 ],
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -962,8 +1250,8 @@
                     },
                     {
                         "IpProtocol": "tcp",
-                        "FromPort": "8080",
-                        "ToPort": "8080",
+                        "FromPort": "443",
+                        "ToPort": "443",
                         "CidrIp": {
                             "Ref": "ContainerAccessCIDR"
                         }
@@ -979,7 +1267,9 @@
                 ],
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -1000,7 +1290,9 @@
                 ],
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -1285,7 +1577,9 @@
                         "Value": "openshift-master"
                     },
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "PropagateAtLaunch": "true",
                         "Value": "owned"
                     }
@@ -1363,7 +1657,9 @@
                         "Value": "openshift-nodes"
                     },
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "PropagateAtLaunch": "true",
                         "Value": "owned"
                     }
@@ -1736,7 +2032,9 @@
                                 "mkdir -p /etc/aws/",
                                 "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\" > /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterTag=",
-                                { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                                {
+                                    "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                                },
                                 "\n\" >> /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n",
                                 "echo \"========================================================================================================================\"\n",
@@ -1946,7 +2244,9 @@
                                 "mkdir -p /etc/aws/",
                                 "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\" > /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterTag=",
-                                { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                                {
+                                    "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                                },
                                 "\n\" >> /etc/aws/aws.conf\n",
                                 "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n",
                                 "echo \"========================================================================================================================\"\n",
@@ -1983,6 +2283,309 @@
                 }
             }
         },
+        "ACMCertificateRole": {
+            "Condition": "SetupRoute53",
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                ],
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "lambda-acm",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "acm:RequestCertificate",
+                                        "acm:DescribeCertificate",
+                                        "acm:DeleteCertificate"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "lambda:InvokeFunction"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "route53:ChangeResourceRecordSets"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::If": [
+                                                "SetupSubdomain",
+                                                {
+                                                    "Fn::Sub": "arn:aws:route53:::hostedzone/${Route53HostedSubdomainZone}"
+                                                },
+                                                {
+                                                    "Fn::Sub": "arn:aws:route53:::hostedzone/${HostedZoneID}"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "ACMCertificateLambda": {
+            "Condition": "SetupRoute53",
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "Creates and verifies an ACM certificate using DNS validation and route53",
+                "Handler": "index.handler",
+                "Runtime": "python2.7",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "ACMCertificateRole",
+                        "Arn"
+                    ]
+                },
+                "Timeout": 300,
+                "Code": {
+                    "ZipFile": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "import json",
+                                "import logging",
+                                "import boto3",
+                                "import cfnresponse",
+                                "import time",
+                                "acm_client = boto3.client('acm')",
+                                "r53_client = boto3.client('route53')",
+                                "lambda_client = boto3.client('lambda')",
+                                "def handler(event, context):",
+                                "    print('Received event: %s' % json.dumps(event))",
+                                "    status = cfnresponse.SUCCESS",
+                                "    physical_resource_id = None",
+                                "    data={}",
+                                "    cfn_signal=True",
+                                "    try:",
+                                "        if event['RequestType'] == 'Create':",
+                                "            token = ''.join(ch for ch in str(event['StackId'] + event['LogicalResourceId']) if ch.isalnum())",
+                                "            token = token[len(token)-32:]",
+                                "            arn = acm_client.request_certificate(ValidationMethod='DNS', DomainName=event['ResourceProperties']['HostNames'][0], SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:], IdempotencyToken=token)['CertificateArn']",
+                                "            rs={}",
+                                "            while True:",
+                                "                try:",
+                                "                    for d in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']:",
+                                "                        rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']",
+                                "                    break",
+                                "                except KeyError:",
+                                "                    print('waiting for ResourceRecord to be available')",
+                                "                    time.sleep(2)",
+                                "            rs = [{'Action': 'CREATE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]",
+                                "            try:",
+                                "                r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})",
+                                "            except Exception as e:",
+                                "                if not str(e).endswith('but it already exists'):",
+                                "                    raise",
+                                "            while 'PENDING_VALIDATION' in [v['ValidationStatus'] for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:",
+                                "                print('waiting for validation to complete')",
+                                "                if (context.get_remaining_time_in_millis() / 1000.00) > 20.0:",
+                                "                    time.sleep(15)",
+                                "                else:",
+                                "                    lambda_client.invoke(FunctionName=context.function_name, InvocationType='Event', Payload=bytes(json.dumps(event)))",
+                                "                    logging.warning('validation timed out, invoking a new lambda')",
+                                "                    cfn_signal=False",
+                                "            for r in [v['ValidationStatus'] for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:",
+                                "                if r != 'SUCCESS':",
+                                "                    status = cfnresponse.FAILED",
+                                "                    logging.error('One or more domains failed to validate')",
+                                "            physical_resource_id = arn",
+                                "            data['Arn'] = arn",
+                                "        elif event['RequestType'] == 'Update':",
+                                "            logging.error('Exception: Stack updates are not supported')",
+                                "            status = cfnresponse.FAILED",
+                                "            physical_resource_id = event['PhysicalResourceId']",
+                                "        elif event['RequestType'] == 'Delete':",
+                                "            physical_resource_id=event['PhysicalResourceId']",
+                                "            rs={}",
+                                "            for d in acm_client.describe_certificate(CertificateArn=physical_resource_id)['Certificate']['DomainValidationOptions']:",
+                                "                rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']",
+                                "            rs = [{'Action': 'DELETE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]",
+                                "            r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})",
+                                "            while True:",
+                                "                try:",
+                                "                    acm_client.delete_certificate(CertificateArn=physical_resource_id)",
+                                "                    break",
+                                "                except Exception as e:",
+                                "                    if not str(e).endswith('is in use.'):",
+                                "                        raise",
+                                "    except Exception as e:",
+                                "        logging.error('Exception: %s' % e, exc_info=True)",
+                                "        status = cfnresponse.FAILED",
+                                "    finally:",
+                                "        if cfn_signal:",
+                                "            cfnresponse.send(event, context, status, data, physical_resource_id)"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "ACMCertificateDNS": {
+            "Condition": "SetupRoute53",
+            "Type": "AWS::CloudFormation::CustomResource",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "ACMCertificateLambda",
+                        "Arn"
+                    ]
+                },
+                "HostedZoneId": {
+                    "Fn::If": [
+                        "SetupSubdomain",
+                        {
+                            "Ref": "Route53HostedSubdomainZone"
+                        },
+                        {
+                            "Ref": "HostedZoneID"
+                        }
+                    ]
+                },
+                "HostNames": [
+                    {
+                        "Fn::Join": [
+                            "",
+                            [
+                                {
+                                    "Fn::If": [
+                                        "UseSubdomain",
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
+                                        ""
+                                    ]
+                                },
+                                {
+                                    "Ref": "DomainName"
+                                }
+                            ]
+                        ]
+                    },
+                    {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "*.",
+                                {
+                                    "Fn::If": [
+                                        "UseSubdomain",
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
+                                        ""
+                                    ]
+                                },
+                                {
+                                    "Ref": "DomainName"
+                                }
+                            ]
+                        ]
+                    }
+                ]
+            }
+        },
+        "ACMCertificateEmail": {
+            "Condition": "UseEmailForACMValidation",
+            "Type": "AWS::CertificateManager::Certificate",
+            "Properties": {
+                "DomainName": {
+                    "Fn::Join": [
+                        "",
+                        [
+                            {
+                                "Fn::If": [
+                                    "UseSubdomain",
+                                    {
+                                        "Fn::Sub": "${SubDomainPrefix}."
+                                    },
+                                    ""
+                                ]
+                            },
+                            {
+                                "Ref": "DomainName"
+                            }
+                        ]
+                    ]
+                },
+                "SubjectAlternativeNames": [
+                    {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "*.",
+                                {
+                                    "Fn::If": [
+                                        "UseSubdomain",
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
+                                        ""
+                                    ]
+                                },
+                                {
+                                    "Ref": "DomainName"
+                                }
+                            ]
+                        ]
+                    }
+                ],
+                "DomainValidationOptions": {
+                    "DomainName": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                {
+                                    "Fn::If": [
+                                        "UseSubdomain",
+                                        {
+                                            "Fn::Sub": "${SubDomainPrefix}."
+                                        },
+                                        ""
+                                    ]
+                                },
+                                {
+                                    "Ref": "DomainName"
+                                }
+                            ]
+                        ]
+                    },
+                    "ValidationDomain": {
+                        "Ref": "DomainName"
+                    }
+                }
+            }
+        },
         "OpenShiftMasterELB": {
             "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties": {
@@ -2008,43 +2611,33 @@
                 ],
                 "Listeners": [
                     {
-                        "InstancePort": "9000",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "9000",
-                        "Protocol": "TCP"
-                    },
-                    {
-                        "InstancePort": "8443",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8443",
-                        "Protocol": "TCP"
-                    },
-                    {
-                        "InstancePort": "80",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "80",
-                        "Protocol": "TCP"
-                    },
-                    {
                         "InstancePort": "443",
-                        "InstanceProtocol": "TCP",
+                        "InstanceProtocol": "SSL",
                         "LoadBalancerPort": "443",
-                        "Protocol": "TCP"
+                        "Protocol": "SSL",
+                        "SSLCertificateId": {
+                            "Fn::If": [
+                                "SetupRoute53",
+                                {
+                                    "Fn::GetAtt": [
+                                        "ACMCertificateDNS",
+                                        "Arn"
+                                    ]
+                                },
+                                {
+                                    "Ref": "ACMCertificateEmail"
+                                }
+                            ]
+                        }
                     }
                 ],
                 "HealthCheck": {
-                    "Target": "TCP:22",
+                    "Target": "HTTPS:443/console/",
                     "HealthyThreshold": "2",
                     "UnhealthyThreshold": "3",
                     "Interval": "30",
                     "Timeout": "3"
-                },
-                "Tags": [
-                    {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
-                        "Value": "owned"
-                    }
-                ]
+                }
             }
         },
         "ContainerAccessELB": {
@@ -2072,10 +2665,24 @@
                 ],
                 "Listeners": [
                     {
-                        "InstancePort": "8080",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8080",
-                        "Protocol": "TCP"
+                        "InstancePort": "443",
+                        "InstanceProtocol": "SSL",
+                        "LoadBalancerPort": "443",
+                        "Protocol": "SSL",
+                        "SSLCertificateId": {
+                            "Fn::If": [
+                                "SetupRoute53",
+                                {
+                                    "Fn::GetAtt": [
+                                        "ACMCertificateDNS",
+                                        "Arn"
+                                    ]
+                                },
+                                {
+                                    "Ref": "ACMCertificateEmail"
+                                }
+                            ]
+                        }
                     },
                     {
                         "InstancePort": "80",
@@ -2093,7 +2700,9 @@
                 },
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -2125,12 +2734,6 @@
                 ],
                 "Listeners": [
                     {
-                        "InstancePort": "8443",
-                        "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8443",
-                        "Protocol": "TCP"
-                    },
-                    {
                         "InstancePort": "80",
                         "InstanceProtocol": "TCP",
                         "LoadBalancerPort": "80",
@@ -2152,7 +2755,9 @@
                 },
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
@@ -2180,9 +2785,9 @@
                 ],
                 "Listeners": [
                     {
-                        "InstancePort": "8080",
+                        "InstancePort": "443",
                         "InstanceProtocol": "TCP",
-                        "LoadBalancerPort": "8080",
+                        "LoadBalancerPort": "443",
                         "Protocol": "TCP"
                     },
                     {
@@ -2201,14 +2806,16 @@
                 },
                 "Tags": [
                     {
-                        "Key": { "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}" },
+                        "Key": {
+                            "Fn::Sub": "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}"
+                        },
                         "Value": "owned"
                     }
                 ]
             }
         },
         "AWSServiceBrokerCFNRole": {
-            "Condition": "EnableAWSServiceBroker",
+            "Condition": "CreateAWSServiceBrokerRole",
             "Type": "AWS::IAM::Role",
             "Properties": {
                 "AssumeRolePolicyDocument": {
@@ -2530,9 +3137,22 @@
                                 "echo \"[INFO] Ansible Generated\" \n",
                                 "MASTER_ELBDNSNAME=",
                                 {
-                                    "Fn::GetAtt": [
-                                        "OpenShiftMasterELB",
-                                        "DNSName"
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::If": [
+                                                    "UseSubdomain",
+                                                    {
+                                                        "Fn::Sub": "${SubDomainPrefix}."
+                                                    },
+                                                    ""
+                                                ]
+                                            },
+                                            {
+                                                "Ref": "DomainName"
+                                            }
+                                        ]
                                     ]
                                 },
                                 "\n",
@@ -2544,19 +3164,31 @@
                                     ]
                                 },
                                 "\n",
-                                "NODE_ELBDNSNAME=",
-                                {
-                                    "Fn::GetAtt": [
-                                        "ContainerAccessELB",
-                                        "DNSName"
-                                    ]
-                                },
-                                "\n",
                                 "echo \"[INFO] Configuring OpenShift Variable\" \n",
                                 "echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
                                 "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "echo openshift_master_default_subdomain=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                {
+                                    "Fn::If": [
+                                        "EnableHawkular",
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "echo openshift_metrics_hawkular_hostname=metrics.${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                                    "echo openshift_metrics_install_metrics=true >> /etc/ansible/hosts \n",
+                                                    "echo openshift_metrics_start_cluster=true >> /etc/ansible/hosts \n",
+                                                    "echo openshift_metrics_cassandra_storage_type=dynamic >> /etc/ansible/hosts \n"
+                                                ]
+                                            ]
+                                        },
+                                        ""
+                                    ]
+                                },
+                                "echo openshift_master_api_port=443 >> /etc/ansible/hosts \n",
+                                "echo openshift_master_console_port=443 >> /etc/ansible/hosts \n",
                                 "echo \"[INFO] Configured OpenShift Variable\" \n",
-                                "/bin/aws-ose-qs-scale --generate-initial-inventory \n",
+                                "/bin/aws-ose-qs-scale --generate-initial-inventory --debug \n",
                                 "cat /tmp/openshift_ansible_inventory* >> /etc/ansible/hosts \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
                                 "sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg \n",
@@ -2627,7 +3259,8 @@
                                         "EnableAWSServiceBroker",
                                         {
                                             "Fn::Join": [
-                                                "", [
+                                                "",
+                                                [
                                                     "echo \"[INFO] Installing the AWS Service Broker\" \n",
                                                     "AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\\[masters\\]' | tail -n 1 | awk '{print $1}')\n",
                                                     "ssh $AWSSB_SETUP_HOST 'SCRIPT_PATH=",
@@ -2643,14 +3276,31 @@
                                                     "chmod +x deploy_aws_broker.sh && ",
                                                     "./deploy_aws_broker.sh && ",
                                                     "aws s3 cp ${SCRIPT_PATH}scripts/secrets.yaml ./secrets.yaml && ",
-                                                    "sed -i \"s/<CFN_ROLE_ARN>/$(echo ",
-                                                    {"Fn::GetAtt" : ["AWSServiceBrokerCFNRole", "Arn"] },
-                                                    " | sed \\\"s/\\//\\\\\\//g\\\")/\" ./secrets.yaml &&",
+                                                    "sed -i \"s~<CFN_ROLE_ARN>~",
+                                                    {
+                                                        "Fn::If": [
+                                                            "CreateAWSServiceBrokerRole",
+                                                            {
+                                                                "Fn::GetAtt": [
+                                                                    "AWSServiceBrokerCFNRole",
+                                                                    "Arn"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "ExistingAWSServiceBrokerRole"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "~\" ./secrets.yaml &&",
                                                     "sed -i \"s/<REGION>/",
-                                                    { "Ref": "AWS::Region" },
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
                                                     "/\" ./secrets.yaml && ",
                                                     "sed -i \"s/<VPC_ID>/",
-                                                    { "Ref": "VPCID" },
+                                                    {
+                                                        "Ref": "VPCID"
+                                                    },
                                                     "/\" ./secrets.yaml && ",
                                                     "oc create -f ./secrets.yaml -n aws-service-broker && ",
                                                     "oc get configmap broker-config -n aws-service-broker -o yaml > aws-sb-config.yaml && ",
@@ -2659,7 +3309,7 @@
                                                     "  sed -i \"s/^kind: ConfigMap$/      - {apb_name: $apb, secret: aws-secret, title: aws-secret}\\n&/\" aws-sb-config.yaml ; ",
                                                     "done ; ",
                                                     "oc replace -f ./aws-sb-config.yaml -n aws-service-broker && ",
-                                                    "oc rollout latest aws-asb -n aws-service-broker' || qs_err \" failed to setup the AWS Service Broker\"\n",
+                                                    "oc rollout status dc/aws-asb  -n aws-service-broker ; oc rollout latest aws-asb -n aws-service-broker' || qs_err \" failed to setup the AWS Service Broker\"\n",
                                                     "echo \"[INFO] Finished Installing the AWS Service Broker\" \n"
                                                 ]
                                             ]
@@ -2745,7 +3395,7 @@
                         "Arn": {
                             "Fn::Sub": "arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript"
                         },
-                        "Input": "{\"commands\":[\"/bin/aws-ose-qs-scale --scale-in-progress\"],\"workingDirectory\":[\"/\"],\"executionTimeout\":[\"3600\"]}",
+                        "Input": "{\"commands\":[\"/bin/aws-ose-qs-scale --scale-in-progress --debug\"],\"workingDirectory\":[\"/\"],\"executionTimeout\":[\"3600\"]}",
                         "RoleArn": {
                             "Fn::GetAtt": [
                                 "OpenShiftScalingCWEventRole",
@@ -2778,12 +3428,24 @@
                     [
                         "https://",
                         {
-                            "Fn::GetAtt": [
-                                "OpenShiftMasterELB",
-                                "DNSName"
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Fn::If": [
+                                            "UseSubdomain",
+                                            {
+                                                "Fn::Sub": "${SubDomainPrefix}."
+                                            },
+                                            ""
+                                        ]
+                                    },
+                                    {
+                                        "Ref": "DomainName"
+                                    }
+                                ]
                             ]
-                        },
-                        ":8443/"
+                        }
                     ]
                 ]
             }
