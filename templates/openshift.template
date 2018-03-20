@@ -261,7 +261,7 @@
             "NoEcho": "true"
         },
         "OpenShiftOptions": {
-            "Description": "(Optional) Leave Blank Unless",
+            "Description": "(Optional) Leave Blank Unless Needed. Format: 'Key1=Value1, Key2=Value2'",
             "Default": "",
             "Type": "String"
         },
@@ -3127,13 +3127,17 @@
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
                                 "scripts/openshift_config_ose.yml  ~/openshift_config.yml \n",
-                                "cat ~/openshift_config.yml >/etc/ansible/hosts \n",
+                                "aws s3 cp ",
+                                {
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
+                                },
+                                "scripts/predefined_openshift_vars.txt /tmp/openshift_inventory_predefined_vars \n",
                                 "echo \"",
                                 {
                                     "Ref": "OpenShiftOptions"
                                 },
                                 "\"",
-                                ">>/etc/ansible/hosts \n",
+                                ">>/tmp/openshift_inventory_userdef_vars \n",
                                 "echo \"[INFO] Ansible Generated\" \n",
                                 "MASTER_ELBDNSNAME=",
                                 {
@@ -3164,10 +3168,10 @@
                                     ]
                                 },
                                 "\n",
-                                "echo \"[INFO] Configuring OpenShift Variable\" \n",
-                                "echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
-                                "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
-                                "echo openshift_master_default_subdomain=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
+                                "echo \"[INFO] Configuring OpenShift Variables\" \n",
+                                "echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars \n",
+                                "echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars \n",
+                                "echo openshift_master_default_subdomain=${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars \n",
                                 {
                                     "Fn::If": [
                                         "EnableHawkular",
@@ -3175,21 +3179,20 @@
                                             "Fn::Join": [
                                                 "",
                                                 [
-                                                    "echo openshift_metrics_hawkular_hostname=metrics.${MASTER_ELBDNSNAME} >> /etc/ansible/hosts \n",
-                                                    "echo openshift_metrics_install_metrics=true >> /etc/ansible/hosts \n",
-                                                    "echo openshift_metrics_start_cluster=true >> /etc/ansible/hosts \n",
-                                                    "echo openshift_metrics_cassandra_storage_type=dynamic >> /etc/ansible/hosts \n"
+                                                    "echo openshift_metrics_hawkular_hostname=metrics.${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars \n",
+                                                    "echo openshift_metrics_install_metrics=true >> /tmp/openshift_inventory_userdata_vars \n",
+                                                    "echo openshift_metrics_start_cluster=true >> /tmp/openshift_inventory_userdata_vars \n",
+                                                    "echo openshift_metrics_cassandra_storage_type=dynamic >> /tmp/openshift_inventory_userdata_vars \n"
                                                 ]
                                             ]
                                         },
                                         ""
                                     ]
                                 },
-                                "echo openshift_master_api_port=443 >> /etc/ansible/hosts \n",
-                                "echo openshift_master_console_port=443 >> /etc/ansible/hosts \n",
+                                "echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars \n",
+                                "echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars \n",
                                 "echo \"[INFO] Configured OpenShift Variable\" \n",
-                                "/bin/aws-ose-qs-scale --generate-initial-inventory --debug \n",
-                                "cat /tmp/openshift_ansible_inventory* >> /etc/ansible/hosts \n",
+                                "/bin/aws-ose-qs-scale --generate-initial-inventory --write-hosts-to-tempfiles --debug || qs_err \"Generating the initial inventory failed!\"  \n",
                                 "sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg \n",
                                 "sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg \n",
                                 "sed -i 's/#stdout_callback.*/stdout_callback = json/g' /etc/ansible/ansible.cfg \n",
@@ -3235,7 +3238,12 @@
                                     "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
                                 },
                                 "scripts/scaleup_wrapper.yml  /usr/share/ansible/openshift-ansible/\n",
-                                "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err \" ansible-playbook failed!! \"\n",
+                                "aws s3 cp ",
+                                {
+                                    "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
+                                },
+                                "scripts/bootstrap_wrapper.yml  /usr/share/ansible/openshift-ansible/\n",
+                                "ansible-playbook /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml || qs_err \" ansible-playbook failed!! \"\n",
                                 "date >>~/playbooks.info\n",
                                 "echo \"[INFO] Finished OpenShift Cluster Build (Completed Ansible Playbook run!!!)\" \n",
                                 "\n",
@@ -3262,7 +3270,7 @@
                                                 "",
                                                 [
                                                     "echo \"[INFO] Installing the AWS Service Broker\" \n",
-                                                    "AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\\[masters\\]' | tail -n 1 | awk '{print $1}')\n",
+                                                    "AWSSB_SETUP_HOST=$(head -n 1 /tmp/openshift_initial_masters)\n",
                                                     "ssh $AWSSB_SETUP_HOST 'SCRIPT_PATH=",
                                                     {
                                                         "Fn::Sub": "s3://${QSS3BucketName}/${QSS3KeyPrefix}"
@@ -3348,7 +3356,8 @@
                                 },
                                 "\n",
                                 "echo \" \t#################[] End of else block \" \n",
-                                "fi\n"
+                                "fi\n",
+                                "rm -rf /tmp/openshift_initial_*\n"
                             ]
                         ]
                     }

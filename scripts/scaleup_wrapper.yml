@@ -8,6 +8,6 @@
       wait_for_connection:
 
 - name: "Include OpenShift Playbook [{{scaling_category}}]"
-  hosts: all
+  hosts: OSEv3
 
 - include: "/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-{{scaling_category}}/scaleup.yml"

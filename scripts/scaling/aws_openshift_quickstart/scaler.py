@@ -1,37 +1,130 @@
 #!/usr/bin/env python
-import ConfigParser
 import argparse
 import os
 import subprocess
 import tempfile
 import shlex
 import time
+import sys
 from aws_openshift_quickstart.utils import *
 from aws_openshift_quickstart.logger import LogUtil
 LogUtil.set_log_handler('/var/log/openshift-quickstart-scaling.log')
 log = LogUtil.get_root_logger()
 
-def generate_inital_inventory_nodes():
+def generate_inital_inventory_nodes(write_hosts_to_temp=False):
     """
     Generates the initial ansible inventory. Instances only.
     """
 
+    #TODO: Add debugging statements
+    def _varsplit(filename):
+        if not os.path.exists(filename):
+            return {}
+        if os.path.getsize(filename) == 1:
+            return {}
+        _vs={}
+        with open(filename,'r') as f:
+            varlines = f.readlines()
+        for l in varlines:
+            try:
+                l_stripped = l.strip('\n')
+                if l_stripped == '':
+                    continue
+                k,v = l_stripped.split('=',1)
+                if ((v[0] == "'") and (v[-0] == "'")) or ((v[0] == '"') and (v[-0] == '"')):
+                    v = v[1:-1]
+                _vs[k]=v
+            except ValueError:
+                log.error("I ran into trouble trying to unpack this value: \"{}\".".format(l))
+                log.error("I cannot proceed further. Exiting!")
+                sys.exit(1)
+        return _vs
+
+    # Inventory YAML file format:
+    # - http://docs.ansible.com/ansible/2.5/plugins/inventory/yaml.html
+    # OSEv3:
+    #   children:
+    #       masters:
+    #           hosts:
+    #               (...)
+    #       new_masters:
+    #           hosts:
+    #               (...)
+    #       etcd:
+    #           hosts:
+    #               (...)
+    #       nodes:
+    #           hosts:
+    #               (...)
+    #   vars:
+    #       foo: bar
+    #       (...)
+
     # Need to have the masters placed in the nodes section as well
+    _initial_ansible_skel = {
+        'OSEv3':{
+            'children':{},
+            'vars':{}
+        }
+    }
+
+    ## Vars are in three parts:
+    # - Pre-defined vars.
+    # - Userdata vars.
+    # - User-defined vars.
+    # Pre-defined: Applies in all circumstances
+    # Userdata: Applies as a result of Template conditions.
+    # User-defined: Passed as input to the template.
+
+    # - Pre-defined vars.
+    _pre_defined_vars = _varsplit('/tmp/openshift_inventory_predefined_vars')
+
+    # - Userdata vars.
+    _userdata_vars = _varsplit('/tmp/openshift_inventory_userdata_vars')
+
+    # - Userdefined vars
+    _user_defined_vars = _varsplit('/tmp/openshift_inventory_userdef_vars')
+
+    _vars = {}
+    _children = {}
+
+    ## Children
+    # - group.node_hostdefs are now a dict. previously a list.
     for group in ClusterGroups.groups:
-        if group.openshift_config_category == 'masters':
-            masters = group.node_hostdefs
+        group_hostdefs = {
+            group.openshift_config_category:{
+                'hosts':group.node_hostdefs
+            }
+        }
+        _children.update(group_hostdefs)
 
-    for group in ClusterGroups.groups:
-        with open('/tmp/openshift_ansible_inventory_{}'.format(group.openshift_config_category), 'w') as f:
-            f.write('[{}]\n'.format(group.openshift_config_category))
+    # Masters as nodes for the purposes of software installation.
+    _children['nodes']['hosts'].update(_children['masters']['hosts'])
 
-            if group.openshift_config_category == 'nodes':
-                f.write('\n'.join(masters))
-                f.write('\n')
+    # Pushing the var subgroups to the 'vars' variable.
+    _vars.update(_pre_defined_vars)
+    _vars.update(_userdata_vars)
+    _vars.update(_user_defined_vars)
 
-            f.write('\n'.join(group.node_hostdefs))
-            f.write('\n\n')
-    return True
+    # Pushing the children and vars into the skeleton
+    _initial_ansible_skel['OSEv3']['children'].update(_children)
+    _initial_ansible_skel['OSEv3']['vars'].update(_vars)
+
+    # Pushing the skeleton to the ClassVar.
+    InventoryConfig._ansible_full_cfg.update(_initial_ansible_skel)
+
+    # Making sure the new_{category} keys are present, too.
+    # - If no save was done as a part of the verification function, write to disk.
+    InventoryConfig.verify_required_sections_exist(generate=True)
+    InventoryConfig.write_ansible_inventory_file(init=True)
+
+    if write_hosts_to_temp:
+        for cat in _children.keys():
+            for host in _children[cat]['hosts'].keys():
+                with open('/tmp/openshift_initial_{}'.format(cat), 'w') as f:
+                    f.write(host+'\n')
+
+    return 0
 
 def scale_inventory_groups():
     """
@@ -39,8 +132,8 @@ def scale_inventory_groups():
     - Fires off the ansible playbook if needed.
     - Prunes the ansible inventory to remove instances that have scaled down / terminated.
     """
-    c = InventoryConfig.c
 
+    InventoryConfig._ip_to_id_map = {v:k for (k,v) in InventoryConfig._id_to_ip_map.iteritems()}
     #First, we just make sure that there's *something* to add/remove.
     api_state = False
     attempts = 0
@@ -83,7 +176,7 @@ def scale_inventory_groups():
     for e in _is.nodes_to_add.keys():
         _templist = []
         for instance_id in _is.nodes_to_add[e]:
-            _templist.append(InventoryConfig.provisioning_hostdefs[instance_id])
+            _templist.append(InventoryConfig._id_to_ip_map[instance_id])
         _is.nodes_to_add[e] = _templist
 
     for e in _is.nodes_to_remove.keys():
@@ -103,8 +196,7 @@ def scale_inventory_groups():
       _is.nodes_to_add['nodes'] += _is.nodes_to_add['masters']
 
     _is.process_pipeline()
-    with open(InventoryConfig.inventory_file,'w') as f:
-        c.write(EqualsSpaceRemover(f))
+    InventoryConfig.write_ansible_inventory_file()
 
     # See note above about new_masters/new_nodes; This weeds those out.
     _n = _is.nodes_to_add['masters']
@@ -168,10 +260,10 @@ def scale_inventory_groups():
         for cat in _is.ansible_results.keys():
             cjson = _is.ansible_results[cat]
             log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
-                    cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded','Unreachable','Failed'))
+                    cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded','Failed', 'Unreachable'))
             _is.migrate_nodes_between_section(cjson['succeeded'], cat)
-        with open('/etc/ansible/hosts', 'w') as cfile:
-          c.write(EqualsSpaceRemover(cfile))
+        InventoryConfig.write_ansible_inventory_file()
+
 
 def main():
     log.info("--------- Begin Script Invocation ---------")
@@ -179,6 +271,7 @@ def main():
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--generate-initial-inventory', help='Generate the initial nodelist and populate the Ansible Inventory File', action='store_true')
     parser.add_argument('--scale-in-progress', help='Indicate that a Scaling Action is in progress in at least one cluster Auto Scaling Group', action='store_true')
+    parser.add_argument('--write-hosts-to-tempfiles', action='store_true', dest='write_to_temp', help='Writes to disk a list of initial hostnames. Files are at /tmp/openshift_initial_$CATEGROY')
     args = parser.parse_args()
 
     if args.debug:
@@ -186,20 +279,28 @@ def main():
       log.handlers[0].setLevel(10)
       log.debug("enabled!")
 
+    if args.write_to_temp:
+        write_to_temp = True
+    else:
+        write_to_temp = False
+
+    if args.generate_initial_inventory:
+        InventoryConfig.initial_inventory = True
+        InventoryConfig.setup()
+        ClusterGroups.setup()
+        generate_inital_inventory_nodes(write_hosts_to_temp=write_to_temp)
+        sys.exit(0)
 
     log.debug("Passed arguments: {} ".format(args.__dict__))
     InventoryConfig.setup()
-    InventoryConfig.c = ConfigParser.ConfigParser(allow_no_value=True)
-    InventoryConfig.c.read('/etc/ansible/hosts')
+    # This function call should be moot under normal circumstances.
+    # - However if someone modifies the ansible inventory, we need to
+    # - account for that possibility.
     InventoryConfig.verify_required_sections_exist()
     InventoryConfig.populate_from_ansible_inventory()
     ClusterGroups.setup()
 
-    if args.generate_initial_inventory:
-        InventoryConfig.cleanup = False
-        generate_inital_inventory_nodes()
-
-    elif args.scale_in_progress:
+    if args.scale_in_progress:
         InventoryConfig.scale = True
         scale_inventory_groups()
     log.info("////////// End Script Invocation //////////")
