@@ -1430,6 +1430,7 @@
                                         "ec2:DetachInternetGateway",
                                         "ec2:DeleteInternetGateway",
                                         "ec2:ReleaseAddress",
+                                        "ec2:DeleteVolume",
                                         "ec2:DeleteVpc"
                                     ],
                                     "Effect": "Allow",
