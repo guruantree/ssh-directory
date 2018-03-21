@@ -2490,30 +2490,32 @@
                         ]
                     }
                 ],
-                "DomainValidationOptions": {
-                    "DomainName": {
-                        "Fn::Join": [
-                            "",
-                            [
-                                {
-                                    "Fn::If": [
-                                        "UseSubdomain",
-                                        {
-                                            "Fn::Sub": "${SubDomainPrefix}."
-                                        },
-                                        ""
-                                    ]
-                                },
-                                {
-                                    "Ref": "DomainName"
-                                }
+                "DomainValidationOptions": [
+                    {
+                        "DomainName": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Fn::If": [
+                                            "UseSubdomain",
+                                            {
+                                                "Fn::Sub": "${SubDomainPrefix}."
+                                            },
+                                            ""
+                                        ]
+                                    },
+                                    {
+                                        "Ref": "DomainName"
+                                    }
+                                ]
                             ]
-                        ]
-                    },
-                    "ValidationDomain": {
-                        "Ref": "DomainName"
+                        },
+                        "ValidationDomain": {
+                            "Ref": "DomainName"
+                        }
                     }
-                }
+                ]
             }
         },
         "OpenShiftMasterELB": {
