@@ -3,6 +3,7 @@ import logging
 import boto3
 import cfnresponse
 import time
+import re
 
 
 acm_client = boto3.client('acm')
@@ -69,18 +70,21 @@ def handler(event, context):
             physical_resource_id = event['PhysicalResourceId']
         elif event['RequestType'] == 'Delete':
             physical_resource_id=event['PhysicalResourceId']
-            rs={}
-            for d in acm_client.describe_certificate(CertificateArn=physical_resource_id)['Certificate']['DomainValidationOptions']:
-                rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']
-            rs = [{'Action': 'DELETE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]
-            r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
-            while True:
-                try:
-                    acm_client.delete_certificate(CertificateArn=physical_resource_id)
-                    break
-                except Exception as e:
-                    if not str(e).endswith('is in use.'):
-                        raise
+            if not re.match(r'arn:[\w+=/,.@-]+:[\w+=/,.@-]+:[\w+=/,.@-]*:[0-9]+:[\w+=,.@-]+(/[\w+=,.@-]+)*', physical_resource_id):
+                print("PhysicalId is not an acm arn, assuming creation never happened and skipping delete")
+            else:
+                rs={}
+                for d in acm_client.describe_certificate(CertificateArn=physical_resource_id)['Certificate']['DomainValidationOptions']:
+                    rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']
+                rs = [{'Action': 'DELETE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]
+                r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
+                while True:
+                    try:
+                        acm_client.delete_certificate(CertificateArn=physical_resource_id)
+                        break
+                    except Exception as e:
+                        if not str(e).endswith('is in use.'):
+                            raise
     except Exception as e:
         logging.error('Exception: %s' % e, exc_info=True)
         reason = str(e)
