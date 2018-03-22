@@ -22,18 +22,8 @@ def handler(event, context):
         if event['RequestType'] == 'Create':
             token = ''.join(ch for ch in str(event['StackId'] + event['LogicalResourceId']) if ch.isalnum())
             token = token[len(token)-32:]
-            retry = 0
-            arn = None
-            while not arn:
-                try:
-                    arn = acm_client.request_certificate(ValidationMethod='DNS', DomainName=event['ResourceProperties']['HostNames'][0], SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:], IdempotencyToken=token)['CertificateArn']
-                    physical_resource_id = arn
-                except Exception as e:
-                    if 'ThrottlingException' in str(e):
-                        retry+=1
-                        if retry > 10:
-                            raise
-                        time.sleep(retry*5)
+            arn = acm_client.request_certificate(ValidationMethod='DNS', DomainName=event['ResourceProperties']['HostNames'][0], SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:], IdempotencyToken=token)['CertificateArn']
+            physical_resource_id = arn
             rs={}
             while True:
                 try:
@@ -41,8 +31,13 @@ def handler(event, context):
                         rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']
                     break
                 except KeyError:
-                    print('waiting for ResourceRecord to be available')
-                    time.sleep(2)
+                    if (context.get_remaining_time_in_millis() / 1000.00) > 20.0:
+                        print('waiting for ResourceRecord to be available')
+                        time.sleep(15)
+                    else:
+                        logging.error('timed out waiting for ResourceRecord')
+                        status = cfnresponse.FAILED
+                    time.sleep(15)
             rs = [{'Action': 'CREATE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]
             try:
                 r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
@@ -54,9 +49,10 @@ def handler(event, context):
                 if (context.get_remaining_time_in_millis() / 1000.00) > 20.0:
                     time.sleep(15)
                 else:
-                    lambda_client.invoke(FunctionName=context.function_name, InvocationType='Event', Payload=bytes(json.dumps(event)))
-                    logging.warning('validation timed out, invoking a new lambda')
-                    cfn_signal=False
+                    # lambda_client.invoke(FunctionName=context.function_name, InvocationType='Event', Payload=bytes(json.dumps(event)))
+                    logging.error('validation timed out')
+                    status = cfnresponse.FAILED
+                    # cfn_signal=False
             for r in [v['ValidationStatus'] for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:
                 if r != 'SUCCESS':
                     status = cfnresponse.FAILED
@@ -78,13 +74,9 @@ def handler(event, context):
                     rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']
                 rs = [{'Action': 'DELETE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]
                 r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
-                while True:
-                    try:
-                        acm_client.delete_certificate(CertificateArn=physical_resource_id)
-                        break
-                    except Exception as e:
-                        if not str(e).endswith('is in use.'):
-                            raise
+                time.sleep(10)
+                acm_client.delete_certificate(CertificateArn=physical_resource_id)
+
     except Exception as e:
         logging.error('Exception: %s' % e, exc_info=True)
         reason = str(e)
