@@ -27,6 +27,7 @@ def handler(event, context):
             while not arn:
                 try:
                     arn = acm_client.request_certificate(ValidationMethod='DNS', DomainName=event['ResourceProperties']['HostNames'][0], SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:], IdempotencyToken=token)['CertificateArn']
+                    physical_resource_id = arn
                 except Exception as e:
                     if 'ThrottlingException' in str(e):
                         retry+=1
@@ -61,7 +62,6 @@ def handler(event, context):
                     status = cfnresponse.FAILED
                     reason = 'One or more domains failed to validate'
                     logging.error(reason)
-            physical_resource_id = arn
             data['Arn'] = arn
         elif event['RequestType'] == 'Update':
             reason = 'Exception: Stack updates are not supported'
