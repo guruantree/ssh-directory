@@ -465,7 +465,10 @@
             },
             "us-west-2": {
                 "RHEL74HVM": "ami-9fa343e7"
-            }
+            },
+	    "ap-northeast-1": {
+	    	"RHEL74HVM": "ami-30ef0556"
+	    }
         },
         "LinuxAMINameMap": {
             "Redhat-Enterprise-Linux-7": {
