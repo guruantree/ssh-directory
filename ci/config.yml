@@ -18,7 +18,6 @@ global:
     - us-west-1
     - us-west-2
   reporting: true
-  s3bucket: tonynv-redhat-openshift
 tests:
   openshift:
     parameter_input: openshift-creds.json
