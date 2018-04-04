@@ -870,7 +870,8 @@
                 "Objects": [
                     "functions/packages/KeyGen/lambda.zip",
                     "functions/packages/DeleteBucketContents/lambda.zip",
-                    "functions/packages/ACMCert/lambda.zip"
+                    "functions/packages/ACMCert/lambda.zip",
+                    "functions/packages/CleanupPV/lambda.zip"
                 ]
             }
         },
@@ -1560,7 +1561,10 @@
         },
         "OpenShiftMasterASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "GetRSA",
+            "DependsOn": [
+                "GetRSA",
+                "CleanupPV"
+            ],
             "Properties": {
                 "LoadBalancerNames": [
                     {
@@ -1606,7 +1610,10 @@
         },
         "OpenShiftEtcdASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "OpenShiftMasterASG",
+            "DependsOn": [
+                "OpenShiftMasterASG",
+                "CleanupPV"
+            ],
             "Properties": {
                 "DesiredCapacity": {
                     "Ref": "NumberOfEtcd"
@@ -1640,7 +1647,10 @@
         },
         "OpenShiftNodeASG": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
-            "DependsOn": "OpenShiftMasterASG",
+            "DependsOn": [
+                "OpenShiftMasterASG",
+                "CleanupPV"
+            ],
             "Properties": {
                 "LoadBalancerNames": [
                     {
@@ -2287,6 +2297,85 @@
                             ]
                         ]
                     }
+                }
+            }
+        },
+        "CleanupPVRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                ],
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "lambda-acm",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ec2:DescribeVolumes",
+                                        "ec2:DeleteVolume"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "CleanupPVLambda": {
+            "DependsOn": "CopyZips",
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "When the OpenShift Quickstart is deleted this deletes any orphaned EBS volumes used as OpenShift Persistent Volumes",
+                "Handler": "lambda_function.handler",
+                "Runtime": "python2.7",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "CleanupPVRole",
+                        "Arn"
+                    ]
+                },
+                "Timeout": 300,
+                "Code": {
+                    "S3Bucket": {
+                        "Ref": "LambdaZipsBucket"
+                    },
+                    "S3Key": {
+                        "Fn::Sub": "${QSS3KeyPrefix}functions/packages/CleanupPV/lambda.zip"
+                    }
+                }
+            }
+        },
+        "CleanupPV": {
+            "Type": "AWS::CloudFormation::CustomResource",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "CleanupPVLambda",
+                        "Arn"
+                    ]
+                },
+                "ClusterId": {
+                    "Fn::Sub": "${AWS::StackName}-${AWS::Region}"
                 }
             }
         },
