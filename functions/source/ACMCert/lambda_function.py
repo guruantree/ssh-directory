@@ -24,7 +24,8 @@ def handler(event, context):
             token = token[len(token)-32:]
             arn = acm_client.request_certificate(ValidationMethod='DNS', DomainName=event['ResourceProperties']['HostNames'][0], SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:], IdempotencyToken=token)['CertificateArn']
             physical_resource_id = arn
-            rs={}
+            logging.info("certificate arn: %s" % arn)
+            rs = {}
             while True:
                 try:
                     for d in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']:
@@ -49,12 +50,11 @@ def handler(event, context):
                 if (context.get_remaining_time_in_millis() / 1000.00) > 20.0:
                     time.sleep(15)
                 else:
-                    # lambda_client.invoke(FunctionName=context.function_name, InvocationType='Event', Payload=bytes(json.dumps(event)))
                     logging.error('validation timed out')
                     status = cfnresponse.FAILED
-                    # cfn_signal=False
-            for r in [v['ValidationStatus'] for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:
-                if r != 'SUCCESS':
+            for r in [v for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:
+                if r['ValidationStatus'] != 'SUCCESS':
+                    logging.debug(r)
                     status = cfnresponse.FAILED
                     reason = 'One or more domains failed to validate'
                     logging.error(reason)
@@ -67,7 +67,7 @@ def handler(event, context):
         elif event['RequestType'] == 'Delete':
             physical_resource_id=event['PhysicalResourceId']
             if not re.match(r'arn:[\w+=/,.@-]+:[\w+=/,.@-]+:[\w+=/,.@-]*:[0-9]+:[\w+=,.@-]+(/[\w+=,.@-]+)*', physical_resource_id):
-                print("PhysicalId is not an acm arn, assuming creation never happened and skipping delete")
+                logging.info("PhysicalId is not an acm arn, assuming creation never happened and skipping delete")
             else:
                 rs={}
                 for d in acm_client.describe_certificate(CertificateArn=physical_resource_id)['Certificate']['DomainValidationOptions']:
