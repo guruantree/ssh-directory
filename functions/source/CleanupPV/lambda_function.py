@@ -45,17 +45,22 @@ def handler(event, context):
             for volume in response:
                 print('deleting volume %s' % volume['VolumeId'])
                 boto_throttle_backoff(ec2_client.delete_volume, VolumeId=volume['VolumeId'])
-            wait_message = 'waiting for events for request_id %s to propogate to cloudwatch...' % context.aws_request_id
-            while not logs_client.filter_log_events(
-                logGroupName=context.log_group_name,
-                logStreamNames=[context.log_stream_name],
-                filterPattern='"%s"' % wait_message
-            )['events']:
-                print(wait_message)
-                time.sleep(5)
     except Exception as e:
         logging.error('Exception: %s' % e, exc_info=True)
         reason = str(e)
         status = cfnresponse.FAILED
     finally:
+        if event['RequestType'] == 'Delete':
+            try:
+                wait_message = 'waiting for events for request_id %s to propogate to cloudwatch...' % context.aws_request_id
+                while not logs_client.filter_log_events(
+                        logGroupName=context.log_group_name,
+                        logStreamNames=[context.log_stream_name],
+                        filterPattern='"%s"' % wait_message
+                )['events']:
+                    print(wait_message)
+                    time.sleep(5)
+            except Exception as e:
+                logging.error('Exception: %s' % e, exc_info=True)
+                time.sleep(120)
         cfnresponse.send(event, context, status, data, physical_resource_id, reason)
