@@ -569,7 +569,7 @@ class LocalASG(object):
                     # openshift_public_hostname is only needed if we're dealing with masters, and an ELB is present.
                     _3 = "openshift_public_hostname=" + self.elb_name
                 # (#5) is only needed if we're dealing with master nodes.
-                _5 = "openshift_schedulable=false"
+                _5 = ""
                 # Labeling the master nodes differently
                 _4 = "openshift_node_labels=\"{'region': 'primary', 'zone': 'default'} \""
 
