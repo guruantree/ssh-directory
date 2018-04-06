@@ -327,7 +327,7 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template'
       Parameters:
-        AvailabilityZones: !Join [ ',' !Ref 'AvailabilityZones' ]
+        AvailabilityZones: !Join [ ',', !Ref 'AvailabilityZones' ]
         KeyPairName: !Ref 'KeyPairName'
         NumberOfAZs: '3'
         PrivateSubnet1ACIDR: !Ref 'PrivateSubnet1CIDR'
