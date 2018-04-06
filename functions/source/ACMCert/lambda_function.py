@@ -17,7 +17,6 @@ def handler(event, context):
     physical_resource_id = None
     data = {}
     reason = None
-    cfn_signal = True
     try:
         if event['RequestType'] == 'Create':
             token = ''.join(ch for ch in str(event['StackId'] + event['LogicalResourceId']) if ch.isalnum())
@@ -86,5 +85,17 @@ def handler(event, context):
         reason = str(e)
         status = cfnresponse.FAILED
     finally:
-        if cfn_signal:
-            cfnresponse.send(event, context, status, data, physical_resource_id, reason)
+        if event['RequestType'] == 'Delete':
+            try:
+                wait_message = 'waiting for events for request_id %s to propagate to cloudwatch...' % context.aws_request_id
+                while not logs_client.filter_log_events(
+                        logGroupName=context.log_group_name,
+                        logStreamNames=[context.log_stream_name],
+                        filterPattern='"%s"' % wait_message
+                )['events']:
+                    print(wait_message)
+                    time.sleep(5)
+            except Exception as e:
+                logging.error('Exception: %s' % e, exc_info=True)
+                time.sleep(120)
+        cfnresponse.send(event, context, status, data, physical_resource_id, reason)

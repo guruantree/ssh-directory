@@ -52,7 +52,7 @@ def handler(event, context):
     finally:
         if event['RequestType'] == 'Delete':
             try:
-                wait_message = 'waiting for events for request_id %s to propogate to cloudwatch...' % context.aws_request_id
+                wait_message = 'waiting for events for request_id %s to propagate to cloudwatch...' % context.aws_request_id
                 while not logs_client.filter_log_events(
                         logGroupName=context.log_group_name,
                         logStreamNames=[context.log_stream_name],
