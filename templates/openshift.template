@@ -1612,6 +1612,24 @@ Resources:
               - !Sub '${SubDomainPrefix}.'
               - ''
             - !Ref 'DomainName'
+  ACMInternalCertificateDNS:
+    Condition: SetupRoute53
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt 'ACMCertificateLambda.Arn'
+      HostedZoneId: !If
+        - SetupSubdomain
+        - !Ref 'Route53HostedSubdomainZone'
+        - !Ref 'HostedZoneID'
+      HostNames:
+        - !Join
+          - ''
+          - - "internal."
+            - !If
+              - UseSubdomain
+              - !Sub '${SubDomainPrefix}.'
+              - ''
+            - !Ref 'DomainName'
   ACMCertificateEmail:
     Condition: UseEmailForACMValidation
     Type: AWS::CertificateManager::Certificate
@@ -1636,6 +1654,28 @@ Resources:
         - DomainName: !Join
             - ''
             - - !If
+                - UseSubdomain
+                - !Sub '${SubDomainPrefix}.'
+                - ''
+              - !Ref 'DomainName'
+          ValidationDomain: !Ref 'DomainName'
+  ACMInternalCertificateEmail:
+    Condition: UseEmailForACMValidation
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Join
+        - ''
+        - - "internal."
+          - !If
+            - UseSubdomain
+            - !Sub '${SubDomainPrefix}.'
+            - ''
+          - !Ref 'DomainName'
+      DomainValidationOptions:
+        - DomainName: !Join
+            - ''
+            - - "internal."
+              - !If
                 - UseSubdomain
                 - !Sub '${SubDomainPrefix}.'
                 - ''
@@ -1721,9 +1761,13 @@ Resources:
           LoadBalancerPort: '80'
           Protocol: TCP
         - InstancePort: '443'
-          InstanceProtocol: TCP
+          InstanceProtocol: SSL
           LoadBalancerPort: '443'
-          Protocol: TCP
+          Protocol: SSL
+          SSLCertificateId: !If
+            - SetupRoute53
+            - !GetAtt 'ACMInternalCertificateDNS.Arn'
+            - !Ref 'ACMInternalCertificateEmail'
       HealthCheck:
         Target: TCP:22
         HealthyThreshold: '2'
@@ -1891,6 +1935,14 @@ Resources:
               - !If [ "UseSubdomain", !Sub "${SubDomainPrefix}.", "" ]
               - !Ref "DomainName"
           - "\n"
+          - "export INTERNAL_MASTER_ELBDNSNAME="
+          - Fn::Join:
+            - ""
+            -
+              - "internal."
+              - !If [ "UseSubdomain", !Sub "${SubDomainPrefix}.", "" ]
+              - !Ref "DomainName"
+          - "\n"
           - !Sub "export OPENSHIFTMASTERASG=${OpenShiftMasterASG} \n"
           - !Sub "export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB} \n"
           - !Sub "export AWS_REGION=${AWS::Region} \n"
@@ -1906,7 +1958,6 @@ Resources:
           - !Sub "export AWS_STACKID=${AWS::StackId} \n"
           - !Sub "export ENABLE_AWSSB=${AWSServiceBroker} \n"
           - !Sub "export VPCID=${VPCID} \n"
-          - !Sub "export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName} \n"
           - |
             echo "   ------------------[] Finished: Setting environment variables"
             echo "========================================================================================================================"
