@@ -9,6 +9,7 @@ import re
 acm_client = boto3.client('acm')
 r53_client = boto3.client('route53')
 lambda_client = boto3.client('lambda')
+logs_client = boto3.client('logs')
 
 
 def handler(event, context):
