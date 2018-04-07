@@ -132,8 +132,7 @@ if [[ $? == 0 ]]; then
         ssh $AWSSB_SETUP_HOST 'oc whoami' || lb_operational=0
         if [ "$lb_operational" == "0" ]; then
             for lb in $(aws elb describe-load-balancers --region ${AWS_REGION} --no-paginate --query 'LoadBalancerDescriptions[?Scheme==`internal`].[LoadBalancerName]' --output text) ; do 
-                LB=$(aws elb describe-tags --load-balancer-names ${lb} --region ${AWS_REGION} --query 'TagDescriptions[? Tags[? Value==`${AWS_STACKID}` \
-                   && Key==`aws:cloudformation:stack-id`] && Tags[? Value==`OpenShiftMasterInternalELB` && Key==`aws:cloudformation:logical-id`]].[LoadBalancerName]' --output text)
+                LB=$(aws elb describe-tags --load-balancer-names ${lb} --region ${AWS_REGION} --query 'TagDescriptions[? Tags[? Value==`'${AWS_STACKID}'` && Key==`aws:cloudformation:stack-id`] && Tags[? Value==`OpenShiftMasterInternalELB` && Key==`aws:cloudformation:logical-id`]].[LoadBalancerName]' --output text)
                 if [ "$(echo $LB)" != "" ] ; then 
                     aws elb delete-load-balancer-listeners --load-balancer-name ${LB} --load-balancer-ports 443 --region ${AWS_REGION}
                     sleep $sleep
