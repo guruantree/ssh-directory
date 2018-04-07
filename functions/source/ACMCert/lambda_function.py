@@ -22,7 +22,19 @@ def handler(event, context):
         if event['RequestType'] == 'Create':
             token = ''.join(ch for ch in str(event['StackId'] + event['LogicalResourceId']) if ch.isalnum())
             token = token[len(token)-32:]
-            arn = acm_client.request_certificate(ValidationMethod='DNS', DomainName=event['ResourceProperties']['HostNames'][0], SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:], IdempotencyToken=token)['CertificateArn']
+            if len(event['ResourceProperties']['HostNames']) > 1:
+                arn = acm_client.request_certificate(
+                    ValidationMethod='DNS',
+                    DomainName=event['ResourceProperties']['HostNames'][0],
+                    SubjectAlternativeNames=event['ResourceProperties']['HostNames'][1:],
+                    IdempotencyToken=token
+                )['CertificateArn']
+            else:
+                arn = acm_client.request_certificate(
+                    ValidationMethod='DNS',
+                    DomainName=event['ResourceProperties']['HostNames'][0],
+                    IdempotencyToken=token
+                )['CertificateArn']
             physical_resource_id = arn
             logging.info("certificate arn: %s" % arn)
             rs = {}
