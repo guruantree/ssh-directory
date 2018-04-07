@@ -119,30 +119,6 @@ if [[ $? == 0 ]]; then
     ansible all -a "systemctl restart NetworkManager" 
     ansible all -a "systemctl restart systemd-logind" 
     AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\[masters\]' | tail -n 1 | awk '{print $1}')
-    lb_operational=0
-    sleep=10
-    while [ "$lb_operational" == "0" ]; do
-        if [ $sleep -gt 60 ] ; then
-            qs_err "Failed to get all API servers responding through the internal ELB"
-            break
-        fi
-        lb_operational=1
-        ssh $AWSSB_SETUP_HOST 'oc whoami' || lb_operational=0
-        ssh $AWSSB_SETUP_HOST 'oc whoami' || lb_operational=0
-        ssh $AWSSB_SETUP_HOST 'oc whoami' || lb_operational=0
-        if [ "$lb_operational" == "0" ]; then
-            for lb in $(aws elb describe-load-balancers --region ${AWS_REGION} --no-paginate --query 'LoadBalancerDescriptions[?Scheme==`internal`].[LoadBalancerName]' --output text) ; do 
-                LB=$(aws elb describe-tags --load-balancer-names ${lb} --region ${AWS_REGION} --query 'TagDescriptions[? Tags[? Value==`'${AWS_STACKID}'` && Key==`aws:cloudformation:stack-id`] && Tags[? Value==`OpenShiftMasterInternalELB` && Key==`aws:cloudformation:logical-id`]].[LoadBalancerName]' --output text)
-                if [ "$(echo $LB)" != "" ] ; then 
-                    aws elb delete-load-balancer-listeners --load-balancer-name ${LB} --load-balancer-ports 443 --region ${AWS_REGION}
-                    sleep $sleep
-                    aws elb create-load-balancer-listeners --load-balancer-name ${LB} --listeners Protocol=tcp,LoadBalancerPort=443,InstanceProtocol=tcp,InstancePort=443 --region ${AWS_REGION}
-                fi 
-            done 
-            sleep $sleep
-            let "sleep+=5"
-        fi
-    done 
     echo "[INFO] Finished OpenShift Cluster Build" 
     if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
         echo "[INFO] Installing the AWS Service Broker"
