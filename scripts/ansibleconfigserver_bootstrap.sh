@@ -9,12 +9,6 @@ echo "	------------------[] Completed epel configuration "
 echo "========================================================================================================================"
 echo "	------------------[] Completed: QuickStart Common Utils "
 
-echo "[INFO] Configuring External LoadBalancer for OpenShift UI" 
-aws autoscaling attach-load-balancers --auto-scaling-group-name ${OPENSHIFTMASTERASG} --load-balancer-names ${OPENSHIFTMASTERINTERNALELB} --region ${AWS_REGION}
-
-echo "[INFO] Configuring External LoadBalancer for ContainerAccess UI" 
-aws autoscaling attach-load-balancers --auto-scaling-group-name ${OPENSHIFTASG} --load-balancer-names ${CONTAINERACCESSELB} --region ${AWS_REGION}
-
 echo "========================================================================================================================"
 echo "	------------------[]Attach to Subscription pool"
 
@@ -27,7 +21,11 @@ echo "	------------------[] Check if Subscription is Attached! if not fail Stack
 
 echo " 	------------------[] Start of main execution block"
 yum repolist | grep OpenShift 
-if [[ $? == 0 ]]; then 
+if [[ $? == 0 ]]; then
+    echo "[INFO] Suspend Health checks until cluster is running"
+    aws autoscaling suspend-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
+    echo "[INFO] Configuring Internal LoadBalancer for OpenShift API"
+    aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${OPENSHIFTMASTERASG} --target-group-arns ${OPENSHIFTMASTERINTERNALTGARN} --region ${AWS_REGION}
     echo "	------------------[] Starting OpenShift Configuration" 
     echo "[INFO] Generating Ansible inventory " 
     pip install boto3 &> /var/log/userdata.boto3_install.log || qs_err " boto3 install failed "
@@ -64,7 +62,7 @@ if [[ $? == 0 ]]; then
         echo openshift_metrics_cassandra_storage_type=dynamic >> /etc/ansible/hosts 
     fi
 
-    echo openshift_master_api_port=443 >> /etc/ansible/hosts 
+    echo openshift_master_api_port=443 >> /etc/ansible/hosts
     echo openshift_master_console_port=443 >> /etc/ansible/hosts
     if [ "${OCP_VERSION}" == "3.9" ]; then
         echo openshift_web_console_prefix=openshift3/ose- >> /etc/ansible/hosts
@@ -98,6 +96,7 @@ if [[ $? == 0 ]]; then
     echo "[INFO] Starting OpenShift Cluster Build (Beginning Ansible Playbook run!!!)" 
     date >>~/playbooks.info
     date >>~/playbooks.info
+
     aws s3 cp ${QS_S3URI}scripts/scaleup_wrapper.yml  /usr/share/ansible/openshift-ansible/
     if [ "${OCP_VERSION}" == "3.7" ]; then
         ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml || qs_err " Openshift installation failed!! "
@@ -107,7 +106,10 @@ if [[ $? == 0 ]]; then
     fi
     date >>~/playbooks.info
     echo "[INFO] Finished OpenShift Cluster Build (Completed Ansible Playbook run!!!)" 
-    
+
+    echo "[INFO] resume Health checks on master asg"
+    aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
+
     echo "[INFO] Adding OpenShift Users" 
     ansible masters -a "htpasswd -b /etc/origin/master/htpasswd admin ${OCP_PASS}" 
     echo "[INFO] Added OpenShift Users" 
@@ -117,7 +119,8 @@ if [[ $? == 0 ]]; then
     ansible all -m wait_for -a "path=/var/run/dbus/system_bus_socket" 
     ansible all -a "systemctl restart atomic*" 
     ansible all -a "systemctl restart NetworkManager" 
-    ansible all -a "systemctl restart systemd-logind" 
+    ansible all -a "systemctl restart systemd-logind"
+
     AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\[masters\]' | tail -n 1 | awk '{print $1}')
     echo "[INFO] Finished OpenShift Cluster Build" 
     if [ "${ENABLE_AWSSB}" == "Enabled" ]; then

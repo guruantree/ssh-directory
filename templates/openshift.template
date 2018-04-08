@@ -722,7 +722,7 @@ Resources:
   OpenShiftSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow console access to the master instances
+      GroupDescription: Allow console, api and ssh access to the master instances
       VpcId: !Ref 'VPCID'
       SecurityGroupIngress:
         - IpProtocol: '-1'
@@ -741,7 +741,7 @@ Resources:
   OpenShiftNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow access to the Workload instances
+      GroupDescription: Allow http and https access to Openshift Nodes
       VpcId: !Ref 'VPCID'
       SecurityGroupIngress:
         - IpProtocol: '-1'
@@ -754,17 +754,6 @@ Resources:
           FromPort: '80'
           ToPort: '80'
           CidrIp: !Ref 'ContainerAccessCIDR'
-      Tags:
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
-          Value: owned
-  OpenShiftInternalSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow access to the Workload instances
-      VpcId: !Ref 'VPCID'
-      SecurityGroupIngress:
-        - IpProtocol: '-1'
-          CidrIp: '0.0.0.0/0'
       Tags:
         - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
           Value: owned
@@ -812,6 +801,9 @@ Resources:
                   - autoscaling:UpdateAutoScalingGroup
                   - autoscaling:DeleteAutoScalingGroup
                   - autoscaling:DeleteLaunchConfiguration
+                  - autoscaling:SuspendProcesses
+                  - autoscaling:ResumeProcesses
+                  - autoscaling:AttachLoadBalancerTargetGroups
                 Effect: Allow
                 Resource: '*'
               - Action:
@@ -975,6 +967,8 @@ Resources:
       DesiredCapacity: !Ref 'NumberOfMaster'
       MaxSize: !Ref 'NumberOfMaster'
       MinSize: '2'
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 2400
       LaunchConfigurationName: !Ref 'OpenShiftMasterASLaunchConfig'
       Tags:
         - Key: Name
@@ -1012,10 +1006,12 @@ Resources:
       - CleanupPV
     Properties:
       LoadBalancerNames:
-        - !Ref 'OpenShiftNodeInternalELB'
+        - !Ref 'ContainerAccessELB'
       DesiredCapacity: !Ref 'NumberOfNodes'
       MaxSize: !Ref 'NumberOfNodes'
       MinSize: '2'
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 1200
       LaunchConfigurationName: !Ref 'OpenShiftNodesLaunchConfig'
       Tags:
         - Key: Name
@@ -1612,24 +1608,6 @@ Resources:
               - !Sub '${SubDomainPrefix}.'
               - ''
             - !Ref 'DomainName'
-  ACMInternalCertificateDNS:
-    Condition: SetupRoute53
-    Type: AWS::CloudFormation::CustomResource
-    Properties:
-      ServiceToken: !GetAtt 'ACMCertificateLambda.Arn'
-      HostedZoneId: !If
-        - SetupSubdomain
-        - !Ref 'Route53HostedSubdomainZone'
-        - !Ref 'HostedZoneID'
-      HostNames:
-        - !Join
-          - ''
-          - - "internal."
-            - !If
-              - UseSubdomain
-              - !Sub '${SubDomainPrefix}.'
-              - ''
-            - !Ref 'DomainName'
   ACMCertificateEmail:
     Condition: UseEmailForACMValidation
     Type: AWS::CertificateManager::Certificate
@@ -1654,28 +1632,6 @@ Resources:
         - DomainName: !Join
             - ''
             - - !If
-                - UseSubdomain
-                - !Sub '${SubDomainPrefix}.'
-                - ''
-              - !Ref 'DomainName'
-          ValidationDomain: !Ref 'DomainName'
-  ACMInternalCertificateEmail:
-    Condition: UseEmailForACMValidation
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Join
-        - ''
-        - - "internal."
-          - !If
-            - UseSubdomain
-            - !Sub '${SubDomainPrefix}.'
-            - ''
-          - !Ref 'DomainName'
-      DomainValidationOptions:
-        - DomainName: !Join
-            - ''
-            - - "internal."
-              - !If
                 - UseSubdomain
                 - !Sub '${SubDomainPrefix}.'
                 - ''
@@ -1743,68 +1699,40 @@ Resources:
         - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
           Value: owned
   OpenShiftMasterInternalELB:
-    Type: AWS::ElasticLoadBalancing::LoadBalancer
-    Properties:
-      ConnectionSettings:
-        IdleTimeout: 300
-      CrossZone: true
-      Scheme: internal
-      Subnets:
-        - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
-      SecurityGroups:
-        - !Ref 'OpenShiftInternalSecurityGroup'
-      Listeners:
-        - InstancePort: '80'
-          InstanceProtocol: TCP
-          LoadBalancerPort: '80'
-          Protocol: TCP
-        - InstancePort: '443'
-          InstanceProtocol: SSL
-          LoadBalancerPort: '443'
-          Protocol: SSL
-          SSLCertificateId: !If
-            - SetupRoute53
-            - !GetAtt 'ACMInternalCertificateDNS.Arn'
-            - !Ref 'ACMInternalCertificateEmail'
-      HealthCheck:
-        Target: TCP:22
-        HealthyThreshold: '2'
-        UnhealthyThreshold: '3'
-        Interval: '30'
-        Timeout: '3'
-      Tags:
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
-          Value: owned
-  OpenShiftNodeInternalELB:
-    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
     Properties:
       Scheme: internal
       Subnets:
         - !Ref 'PrivateSubnet1ID'
         - !Ref 'PrivateSubnet2ID'
         - !Ref 'PrivateSubnet3ID'
-      SecurityGroups:
-        - !Ref 'OpenShiftSecurityGroup'
-      Listeners:
-        - InstancePort: '443'
-          InstanceProtocol: TCP
-          LoadBalancerPort: '443'
-          Protocol: TCP
-        - InstancePort: '80'
-          InstanceProtocol: TCP
-          LoadBalancerPort: '80'
-          Protocol: TCP
-      HealthCheck:
-        Target: TCP:22
-        HealthyThreshold: '2'
-        UnhealthyThreshold: '3'
-        Interval: '30'
-        Timeout: '3'
+      Type: network
       Tags:
         - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
           Value: owned
+  OpenShiftMasterInternalELBTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPort: 22
+      HealthCheckProtocol: TCP
+      HealthyThresholdCount: 3
+      Port: 443
+      Protocol: TCP
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref VPCID
+      Tags:
+      - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+        Value: owned
+  OpenShiftMasterInternalELBListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref OpenShiftMasterInternalELBTargetGroup
+      LoadBalancerArn: !Ref OpenShiftMasterInternalELB
+      Port: 443
+      Protocol: TCP
   AWSServiceBrokerCFNRole:
     Condition: CreateAWSServiceBrokerRole
     Type: AWS::IAM::Role
@@ -1935,16 +1863,10 @@ Resources:
               - !If [ "UseSubdomain", !Sub "${SubDomainPrefix}.", "" ]
               - !Ref "DomainName"
           - "\n"
-          - "export INTERNAL_MASTER_ELBDNSNAME="
-          - Fn::Join:
-            - ""
-            -
-              - "internal."
-              - !If [ "UseSubdomain", !Sub "${SubDomainPrefix}.", "" ]
-              - !Ref "DomainName"
-          - "\n"
+          - !Sub "export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName} \n"
           - !Sub "export OPENSHIFTMASTERASG=${OpenShiftMasterASG} \n"
           - !Sub "export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB} \n"
+          - !Sub "export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup} \n"
           - !Sub "export AWS_REGION=${AWS::Region} \n"
           - !Sub "export OPENSHIFTASG=${OpenShiftNodeASG} \n"
           - !Sub "export CONTAINERACCESSELB=${ContainerAccessELB} \n"
