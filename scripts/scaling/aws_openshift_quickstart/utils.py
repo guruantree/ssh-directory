@@ -361,7 +361,12 @@ class InventoryScaling(object):
             json_start_idx = all_output.index('{\n')
             json_end_idx, _ = max(enumerate(all_output), key=operator.itemgetter(1))
         else:
-            idx = 0
+            if len(all_output) == 1:
+                cls.log.error("ansible output:")
+                cls.log.error(all_output[0])
+            else:
+                cls.log.error("ansible produced no output")
+            raise Exception('Failed to parse ansible output')
 
         j = json.loads(''.join(all_output[json_start_idx:json_end_idx+1]))['stats']
         unreachable = []
@@ -569,7 +574,7 @@ class LocalASG(object):
                     # openshift_public_hostname is only needed if we're dealing with masters, and an ELB is present.
                     _3 = "openshift_public_hostname=" + self.elb_name
                 # (#5) is only needed if we're dealing with master nodes.
-                _5 = "openshift_schedulable=false"
+                _5 = ""
                 # Labeling the master nodes differently
                 _4 = "openshift_node_labels=\"{'region': 'primary', 'zone': 'default'} \""
 
