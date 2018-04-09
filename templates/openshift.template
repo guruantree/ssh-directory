@@ -1930,7 +1930,7 @@ Resources:
       Targets:
         - Id: OSEScalingSSMTarget1
           Arn: !Sub 'arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript'
-          Input: '{"commands":["/bin/aws-ose-qs-scale --scale-in-progress --debug"],"workingDirectory":["/"],"executionTimeout":["3600"]}'
+          Input: !Sub '{"commands":["/bin/aws-ose-qs-scale --scale-in-progress --debug --ocp-version=${OpenshiftContainerPlatformVersion}"],"workingDirectory":["/"],"executionTimeout":["3600"]}'
           RoleArn: !GetAtt 'OpenShiftScalingCWEventRole.Arn'
           RunCommandParameters:
             RunCommandTargets:

@@ -33,7 +33,7 @@ def generate_inital_inventory_nodes():
             f.write('\n\n')
     return True
 
-def scale_inventory_groups():
+def scale_inventory_groups(ocp_version='3.7'):
     """
     Processes the scaling activities.
     - Fires off the ansible playbook if needed.
@@ -132,12 +132,18 @@ def scale_inventory_groups():
             if len(_is.nodes_to_add[_is_cat_name]) == 0:
                 continue
             provisioning_category = InventoryConfig.inventory_categories['provision'][0]
-            _extra_vars = '{}"{}"'.format('--extra-vars=', str({"target": provisioning_category, "scaling_category": category}))
+            vars = {
+                "target": provisioning_category,
+                "scaling_category": category
+            }
+            if ocp_version != '3.7':
+                vars['scale_prefix'] = '/usr/share/ansible/openshift-ansible/playbooks'
+            _extra_vars = '{}"{}"'.format('--extra-vars=', str(vars))
             _ansible_cmd = "{} {} {}".format(
                 "ansible-playbook",
                 InventoryConfig.ansible_playbook_wrapper,
                 _extra_vars
-		)
+            )
             log.info("We will run the following ansible command:")
             log.info(_ansible_cmd)
             ansible_commands[_is_cat_name] = _ansible_cmd
@@ -179,6 +185,7 @@ def main():
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--generate-initial-inventory', help='Generate the initial nodelist and populate the Ansible Inventory File', action='store_true')
     parser.add_argument('--scale-in-progress', help='Indicate that a Scaling Action is in progress in at least one cluster Auto Scaling Group', action='store_true')
+    parser.add_argument('--ocp-version', help='Openshift version, eg. "3.9", default is 3.7', default='3.7')
     args = parser.parse_args()
 
     if args.debug:
@@ -201,5 +208,5 @@ def main():
 
     elif args.scale_in_progress:
         InventoryConfig.scale = True
-        scale_inventory_groups()
+        scale_inventory_groups(ocp_version=args.ocp_version)
     log.info("////////// End Script Invocation //////////")

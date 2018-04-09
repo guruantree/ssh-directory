@@ -10,4 +10,4 @@
 - name: "Include OpenShift Playbook [{{scaling_category}}]"
   hosts: all
 
-- include: "/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-{{scaling_category}}/scaleup.yml"
+- include: "{{ scale_prefix | default('/usr/share/ansible/openshift-ansible/playbooks/byo') }}/openshift-{{scaling_category}}/scaleup.yml"
