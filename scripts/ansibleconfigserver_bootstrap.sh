@@ -93,10 +93,11 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     qs_retry_command 10 yum install -y wget
     mkdir -p ~/aws_broker_install 
     cd ~/aws_broker_install 
-    wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
-    wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy_aws_broker.sh
+    qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
+    qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy_aws_broker.sh
     chmod +x deploy_aws_broker.sh
-    ./deploy_aws_broker.sh
+    export KUBECONFIG=/root/.kube/config
+    qs_retry_command 10 ./deploy_aws_broker.sh
     aws s3 cp ${QS_S3URI}scripts/secrets.yaml ./secrets.yaml
     sed -i \"s~<CFN_ROLE_ARN>~${AWSSB_ROLE}~g\" ./secrets.yaml
     sed -i \"s/<REGION>/${AWS_REGION}/\" ./secrets.yaml
