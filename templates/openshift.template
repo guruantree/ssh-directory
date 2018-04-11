@@ -981,10 +981,14 @@ Resources:
         - !Ref 'PrivateSubnet1ID'
         - !Ref 'PrivateSubnet2ID'
         - !Ref 'PrivateSubnet3ID'
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref 'NumberOfMaster'
+        Timeout: PT15M
   OpenShiftEtcdASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
-      - OpenShiftMasterASG
+      - GetRSA
       - CleanupPV
     Properties:
       DesiredCapacity: !Ref 'NumberOfEtcd'
@@ -999,10 +1003,14 @@ Resources:
         - !Ref 'PrivateSubnet1ID'
         - !Ref 'PrivateSubnet2ID'
         - !Ref 'PrivateSubnet3ID'
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref 'NumberOfEtcd'
+        Timeout: PT15M
   OpenShiftNodeASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
-      - OpenShiftMasterASG
+      - GetRSA
       - CleanupPV
     Properties:
       LoadBalancerNames:
@@ -1024,6 +1032,10 @@ Resources:
         - !Ref 'PrivateSubnet1ID'
         - !Ref 'PrivateSubnet2ID'
         - !Ref 'PrivateSubnet3ID'
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref 'NumberOfNodes'
+        Timeout: PT15M
   OpenShiftEtcdLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
@@ -1075,88 +1087,31 @@ Resources:
       SecurityGroups:
         - !Ref 'OpenShiftSecurityGroup'
       UserData: !Base64
-        Fn::Join:
-          - ''
-          - - '#!/bin/bash -x'
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[] Starting: Load QuickStart Common\"\n"
-            - "\n"
-            - QSLOCATION=
-            - !Sub
-              - https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-              - S3Region: !If
-                  - GovCloudCondition
-                  - s3-us-gov-west-1
-                  - s3
-            - "\n"
-            - "UTIL=\"${QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source\"\
-              \n"
-            - "P=/tmp/quickstart-cfn-tools.source \n"
-            - "#qs_retry_command is not available (use until loop)\n"
-            - "curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do\
-              \ curl -s ${UTIL} -o ${P} && break; n=$[$n+1]; done\n"
-            - "source ${P}\n"
-            - "echo \"\t------------------[] Finished: Load QuickStart Common\"\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: aws cfn-bootstrap installation\
-              \ via [qs_bootstrap_pip, qs_aws-cfn-bootstrap]\"\n"
-            - "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n"
-            - "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n"
-            - "echo \"\t------------------[] Finished: aws cfn-bootstrap installation\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: epel configuration via [qs_enable_epel]\"\
-              \n"
-            - "# Needed for initial Ansible availability\n"
-            - "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \"\
-              \ enable epel failed \"\n"
-            - "echo \"\t------------------[] Completed epel configuration \"\n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: installation of  awscli \"\n"
-            - "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err\
-              \ \" awscli install failed \"\n"
-            - "echo \"\t------------------[] Completed: install of awscli \"\n"
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[] Completed: QuickStart Common Utils \"\
-              \n"
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[]Attach to Subscription pool\"\n"
-            - SCRIPT_PATH=
-            - !Sub 's3://${QSS3BucketName}/${QSS3KeyPrefix}'
-            - "\n"
-            - aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register-
-            - !Ref 'OpenshiftContainerPlatformVersion'
-            - ".sh ~/redhat_ose-register.sh\n"
-            - "chmod 755 ~/redhat_ose-register.sh\n"
-            - 'qs_retry_command 25 ~/redhat_ose-register.sh '
-            - !Sub '${RedhatSubscriptionUserName} ''${RedhatSubscriptionPassword}''
-              ${RedhatSubscriptionPoolID} '
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "yum repolist | grep OpenShift \n"
-            - "# Start cfn-init [GetPublicKey, AddPublicKey]\n"
-            - 'cfn-init -v '
-            - ' --stack '
-            - !Ref 'AWS::StackName'
-            - ' --resource OpenShiftEtcdLaunchConfig '
-            - ' --configsets quickstart '
-            - ' --region '
-            - !Ref 'AWS::Region'
-            - "\n"
-            - yum install -y atomic-openshift-docker-excluder atomic-openshift-node
-              atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs
-              glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services
-              iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node
-            - "\n"
+        Fn::Sub:
+          - |
+            #!/bin/bash -x
+            QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
+            export P=/tmp/quickstart-cfn-tools.source
+            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            source $P
+            qs_bootstrap_pip || qs_err " pip bootstrap failed "
+            qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
+            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
+            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+            export AWS_REGION=${AWS::Region}
+            export AWS_STACKNAME=${AWS::StackName}
+            export RH_POOLID=${RedhatSubscriptionPoolID}
+            export RH_USER=${RedhatSubscriptionUserName}
+            export RH_PASS='${RedhatSubscriptionPassword}'
+            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
+            export LAUNCH_CONFIG=OpenShiftEtcdLaunchConfig
+            aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
+            chmod +x bootstrap.sh
+            ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftEtcdASG --region ${AWS::Region}
+          -
+            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   OpenShiftNodesLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
@@ -1213,113 +1168,31 @@ Resources:
       SecurityGroups:
         - !Ref 'OpenShiftSecurityGroup'
       UserData: !Base64
-        Fn::Join:
-          - ''
-          - - '#!/bin/bash -x'
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[] Starting: Load QuickStart Common\"\n"
-            - "\n"
-            - QSLOCATION=
-            - !Sub
-              - https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-              - S3Region: !If
-                  - GovCloudCondition
-                  - s3-us-gov-west-1
-                  - s3
-            - "\n"
-            - "UTIL=\"${QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source\"\
-              \n"
-            - "P=/tmp/quickstart-cfn-tools.source \n"
-            - "#qs_retry_command is not available (use until loop)\n"
-            - "curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do\
-              \ curl -s ${UTIL} -o ${P} && break; n=$[$n+1]; done\n"
-            - "source ${P}\n"
-            - "echo \"\t------------------[] Finished: Load QuickStart Common\"\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: aws cfn-bootstrap installation\
-              \ via [qs_bootstrap_pip, qs_aws-cfn-bootstrap]\"\n"
-            - "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n"
-            - "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n"
-            - "echo \"\t------------------[] Finished: aws cfn-bootstrap installation\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: epel configuration via [qs_enable_epel]\"\
-              \n"
-            - "# Needed for initial Ansible availability\n"
-            - "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \"\
-              \ enable epel failed \"\n"
-            - "echo \"\t------------------[] Completed epel configuration \"\n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: installation of  awscli \"\n"
-            - "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err\
-              \ \" awscli install failed \"\n"
-            - "echo \"\t------------------[] Completed: install of awscli \"\n"
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[] Completed: QuickStart Common Utils \"\
-              \n"
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[]Attach to Subscription pool\"\n"
-            - SCRIPT_PATH=
-            - !Sub 's3://${QSS3BucketName}/${QSS3KeyPrefix}'
-            - "\n"
-            - aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register-
-            - !Ref 'OpenshiftContainerPlatformVersion'
-            - ".sh ~/redhat_ose-register.sh\n"
-            - "chmod 755 ~/redhat_ose-register.sh\n"
-            - 'qs_retry_command 25 ~/redhat_ose-register.sh '
-            - !Sub '${RedhatSubscriptionUserName} ''${RedhatSubscriptionPassword}''
-              ${RedhatSubscriptionPoolID} '
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[]Setup aws cloud provider prereqs \"\n"
-            - mkdir -p /etc/aws/
-            - "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\
-              \" > /etc/aws/aws.conf\n"
-            - printf "KubernetesClusterTag=
-            - !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
-            - "\n\" >> /etc/aws/aws.conf\n"
-            - "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "\n"
-            - "# Configure Storage\n"
-            - "yum install docker-client-1.12.6 docker-common-1.12.6 docker-rhel-push-plugin-1.12.6\
-              \ docker-1.12.6 -y \n"
-            - "systemctl enable docker.service \n"
-            - "qs_retry_command 20 'systemctl start docker.service' \n"
-            - "echo \"CONTAINER_THINPOOL=docker-pool\" >> /etc/sysconfig/docker-storage-setup\
-              \ \n"
-            - "echo \"DEVS=/dev/xvdb\" >> /etc/sysconfig/docker-storage-setup \n"
-            - "echo \"VG=docker-vg\" >>/etc/sysconfig/docker-storage-setup \n"
-            - "echo \"STORAGE_DRIVER=devicemapper\" >> /etc/sysconfig/docker-storage-setup\
-              \ \n"
-            - "docker-storage-setup\n"
-            - "rm -rf /var/lib/docker\n"
-            - "systemctl restart  docker\n"
-            - "# Start cfn-init [GetPublicKey, AddPublicKey]\n"
-            - 'cfn-init -v '
-            - ' --stack '
-            - !Ref 'AWS::StackName'
-            - ' --resource OpenShiftNodesLaunchConfig '
-            - ' --configsets quickstart '
-            - ' --region '
-            - !Ref 'AWS::Region'
-            - "\n"
-            - yum install -y atomic-openshift-docker-excluder atomic-openshift-node
-              atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs
-              glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services
-              iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node
-            - "\n"
+        Fn::Sub:
+          - |
+            #!/bin/bash -x
+            QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
+            export P=/tmp/quickstart-cfn-tools.source
+            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            source $P
+            qs_bootstrap_pip || qs_err " pip bootstrap failed "
+            qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
+            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
+            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+            export AWS_REGION=${AWS::Region}
+            export AWS_STACKNAME=${AWS::StackName}
+            export RH_POOLID=${RedhatSubscriptionPoolID}
+            export RH_USER=${RedhatSubscriptionUserName}
+            export RH_PASS='${RedhatSubscriptionPassword}'
+            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
+            export LAUNCH_CONFIG=OpenShiftNodesLaunchConfig
+            aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
+            chmod +x bootstrap.sh
+            ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftNodeASG --region ${AWS::Region}
+          -
+            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   OpenShiftMasterASLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     DependsOn: GetRSA
@@ -1376,113 +1249,33 @@ Resources:
       SecurityGroups:
         - !Ref 'OpenShiftSecurityGroup'
       UserData: !Base64
-        Fn::Join:
-          - ''
-          - - '#!/bin/bash -x'
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[] Starting: Load QuickStart Common\"\n"
-            - "\n"
-            - QSLOCATION=
-            - !Sub
-              - https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-              - S3Region: !If
-                  - GovCloudCondition
-                  - s3-us-gov-west-1
-                  - s3
-            - "\n"
-            - "UTIL=\"${QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source\"\
-              \n"
-            - "P=/tmp/quickstart-cfn-tools.source \n"
-            - "#qs_retry_command is not available (use until loop)\n"
-            - "curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do\
-              \ curl -s ${UTIL} -o ${P} && break; n=$[$n+1]; done\n"
-            - "source ${P}\n"
-            - "echo \"\t------------------[] Finished: Load QuickStart Common\"\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: aws cfn-bootstrap installation\
-              \ via [qs_bootstrap_pip, qs_aws-cfn-bootstrap]\"\n"
-            - "qs_bootstrap_pip || qs_err \" pip bootstrap failed \" \n"
-            - "qs_aws-cfn-bootstrap || qs_err \" cfn bootstrap failed \"\n"
-            - "echo \"\t------------------[] Finished: aws cfn-bootstrap installation\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: epel configuration via [qs_enable_epel]\"\
-              \n"
-            - "# Needed for initial Ansible availability\n"
-            - "qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || qs_err \"\
-              \ enable epel failed \"\n"
-            - "echo \"\t------------------[] Completed epel configuration \"\n"
-            - "\n"
-            - "echo \"\t------------------[] Starting: installation of  awscli \"\n"
-            - "pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err\
-              \ \" awscli install failed \"\n"
-            - "echo \"\t------------------[] Completed: install of awscli \"\n"
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[] Completed: QuickStart Common Utils \"\
-              \n"
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "echo \"\t------------------[]Attach to Subscription pool\"\n"
-            - SCRIPT_PATH=
-            - !Sub 's3://${QSS3BucketName}/${QSS3KeyPrefix}'
-            - "\n"
-            - aws s3 cp ${SCRIPT_PATH}scripts/redhat_ose-register-
-            - !Ref 'OpenshiftContainerPlatformVersion'
-            - ".sh ~/redhat_ose-register.sh\n"
-            - "chmod 755 ~/redhat_ose-register.sh\n"
-            - 'qs_retry_command 25 ~/redhat_ose-register.sh '
-            - !Sub '${RedhatSubscriptionUserName} ''${RedhatSubscriptionPassword}''
-              ${RedhatSubscriptionPoolID} '
-            - "\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "\n"
-            - "echo \"\t------------------[]Setup aws cloud provider prereqs \"\n"
-            - mkdir -p /etc/aws/
-            - "printf \"[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n\
-              \" > /etc/aws/aws.conf\n"
-            - printf "KubernetesClusterTag=
-            - !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
-            - "\n\" >> /etc/aws/aws.conf\n"
-            - "printf \"KubernetesClusterID=owned\n\" >> /etc/aws/aws.conf\n"
-            - "echo \"========================================================================================================================\"\
-              \n"
-            - "\n"
-            - "# Configure Storage\n"
-            - "yum install docker-client-1.12.6 docker-common-1.12.6 docker-rhel-push-plugin-1.12.6\
-              \ docker-1.12.6 -y \n"
-            - "systemctl enable docker.service \n"
-            - "qs_retry_command 20 'systemctl start docker.service' \n"
-            - "echo \"CONTAINER_THINPOOL=docker-pool\" >> /etc/sysconfig/docker-storage-setup\
-              \ \n"
-            - "echo \"DEVS=/dev/xvdb\" >> /etc/sysconfig/docker-storage-setup \n"
-            - "echo \"VG=docker-vg\" >>/etc/sysconfig/docker-storage-setup \n"
-            - "echo \"STORAGE_DRIVER=devicemapper\" >> /etc/sysconfig/docker-storage-setup\
-              \ \n"
-            - "docker-storage-setup\n"
-            - "rm -rf /var/lib/docker\n"
-            - "systemctl restart  docker\n"
-            - "# Start cfn-init [GetPublicKey, AddPublicKey]\n"
-            - 'cfn-init -v '
-            - ' --stack '
-            - !Ref 'AWS::StackName'
-            - ' --resource OpenShiftMasterASLaunchConfig '
-            - ' --configsets quickstart '
-            - ' --region '
-            - !Ref 'AWS::Region'
-            - "\n"
-            - yum install -y atomic-openshift-docker-excluder atomic-openshift-node
-              atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs
-              glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services
-              iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node
-            - "\n"
+        Fn::Sub:
+          - |
+            #!/bin/bash -x
+            QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
+            export P=/tmp/quickstart-cfn-tools.source
+            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            source $P
+            qs_bootstrap_pip || qs_err " pip bootstrap failed "
+            qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
+            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
+            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+            export AWS_REGION=${AWS::Region}
+            export AWS_STACKNAME=${AWS::StackName}
+            export RH_POOLID=${RedhatSubscriptionPoolID}
+            export RH_USER=${RedhatSubscriptionUserName}
+            export RH_PASS='${RedhatSubscriptionPassword}'
+            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
+            export LAUNCH_CONFIG=OpenShiftMasterASLaunchConfig
+            export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
+            aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
+            chmod +x bootstrap.sh
+            ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
+            echo "$(curl http://169.254.169.254/latest/meta-data/local-ipv4) ${OpenShiftMasterInternalELB.DNSName}" >> /etc/hosts
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftMasterASG --region ${AWS::Region}
+          -
+            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   CleanupPVRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1750,7 +1543,7 @@ Resources:
         - arn:aws:iam::aws:policy/AdministratorAccess
   AnsibleConfigServer:
     Type: AWS::EC2::Instance
-    DependsOn: OpenShiftNodeASG
+    DependsOn: [ OpenShiftNodeASG, OpenShiftMasterASG, OpenShiftEtcdASG ]
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -1826,85 +1619,48 @@ Resources:
             - !Ref 'OpenShiftSecurityGroup'
           SubnetId: !Ref 'PublicSubnet1ID'
       UserData: !Base64
-        Fn::Join:
-        - ""
-        -
+        Fn::Sub:
           - |
             #!/bin/bash -x
-            echo "========================================================================================================================"
-            echo "   ------------------[] Starting: Setting environment variables"
-
-          - !Sub
-            - "export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix} \n"
-            - S3Region: !If
-                - GovCloudCondition
-                - s3-us-gov-west-1
-                - s3
-          - !If
-            - EnableHawkular
-            - "export ENABLE_HAWKULAR=True \n"
-            - "export ENABLE_HAWKULAR=False \n"
-          - export OCP_ANSIBLE_RELEASE=
-          - !FindInMap
-            - OpenshiftVersionMap
-            - !Ref 'OpenshiftContainerPlatformVersion'
-            - AnsiblePlaybookGitRepoTag
-          - "\n"
-          - export AWSSB_ROLE=
-          - !If
-            - CreateAWSServiceBrokerRole
-            - !GetAtt 'AWSServiceBrokerCFNRole.Arn'
-            - !Ref 'ExistingAWSServiceBrokerRole'
-          - "\n"
-          - "export MASTER_ELBDNSNAME="
-          - Fn::Join:
-            - ""
-            -
-              - !If [ "UseSubdomain", !Sub "${SubDomainPrefix}.", "" ]
-              - !Ref "DomainName"
-          - "\n"
-          - !Sub "export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName} \n"
-          - !Sub "export OPENSHIFTMASTERASG=${OpenShiftMasterASG} \n"
-          - !Sub "export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB} \n"
-          - !Sub "export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup} \n"
-          - !Sub "export AWS_REGION=${AWS::Region} \n"
-          - !Sub "export OPENSHIFTASG=${OpenShiftNodeASG} \n"
-          - !Sub "export CONTAINERACCESSELB=${ContainerAccessELB} \n"
-          - !Sub "export OCP_VERSION=${OpenshiftContainerPlatformVersion} \n"
-          - !Sub "export RH_USER=${RedhatSubscriptionUserName} \n"
-          - !Sub "export RH_PASS='${RedhatSubscriptionPassword}' \n"
-          - !Sub "export RH_POOLID=${RedhatSubscriptionPoolID} \n"
-          - !Sub "export AWS_STACKNAME=${AWS::StackName} \n"
-          - !Sub "export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix} \n"
-          - !Sub "export OCP_PASS='${OpenShiftAdminPassword}' \n"
-          - !Sub "export AWS_STACKID=${AWS::StackId} \n"
-          - !Sub "export ENABLE_AWSSB=${AWSServiceBroker} \n"
-          - !Sub "export VPCID=${VPCID} \n"
-          - |
-            echo "   ------------------[] Finished: Setting environment variables"
-            echo "========================================================================================================================"
-            echo "   ------------------[] Starting: Load QuickStart Common"
-            export UTIL="${QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source"
+            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            export ENABLE_HAWKULAR=${HawkEnable}
+            export OCP_ANSIBLE_RELEASE=${OsbRelease}
+            export AWSSB_ROLE=${AwsSbRole}
+            export MASTER_ELBDNSNAME=${LbHostname}
+            export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
+            export OPENSHIFTMASTERASG=${OpenShiftMasterASG}
+            export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB}
+            export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
+            export AWS_REGION=${AWS::Region}
+            export OPENSHIFTASG=${OpenShiftNodeASG}
+            export CONTAINERACCESSELB=${ContainerAccessELB}
+            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
+            export RH_USER=${RedhatSubscriptionUserName}
+            export RH_PASS='${RedhatSubscriptionPassword}'
+            export RH_POOLID=${RedhatSubscriptionPoolID}
+            export AWS_STACKNAME=${AWS::StackName}
+            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+            export OCP_PASS='${OpenShiftAdminPassword}'
+            export AWS_STACKID=${AWS::StackId}
+            export ENABLE_AWSSB=${AWSServiceBroker}
+            export VPCID=${VPCID}
+            export UTIL="${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source"
             export P=/tmp/quickstart-cfn-tools.source
-            #qs_retry_command is not available (use until loop)
-            curl --retry 10 -s ${UTIL} -o ${P} || n=0; until [[ $n -ge 50 ]]; do
-              curl -s ${UTIL} -o ${P} && break
-              n=$[$n+1]
-            done
-            source ${P}
-            echo "   ------------------[] Finished: Load QuickStart Common"
-            echo "========================================================================================================================"
-            echo "   ------------------[] Starting: aws cfn-bootstrap installation via [qs_bootstrap_pip, qs_aws-cfn-bootstrap]"
+            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
-            echo "  ------------------[] Finished: aws cfn-bootstrap installation"
-            echo "	------------------[] Starting: installation of  awscli "
             pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
-            echo "	------------------[] Completed: install of awscli "
-            aws s3 cp ${QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
+            aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
-          - "\n"
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
+          -
+            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
+            AwsSbRole: !If [ CreateAWSServiceBrokerRole, !GetAtt 'AWSServiceBrokerCFNRole.Arn', !Ref 'ExistingAWSServiceBrokerRole' ]
+            HawkEnable: !If [ EnableHawkular, "True", "False" ]
+            OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
+            LbHostname: !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ]
     CreationPolicy:
       ResourceSignal:
         Timeout: PT240M
