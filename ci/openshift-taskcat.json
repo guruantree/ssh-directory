@@ -1,0 +1,53 @@
+[{
+        "ParameterKey": "AvailabilityZones",
+        "ParameterValue": "$[alfred_genaz_3]"
+    },
+    {
+        "ParameterKey": "KeyPairName",
+        "ParameterValue": "tonynv"
+    },
+    {
+        "ParameterKey": "NumberOfNodes",
+        "ParameterValue": "3"
+    },
+    {
+        "ParameterKey": "OpenShiftAdminPassword",
+        "ParameterValue": "R3dhatPass"
+    },
+    {
+        "ParameterKey": "HostedZoneID",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterKey": "DomainName",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionPassword",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionUserName",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionPoolID",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterValue": "3.7",
+        "ParameterKey": "OpenshiftContainerPlatformVersion"
+    },
+    {
+        "ParameterKey": "ContainerAccessCIDR",
+        "ParameterValue": "0.0.0.0/0"
+    },
+    {
+        "ParameterKey": "RemoteAccessCIDR",
+        "ParameterValue": "0.0.0.0/0"
+    },
+    {
+        "ParameterKey": "VPCCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    }
+]
