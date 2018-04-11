@@ -31,26 +31,26 @@ cfn-init -v --stack ${AWS_STACKNAME} --resource AnsibleConfigServer --configsets
 aws s3 cp ${QS_S3URI}scripts/openshift_config_ose.yml  ~/openshift_config.yml
 cat ~/openshift_config.yml >/etc/ansible/hosts
 
-echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /etc/ansible/hosts
-echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts
-echo openshift_master_default_subdomain=${MASTER_ELBDNSNAME} >> /etc/ansible/hosts
+echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
+echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
+echo openshift_master_default_subdomain=${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
 
 if [ "${ENABLE_HAWKULAR}" == "True" ] ; then
-    echo openshift_metrics_hawkular_hostname=metrics.${MASTER_ELBDNSNAME} >> /etc/ansible/hosts
-    echo openshift_metrics_install_metrics=true >> /etc/ansible/hosts
-    echo openshift_metrics_start_cluster=true >> /etc/ansible/hosts
-    echo openshift_metrics_cassandra_storage_type=dynamic >> /etc/ansible/hosts
+    echo openshift_metrics_hawkular_hostname=metrics.${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
+    echo openshift_metrics_install_metrics=true >> /tmp/openshift_inventory_userdata_vars
+    echo openshift_metrics_start_cluster=true >> /tmp/openshift_inventory_userdata_vars
+    echo openshift_metrics_cassandra_storage_type=dynamic >> /tmp/openshift_inventory_userdata_vars
 fi
 
-echo openshift_master_api_port=443 >> /etc/ansible/hosts
-echo openshift_master_console_port=443 >> /etc/ansible/hosts
+echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars
+echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars
 if [ "${OCP_VERSION}" == "3.9" ]; then
-    echo openshift_web_console_prefix=openshift3/ose- >> /etc/ansible/hosts
-    echo openshift_web_console_version=v3.9 >> /etc/ansible/hosts
+    echo openshift_web_console_prefix=openshift3/ose- >> /tmp/openshift_inventory_userdata_vars
+    echo openshift_web_console_version=v3.9 >> /tmp/openshift_inventory_userdata_vars
 fi
 
-/bin/aws-ose-qs-scale --generate-initial-inventory --debug
-cat /tmp/openshift_ansible_inventory* >> /etc/ansible/hosts
+/bin/aws-ose-qs-scale --generate-initial-inventory --write-hosts-to-tempfiles --debug || qs_err "Generating the initial inventory failed!"
+cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars
 sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg
 sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg
 sed -i 's/#stdout_callback.*/stdout_callback = json/g' /etc/ansible/ansible.cfg
@@ -75,6 +75,7 @@ yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
 atomic-openshift-excluder unexclude
 
 aws s3 cp ${QS_S3URI}scripts/scaleup_wrapper.yml  /usr/share/ansible/openshift-ansible/
+aws s3 cp ${QS_S3URI}scripts/bootstrap_wrapper.yml /usr/share/ansible/openshift-ansible/
 if [ "${OCP_VERSION}" == "3.7" ]; then
     ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml > /var/log/bootstrap.log
 elif [ "${OCP_VERSION}" == "3.9" ]; then
@@ -85,7 +86,7 @@ fi
 aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
 
 qs_retry_command 10 yum install -y atomic-openshift-clients
-AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\[masters\]' | tail -n 1 | awk '{print $1}')
+AWSSB_SETUP_HOST=$(head -n 1 /tmp/openshift_initial_masters)
 scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
 
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
@@ -110,3 +111,5 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     oc rollout status dc/aws-asb  -n aws-service-broker
     oc rollout latest aws-asb -n aws-service-broker
 fi
+
+rm -rf /tmp/openshift_initial_*
