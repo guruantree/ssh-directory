@@ -86,6 +86,7 @@ aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG}
 
 qs_retry_command 10 yum install -y atomic-openshift-clients
 AWSSB_SETUP_HOST=$(cat /etc/ansible/hosts | awk NF | grep -A1 '\[masters\]' | tail -n 1 | awk '{print $1}')
+mkdir -p ~/.kube/
 scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
 
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
