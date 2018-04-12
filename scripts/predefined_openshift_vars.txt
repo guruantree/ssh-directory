@@ -1,13 +1,3 @@
-# AWS QuickStart OpenShift Installation
-#
-# Create an OSEv3 group that contains the masters, nodes, and etcd groups
-[OSEv3:children]
-masters
-nodes
-etcd
-
-# Set variables common for all OSEv3 hosts
-[OSEv3:vars]
 ansible_ssh_user=root
 openshift_deployment_type=openshift-enterprise
 containerized=false
@@ -18,6 +8,4 @@ openshift_registry_selector='registry_node=yes'
 osm_default_node_selector='application_node=yes'
 openshift_clusterid=owned
 openshift_cloudprovider_kind=aws
-
 openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
-
