@@ -433,7 +433,7 @@ class LocalScalingActivity(object):
         if self._json['StatusCode'] == 'Failed':
             return False
         _t = self._json['Description'].split()[0]
-        self.log.debug("Event description: {}".format(t))
+        self.log.debug("Event description: {}".format(_t))
         if 'Launching' in _t:
             _type = "launch"
         elif 'Terminating' in _t:
