@@ -49,5 +49,9 @@
     {
         "ParameterKey": "VPCCIDR",
         "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "SubDomainPrefix",
+        "ParameterValue": "$[alfred_random-string]"
     }
 ]
