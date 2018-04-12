@@ -24,3 +24,8 @@ tests:
     regions:
       - us-west-2
     template_file: openshift-master.template
+  openshift39:
+    parameter_input: openshift-taskcat39.json
+    regions:
+      - us-east-2
+    template_file: openshift-master.template
