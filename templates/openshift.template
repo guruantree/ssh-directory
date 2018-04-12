@@ -722,7 +722,7 @@ Resources:
   OpenShiftSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow console, api and ssh access to the master instances
+      GroupDescription: Allow web console and ssh access to the master instances
       VpcId: !Ref 'VPCID'
       SecurityGroupIngress:
         - IpProtocol: '-1'
@@ -741,7 +741,7 @@ Resources:
   OpenShiftNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow http and https access to Openshift Nodes
+      GroupDescription: Allow http and https access to Openshift routers
       VpcId: !Ref 'VPCID'
       SecurityGroupIngress:
         - IpProtocol: '-1'
