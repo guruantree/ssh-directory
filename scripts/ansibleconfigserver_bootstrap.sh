@@ -50,7 +50,7 @@ if [ "${OCP_VERSION}" == "3.9" ]; then
 fi
 
 /bin/aws-ose-qs-scale --generate-initial-inventory --write-hosts-to-tempfiles --debug || qs_err "Generating the initial inventory failed!"
-cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars
+cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars || true
 sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg
 sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg
 sed -i 's/#stdout_callback.*/stdout_callback = json/g' /etc/ansible/ansible.cfg
