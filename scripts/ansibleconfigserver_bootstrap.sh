@@ -29,9 +29,6 @@ pip install /root/ose_scaling
 qs_retry_command 10 cfn-init -v --stack ${AWS_STACKNAME} --resource AnsibleConfigServer --configsets cfg_node_keys --region ${AWS_REGION}
 qs_retry_command 10 cfn-init -v --stack ${AWS_STACKNAME} --resource AnsibleConfigServer --configsets cfg_ansible --region ${AWS_REGION}
 
-qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/openshift_config_ose.yml  ~/openshift_config.yml
-cat ~/openshift_config.yml >/etc/ansible/hosts
-
 echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_default_subdomain=${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
