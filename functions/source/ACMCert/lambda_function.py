@@ -85,7 +85,10 @@ def handler(event, context):
                 for d in acm_client.describe_certificate(CertificateArn=physical_resource_id)['Certificate']['DomainValidationOptions']:
                     rs[d['ResourceRecord']['Name']] = d['ResourceRecord']['Value']
                 rs = [{'Action': 'DELETE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]
-                r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
+                try:
+                    r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
+                except r53_client.exceptions.InvalidChangeBatch as e:
+                    pass
                 time.sleep(30)
                 try:
                     acm_client.delete_certificate(CertificateArn=physical_resource_id)
