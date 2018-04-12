@@ -8,21 +8,8 @@ import dateutil
 import json
 import os
 import operator
+import yaml
 from aws_openshift_quickstart.logger import LogUtil
-
-class EqualsSpaceRemover:
-    """
-    Class to remove spaces around equal signs to confirm to INI style formatting.
-    Methods:
-        write: Writes the modified file to disk.
-    """
-
-    output_file = None
-    def __init__( self, new_output_file ):
-        self.output_file = new_output_file
-
-    def write( self, what ):
-        self.output_file.write( what.replace( " = ", "=",))
 
 class InventoryConfig(object):
     """
@@ -34,15 +21,13 @@ class InventoryConfig(object):
         -
     """
     log = LogUtil.get_root_logger()
-    region_name = None
-    instance_id = None
+    initial_inventory = False
     scale = False
-    all_instances = {}
-    known_instances = {}
-    known_instances_iplist = []
-    _instance_pattern = 'i-[0-9a-z]+'
-    generate_initial_inventory = False
-    inventory_file = '/etc/ansible/hosts'
+    _id_to_ip_map = dict()
+    ansible_host_cfg = dict()
+    all_instances = dict()
+    known_instances = dict()
+    ansible_inventory_file = '/etc/ansible/hosts'
     ansible_playbook_wrapper="/usr/share/ansible/openshift-ansible/scaleup_wrapper.yml"
     inventory_categories = {
                 "master": [ "masters", "new_masters" ],
@@ -62,6 +47,7 @@ class InventoryConfig(object):
         "nodes": [],
         "provision": []
     }
+    _ansible_full_cfg = {}
     provisioning_hostdefs = {}
     inventory_nodes = copy.deepcopy(_inventory_node_skel)
     inventory_nodes['ids'] = {}
@@ -77,6 +63,8 @@ class InventoryConfig(object):
         function to setup the variables initially (populate from inventory, etc)
         """
         cls.log.info("Setting up the InventoryConfig Class")
+        if not cls.initial_inventory:
+            cls.load_ansible_inventory_file()
         cls.region_name = cls._determine_region_name()
         cls.instance_id = cls._determine_local_instance_id()
         cls.ec2 = boto3.client('ec2', cls.region_name)
@@ -90,49 +78,85 @@ class InventoryConfig(object):
         cls.log.info("InventoryConfig setup complete!")
 
     @classmethod
-    def verify_required_sections_exist(cls):
+    def load_ansible_inventory_file(cls):
+        cls.log.info("Loading ansible inventory file from on-disk...")
+        try:
+            with open(cls.ansible_inventory_file, 'r') as f:
+                unparsed_document = f.read()
+            parsed_document = yaml.load(unparsed_document)
+        except Exception as e:
+            raise e
+        cls._ansible_full_cfg = parsed_document
+        for (k,v) in parsed_document['OSEv3']['children'].iteritems():
+            if len(v) == 0:
+                continue
+            cls.ansible_host_cfg[k] = v['hosts']
+        cls.log.info("...Complete")
+
+    @classmethod
+    def write_ansible_inventory_file(cls, init=False):
+        if not init:
+            transformed_host_cfg = {k:{'hosts': v} for (k,v) in cls.ansible_host_cfg.iteritems()}
+            cls._ansible_full_cfg['OSEv3']['children'].update(transformed_host_cfg)
+        with open(cls.ansible_inventory_file, 'w') as f:
+            f.write(yaml.dump(cls._ansible_full_cfg, default_flow_style=False))
+
+    @classmethod
+    def verify_required_sections_exist(cls, generate=False):
         """
         Verifies that the required sections exist within the Inventory.
-        Ex: new_(masters|nodes|etcd)
+        Ex: new_(masters|nodes|etcd), provision_in_progress
         """
-        inventory_config = InventoryConfig.c
-        a = cls.inventory_categories
-        for x in a:
-            for y in a[x]:
-                if not inventory_config.has_section(y):
-                    inventory_config.add_section(y)
-                    if 'provision' not in y:
-                        inventory_config.set('OSEv3:children', y)
+        save_needed = False
+        sections = [y for x in cls.inventory_categories.itervalues() for y in x]
+        cls.log.info("I'm now verifying that all required sections are present in our runtime config...")
+        if generate:
+            cls.log.info("Accounting for initial inventory generation")
+            compare_dict = cls._ansible_full_cfg['OSEv3']['children']
+        else:
+            compare_dict = cls.ansible_host_cfg
+        for section in sections:
+            if not compare_dict.has_key(section):
+                save_needed = True
+                compare_dict[section] = {}
+                cls.log.info("The section [{}] was not present in the Ansible Inventory. I'll add it...".format(section))
+        cls.log.info("...Complete.")
+        if save_needed:
+            if generate:
+                cls._ansible_full_cfg['OSEv3']['children'] = compare_dict
+            else:
+                cls.ansible_host_cfg = compare_dict
+
     @classmethod
     def populate_from_ansible_inventory(cls):
         """
         Populates the InventoryConfig class with data from the existing anisble inventory
         """
         cls.log.info("We're populating the runtime config from data within the Ansible Inventory")
-        inventory_config = InventoryConfig.c
-        for category in cls.inventory_categories.keys():
+        ac = cls.ansible_host_cfg
+        ic = cls.inventory_categories
+        for category, subcategory in ic.iteritems():
             cls.log.debug("Category: {}".format(category))
             if category == 'provision':
                 continue
-            for subcategory in cls.inventory_categories[category]:
-                cls.log.debug("\tSubcategory: {}".format(subcategory))
-                for key in inventory_config.options(subcategory):
-                    ip = key.split()[0]
-                    cls.inventory_nodes[category].append(ip)
+            for sc in subcategory:
+                if sc != category:
+                    cls.log.debug("\tSubcategory: [{}]/{}".format(category, sc))
+                if len(ac[sc]) == 0:
+                    cls.log.debug("\t No hosts within this subcategory. Moving on.")
+                    continue
+                for x, y in ac[sc].iteritems():
+                    ip = x
+                    try:
+                        instance_id = y['instance_id']
+                    except KeyError:
+                        cls.log.info("I was not able to assocaite an Instance ID with the Private DNS Entry: {}. I'm not able to proceed further with this instance. Moving on.".format(ip))
+                        continue
+                    cls.inventory_nodes[category].append(x)
+                    cls._id_to_ip_map[instance_id] = x
                     cls.log.debug("I just added {} to the {} category".format(ip, category))
-                    _pattern = re.compile(cls._instance_pattern)
-                    _host_kv = inventory_config.get(subcategory, key)
-                    if _host_kv == None:
-                        _search_string = key
-                    else:
-                        _search_string = _host_kv
-                    _instance_id = _pattern.search(_search_string).group()
-                    if _instance_id:
-                        cls.known_instances[_instance_id] = ip
-                        cls.known_instances_iplist.append(ip)
-                        cls.log.debug("The Instance ID {} has been tied to the Private DNS Entry: {}".format(_instance_id, ip))
-                    else:
-                        cls.log.debug("No instance ID was found!")
+                    cls.known_instances[instance_id] = ip
+                    cls.log.debug("The Instance ID {} has been tied to the Private DNS Entry: {}".format(instance_id, ip))
 
     @classmethod
     def _determine_region_name(cls):
@@ -188,7 +212,6 @@ class InventoryScaling(object):
     Class to faciliate scaling activities in the Cluster's Auto Scaling Groups.
     """
     log = LogUtil.get_root_logger()
-    _incoming_instances = copy.deepcopy(InventoryConfig._inventory_node_skel)
     nodes_to_add = copy.deepcopy(InventoryConfig._asg_node_skel)
     nodes_to_remove = copy.deepcopy(InventoryConfig._asg_node_skel)
 
@@ -243,6 +266,7 @@ class InventoryScaling(object):
             for category in cls.nodes_to_remove.keys():
                 if category == 'combined':
                     continue
+                # cls.nodes_to_remove[category] is a list of instance IDs.
                 cls.remove_node_from_section(cls.nodes_to_remove[category], category)
         else:
           cls.log.info("No nodes were found to remove from the inventory.")
@@ -250,92 +274,75 @@ class InventoryScaling(object):
         # Add the nodes that are launching.
         if cls.nodes_to_add['combined']:
             cls.log.info("We have the following nodes to add to the inventory:")
-            cls.log.info("{}".format([x.split()[0] for x in cls.nodes_to_add['combined']]))
+            cls.log.info("{}".format([x for x in cls.nodes_to_add['combined']]))
             for category in cls.nodes_to_add.keys():
                 if category == 'combined':
                     continue
-                cls._incoming_instances[category] = [x.split()[0] for x in cls.nodes_to_add[category]]
-                cls.log.debug("Adding nodes {} to the {} category".format(cls._incoming_instances[category], category))
+                cls.log.debug("Adding nodes {} to the {} category".format(cls.nodes_to_add[category], category))
                 cls.add_nodes_to_section(cls.nodes_to_add[category], category)
             cls.log.info("Complete!")
         else:
           cls.log.info("No nodes were found to add to the inventory.")
 
     @classmethod
-    def add_nodes_to_section(cls, node_list, category, fluff=True, migrate=False):
+    def add_nodes_to_section(cls, nodes, category, fluff=True, migrate=False):
         """
-        Adds a node (private IP) to a config section
+        Adds a node (private IP / private DNS Entry) to a config section
         """
-        c = InventoryConfig.c
+        acfg = InventoryConfig.ansible_host_cfg
+        ic = InventoryConfig
         if not migrate:
-            _provisioning_section = InventoryConfig.inventory_categories['provision'][0]
-            if not c.has_section(_provisioning_section):
-                c.set('OSEv3:children', _provisioning_section)
-            if not c.has_section('new_'+category):
-                if category == 'provision':
-                    pass
-                else:
-                    c.set('OSEv3:children', 'new_'+category)
-
-            for n in node_list:
-                ip = n.split()[0]
-                if ip in InventoryConfig.known_instances_iplist:
+            # dict. not list.
+            if fluff:
+                new_node_section='new_'+category
+            else:
+                new_node_section = category
+            prov_sec = ic.inventory_categories['provision'][0]
+            #FIXME: account for dict.
+            for n in nodes:
+                if ic.known_instances.has_key(n):
                     continue
-                if fluff:
-                    _new_node_section='new_'+category
-                else:
-                    _new_node_section = category
-
-                if not c.has_option(_provisioning_section, ip):
-                    c.set(_provisioning_section, ip)
-                if not c.has_option(_new_node_section, n):
-                    c.set(_new_node_section, n)
+                acfg[new_node_section].update(ic.provisioning_hostdefs[ic._ip_to_id_map[n]])
+                acfg[prov_sec].update(ic.provisioning_hostdefs[ic._ip_to_id_map[n]])
         else:
-            for n in node_list:
-                c.set(category, n)
-
+            # dict passed my the migrate wrapper.
+            acfg[category].update(nodes)
 
     @classmethod
     def remove_node_from_section(cls, node, category, migrate=False):
         """
         ClassMethod to remove a list of nodes from a list of categories within the config file. .
         """
-        c = InventoryConfig.c
-        migration_removed = []
+        migration_dict = {}
         categories = [ category, '{}_{}'.format('new',category)]
         if migrate:
+            # Leaving only new_{category}
             del categories[categories.index(category)]
         categories += InventoryConfig.inventory_categories['provision']
-        for cat in categories:
-            for n in node:
-              if 'provision' in cat:
-                c.remove_option(cat, n)
-                continue
-              for idx in c.options(cat):
-                  if idx.split()[0] == n:
-                      if migrate:
-                          full_idx = c.get(cat, idx)
-                          if full_idx is None:
-                            full_idx = idx
-                          migration_removed.append(full_idx)
-                      c.remove_option(cat, idx)
-                      continue
+        for node_key in node:
+            for cat in categories:
+                if migrate:
+                    migration_dict.update({node_key:InventoryConfig.ansible_host_cfg[cat][node_key]})
+                try:
+                    cls.log.info("Removing {} from category {}".format(node_key, cat))
+                    del InventoryConfig.ansible_host_cfg[cat][node_key]
+                except KeyError:
+                    cls.log.debug("{} wasn't present within {} after all.".format(node_key, cat))
         if migrate:
-            return migration_removed
-
+            return migration_dict
 
     @classmethod
-    def migrate_nodes_between_section(cls, node, category):
+    def migrate_nodes_between_section(cls, nodes, category):
         """
         Wrapper to migrate successful nodes between new_{category} and {category}
         labels within the Ansible inventory. Additionally removes node from the
         provisioning category.
         """
-        addlist = cls.remove_node_from_section(node, category, migrate=True)
+        add_dict = cls.remove_node_from_section(nodes, category, migrate=True)
         if 'master' in category:
-          _ = cls.remove_node_from_section(node, 'nodes', migrate=True)
-        cls.add_nodes_to_section(addlist, category, migrate=True)
-        cls.log.info("Nodes: {} have been permanately added to the Inventory under the {} category".format(node, category))
+          _ = cls.remove_node_from_section(nodes, 'nodes', migrate=True)
+        cls.add_nodes_to_section(add_dict, category, migrate=True)
+        cls.log.info("Nodes: {} have been permanately added to the Inventory under the {} category".format(nodes, category))
         cls.log.info("They've additionally been removed from the provision_in_progress category")
 
     @classmethod
@@ -382,9 +389,9 @@ class InventoryScaling(object):
                 succeeded.append(h)
         # Pruning down to category only.
         cat_results = {
-                'succeeded': [x for x in succeeded if x in cls._incoming_instances[category]],
-                'failed': [x for x in failed if x in cls._incoming_instances[category]],
-                'unreachable': [x for x in unreachable if x in cls._incoming_instances[category]]
+                'succeeded': [x for x in succeeded if x in cls.nodes_to_add[category]],
+                'failed': [x for x in failed if x in cls.nodes_to_add[category]],
+                'unreachable': [x for x in unreachable if x in cls.nodes_to_add[category]]
             }
         cls.ansible_results[category] = cat_results
         cls.log.info("- [{}] playbook run results: {}".format(category, cat_results))
@@ -397,11 +404,14 @@ class LocalScalingActivity(object):
     Class to objectify each scaling activity within an ASG
     """
     def __init__(self, json_doc):
+        self.log = LogUtil.get_root_logger()
         self._json = json_doc
+        self.log.debug("LocalScalingActivity: Unprocessed json:")
+        self.log.debug(str(json_doc))
         self.start_time = self._json['StartTime']
         self._instance_pattern = 'i-[0-9a-z]+'
-        self.type = self._determine_scale_type()
-        if self.type:
+        self.event_type = self._determine_scale_type()
+        if self.event_type:
             self.instance = self._determine_affected_instance()
         del self._json
 
@@ -423,38 +433,41 @@ class LocalScalingActivity(object):
         if self._json['StatusCode'] == 'Failed':
             return False
         _t = self._json['Description'].split()[0]
+        self.log.debug("Event description: {}".format(t))
         if 'Launching' in _t:
             _type = "launch"
         elif 'Terminating' in _t:
             _type = "terminate"
         else:
             _type = None
+        self.log.debug("Determined event type: {}".format(_type))
         return _type
 
 class LocalASG(object):
     """
     Class to objectify an ASG
     """
-    def __init__(self, json_doc, required_stack_id=None):
+    def __init__(self, json_doc):
         self.log = LogUtil.get_root_logger()
         self._instances = {'list':[], "scaling":[]}
         self._asg = boto3.client('autoscaling', InventoryConfig.region_name)
         self.name = json_doc['AutoScalingGroupName']
-        self.private_ips = []
-        self.node_hostdefs = []
-        self.scale_override = True
-        self.scaling_events = []
+        self.private_ips = list()
+        self.scaling_events = list()
+        self.node_hostdefs = dict()
         self.scale_in_progress_instances = {'terminate':[], 'launch':[]}
         self.cooldown = json_doc['DefaultCooldown']
-        self.logical_name = None
         self._cooldown_upperlimit = self.cooldown * 3
-        if self._cooldown_upperlimit >= 300:
-          self._cooldown_upperlimit = 300
+        self.scale_override = False
+        self.logical_name = None
         self.elb_name = None
         self.stack_id = None
+        if self._cooldown_upperlimit >= 300:
+            self._cooldown_upperlimit = 300
         for tag in self._grab_tags(json_doc['Tags']):
             self.__dict__[tag['key']] = tag['value']
         self.in_openshift_cluster = self._determine_cluster_membership()
+        self.openshift_config_category = self._determine_openshift_category(self.logical_id)
         if self.in_openshift_cluster:
             # Set the logcal_name
             self.logical_name = InventoryConfig.logical_names[self.logical_id]
@@ -470,26 +483,30 @@ class LocalASG(object):
                 self.private_ips += instance.private_ips
             # Grab scaling events. Anything newer than (self.cooldown * 3).
             # However, only do so if we're not populating the initial inventory.
-            if not InventoryConfig.generate_initial_inventory:
+            if not InventoryConfig.initial_inventory:
                 for scaling_event in self._grab_current_scaling_events():
                     self.scaling_events.append(scaling_event)
                     # If the instance is not already in the config. Done to compensate for the self._cooldown_upperlimit var.
-                    if (scaling_event.type == 'launch') and (scaling_event.instance in InventoryConfig.known_instances.keys()):
+                    if (scaling_event.event_type == 'launch') and (scaling_event.instance in InventoryConfig.known_instances.keys()):
                         continue
-                    if (scaling_event.type == 'launch') and (scaling_event.instance in self.scale_in_progress_instances['terminate']):
+                    if (scaling_event.event_type == 'launch') and (scaling_event.instance in self.scale_in_progress_instances['terminate']):
                         continue
-                    self.scale_in_progress_instances[scaling_event.type].append(scaling_event.instance)
+                    self.scale_in_progress_instances[scaling_event.event_type].append(scaling_event.instance)
                     self._instances['scaling'].append(scaling_event.instance)
                 for instance in self._instances['list']:
+                  # Sanity check.
+                  # - If the instance is not in the known_instances list, or defined in a recent scaling event, but is in the ASG (we dont know about it otherwise)
+                  # -- Add it to the scale_in_progress list, and set scale_override to True, so a scale-up occurs. (See: scaler.scale_
                   if (instance not in InventoryConfig.known_instances.keys()) and (instance not in self._instances['scaling']):
                     self.scale_in_progress_instances['launch'].append(instance)
                     self.scale_override = True
-            self.openshift_config_category = self._determine_openshift_category(self.logical_id)
             # Grab Inventory host definitions
             for combined_hostdef in self.generate_asg_node_hostdefs():
                 instance_id, hostdef = combined_hostdef
-                self.node_hostdefs.append(hostdef)
+                InventoryConfig._id_to_ip_map[instance_id] = hostdef['ip_or_dns']
+                del hostdef['ip_or_dns']
                 InventoryConfig.provisioning_hostdefs[instance_id] = hostdef
+                self.node_hostdefs.update(hostdef)
 
     def _grab_tags(self, tag_json):
         """
@@ -525,7 +542,7 @@ class LocalASG(object):
             _se = LocalScalingActivity(scaling_activities[i])
             i+=1
             # If the scaling activity was not successful, move along.
-            if not _se.type:
+            if not _se.event_type:
                 continue
             _diff = _now - _se.start_time
             if _diff.days == 0 and (_diff.seconds <= self._cooldown_upperlimit):
@@ -551,6 +568,7 @@ class LocalASG(object):
         return openshift_category
 
     def generate_asg_node_hostdefs(self):
+        # - ADD IN FILE TO READ FROM DISK FOR DYNAMIC NODE LABELS.
         """
         Generates the host definition for populating the Ansible Inventory.
         """
@@ -562,29 +580,36 @@ class LocalASG(object):
             if node.State['Code'] not in [0, 16]:
                 i+=1
                 continue
-            _1 = node.PrivateDnsName
-            _2 = ''
-            _3 = ''
-            _4 = "openshift_node_labels=\"{'application_node': 'yes', 'registry_node': 'yes', 'router_node': 'yes', 'region': 'infra', 'zone': 'default'} \""
-            _5 = ''
-            _6 = '# '+ instance_id
+            _ihd = {
+                'instance_id': instance_id,
+                'openshift_node_labels':{
+                    'application_node': 'yes',
+                    'registry_node': 'yes',
+                    'router_node': 'yes',
+                    'region': 'infra',
+                    'zone': 'default'
+                    }
+                }
 
             if 'master' in self.openshift_config_category:
+                _ihd.update({
+                    'openshift_schedulable': 'false',
+                    'openshift_node_labels': {
+                        'region':'primary',
+                        'zone':'default'
+                    }
+                })
                 if self.elb_name:
                     # openshift_public_hostname is only needed if we're dealing with masters, and an ELB is present.
-                    _3 = "openshift_public_hostname=" + self.elb_name
-                # (#5) is only needed if we're dealing with master nodes.
-                _5 = ""
-                # Labeling the master nodes differently
-                _4 = "openshift_node_labels=\"{'region': 'primary', 'zone': 'default'} \""
+                    _ihd['openshift_public_hostname'] = self.elb_name
 
             elif not 'node' in self.openshift_config_category:
                 # Nodes don't need openshift_public_hostname (#3), or openshift_schedulable (#5)
                 # etcd only needs hostname and node labes. doing the 'if not' above addresses both
                 # of these conditions at once, as the remainder are default values prev. defined.
-                _4 = ''
+                del _ihd['openshift_node_labels']
 
-            hostdef = "{} {} {} {} {} {}".format(_1.ljust(15), _2.ljust(25), _3, _4, _5, _6)
+            hostdef = {node.PrivateDnsName: _ihd, 'ip_or_dns': node.PrivateDnsName}
             i+=1
             yield (instance_id, hostdef)
 
@@ -620,11 +645,6 @@ class ClusterGroups(object):
     def setup(cls):
         for group in cls._determine_cluster_groups():
             cls.groups.append(group)
-
-    # TODO: Should be depreciated.
-    @classmethod
-    def fetch_groups(cls):
-        return cls.groups
 
     @classmethod
     def _determine_cluster_groups(cls):
