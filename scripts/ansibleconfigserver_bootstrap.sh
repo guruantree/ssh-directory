@@ -87,20 +87,22 @@ aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG}
 
 qs_retry_command 10 yum install -y atomic-openshift-clients
 AWSSB_SETUP_HOST=$(head -n 1 /tmp/openshift_initial_masters)
+mkdir -p ~/.kube/
 scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
 
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     qs_retry_command 10 yum install -y wget
-    mkdir -p ~/aws_broker_install
-    cd ~/aws_broker_install
-    wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
-    wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy_aws_broker.sh
+    mkdir -p ~/aws_broker_install 
+    cd ~/aws_broker_install 
+    qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
+    qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy_aws_broker.sh
     chmod +x deploy_aws_broker.sh
-    ./deploy_aws_broker.sh
+    export KUBECONFIG=/root/.kube/config
+    qs_retry_command 10 ./deploy_aws_broker.sh
     aws s3 cp ${QS_S3URI}scripts/secrets.yaml ./secrets.yaml
-    sed -i \"s~<CFN_ROLE_ARN>~${AWSSB_ROLE}~g\" ./secrets.yaml
-    sed -i \"s/<REGION>/${AWS_REGION}/\" ./secrets.yaml
-    sed -i \"s/<VPC_ID>/${VPCID}/\" ./secrets.yaml
+    sed -i "s~<CFN_ROLE_ARN>~${AWSSB_ROLE}~g" ./secrets.yaml
+    sed -i "s/<REGION>/${AWS_REGION}/" ./secrets.yaml
+    sed -i "s/<VPC_ID>/${VPCID}/" ./secrets.yaml
     oc create -f ./secrets.yaml -n aws-service-broker
     oc get configmap broker-config -n aws-service-broker -o yaml > aws-sb-config.yaml
     sed -i "s/^kind: ConfigMap$/    secrets:\n&/" aws-sb-config.yaml
