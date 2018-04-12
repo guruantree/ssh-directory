@@ -99,9 +99,9 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     export KUBECONFIG=/root/.kube/config
     qs_retry_command 10 ./deploy_aws_broker.sh
     aws s3 cp ${QS_S3URI}scripts/secrets.yaml ./secrets.yaml
-    sed -i \"s~<CFN_ROLE_ARN>~${AWSSB_ROLE}~g\" ./secrets.yaml
-    sed -i \"s/<REGION>/${AWS_REGION}/\" ./secrets.yaml
-    sed -i \"s/<VPC_ID>/${VPCID}/\" ./secrets.yaml
+    sed -i "s~<CFN_ROLE_ARN>~${AWSSB_ROLE}~g" ./secrets.yaml
+    sed -i "s/<REGION>/${AWS_REGION}/" ./secrets.yaml
+    sed -i "s/<VPC_ID>/${VPCID}/" ./secrets.yaml
     oc create -f ./secrets.yaml -n aws-service-broker
     oc get configmap broker-config -n aws-service-broker -o yaml > aws-sb-config.yaml
     sed -i "s/^kind: ConfigMap$/    secrets:\n&/" aws-sb-config.yaml
