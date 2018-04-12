@@ -593,7 +593,7 @@ class LocalASG(object):
 
             if 'master' in self.openshift_config_category:
                 _ihd.update({
-                    'openshift_schedulable': 'false',
+                    'openshift_schedulable': 'true',
                     'openshift_node_labels': {
                         'region':'primary',
                         'zone':'default'
