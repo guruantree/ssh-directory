@@ -19,7 +19,7 @@ global:
     - us-west-2
   reporting: true
 tests:
-  openshift:
+  openshift37:
     parameter_input: openshift-taskcat.json
     regions:
       - us-west-2

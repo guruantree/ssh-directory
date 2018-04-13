@@ -1,6 +1,7 @@
-[{
+[
+    {
         "ParameterKey": "AvailabilityZones",
-        "ParameterValue": "$[alfred_genaz_3]"
+        "ParameterValue": "$[taskcat_genaz_3]"
     },
     {
         "ParameterKey": "KeyPairName",
@@ -15,11 +16,11 @@
         "ParameterValue": "R3dhatPass"
     },
     {
-        "ParameterKey": "HostedZoneID",
-        "ParameterValue": "override"
+        "ParameterKey": "DomainName",
+        "ParameterValue": "ocp.awsqs.com"
     },
     {
-        "ParameterKey": "DomainName",
+        "ParameterKey": "HostedZoneID",
         "ParameterValue": "override"
     },
     {
@@ -40,11 +41,11 @@
     },
     {
         "ParameterKey": "ContainerAccessCIDR",
-        "ParameterValue": "0.0.0.0/0"
+        "ParameterValue": "10.0.0.0/16"
     },
     {
         "ParameterKey": "RemoteAccessCIDR",
-        "ParameterValue": "0.0.0.0/0"
+        "ParameterValue": "10.0.0.0/16"
     },
     {
         "ParameterKey": "VPCCIDR",
@@ -52,6 +53,10 @@
     },
     {
         "ParameterKey": "SubDomainPrefix",
-        "ParameterValue": "$[alfred_random-string]"
+        "ParameterValue": "$[taskcat_random-string]"
+    },
+    {
+        "ParameterKey": "QSS3BucketName",
+        "ParameterValue": "$[taskcat_autobucket]"
     }
 ]
