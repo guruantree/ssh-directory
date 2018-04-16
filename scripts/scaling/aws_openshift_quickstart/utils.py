@@ -242,7 +242,8 @@ class InventoryScaling(object):
         Generator.
         Fetches the newly-launched instances from the API.
         """
-        all_instances = cls._client.describe_instances(InstanceIds=instance_id_list)['Reservations']
+        filters = [{'Name':'instance-id', 'Values':instance_id_list}]
+        all_instances = cls._client.describe_instances(Filters=filters)['Reservations']
         i=0
         while i < len(all_instances):
             j=0
@@ -309,7 +310,7 @@ class InventoryScaling(object):
             acfg[category].update(nodes)
 
     @classmethod
-    def remove_node_from_section(cls, node, category, migrate=False):
+    def remove_node_from_section(cls, node, category, migrate=False, use_migration_dict=True):
         """
         ClassMethod to remove a list of nodes from a list of categories within the config file. .
         """
@@ -321,10 +322,10 @@ class InventoryScaling(object):
         categories += InventoryConfig.inventory_categories['provision']
         for node_key in node:
             for cat in categories:
-                if migrate:
-                    migration_dict.update({node_key:InventoryConfig.ansible_host_cfg[cat][node_key]})
                 try:
                     cls.log.info("Removing {} from category {}".format(node_key, cat))
+                    if (migrate and use_migration_dict):
+                        migration_dict.update({node_key:InventoryConfig.ansible_host_cfg[cat][node_key]})
                     del InventoryConfig.ansible_host_cfg[cat][node_key]
                 except KeyError:
                     cls.log.debug("{} wasn't present within {} after all.".format(node_key, cat))
@@ -332,7 +333,7 @@ class InventoryScaling(object):
             return migration_dict
 
     @classmethod
-    def migrate_nodes_between_section(cls, nodes, category):
+    def migrate_nodes_between_section(cls, nodes, category, additional_add=[]):
         """
         Wrapper to migrate successful nodes between new_{category} and {category}
         labels within the Ansible inventory. Additionally removes node from the
@@ -340,8 +341,10 @@ class InventoryScaling(object):
         """
         add_dict = cls.remove_node_from_section(nodes, category, migrate=True)
         if 'master' in category:
-          _ = cls.remove_node_from_section(nodes, 'nodes', migrate=True)
+          _ = cls.remove_node_from_section(nodes, 'nodes', migrate=True, use_migration_dict=False)
         cls.add_nodes_to_section(add_dict, category, migrate=True)
+        for addcat in additional_add:
+            cls.add_nodes_to_section(add_dict, addcat, migrate=True)
         cls.log.info("Nodes: {} have been permanately added to the Inventory under the {} category".format(nodes, category))
         cls.log.info("They've additionally been removed from the provision_in_progress category")
 
@@ -404,10 +407,7 @@ class LocalScalingActivity(object):
     Class to objectify each scaling activity within an ASG
     """
     def __init__(self, json_doc):
-        self.log = LogUtil.get_root_logger()
         self._json = json_doc
-        self.log.debug("LocalScalingActivity: Unprocessed json:")
-        self.log.debug(str(json_doc))
         self.start_time = self._json['StartTime']
         self._instance_pattern = 'i-[0-9a-z]+'
         self.event_type = self._determine_scale_type()
@@ -433,14 +433,12 @@ class LocalScalingActivity(object):
         if self._json['StatusCode'] == 'Failed':
             return False
         _t = self._json['Description'].split()[0]
-        self.log.debug("Event description: {}".format(_t))
         if 'Launching' in _t:
             _type = "launch"
         elif 'Terminating' in _t:
             _type = "terminate"
         else:
             _type = None
-        self.log.debug("Determined event type: {}".format(_type))
         return _type
 
 class LocalASG(object):
@@ -462,7 +460,7 @@ class LocalASG(object):
         self.logical_name = None
         self.elb_name = None
         self.stack_id = None
-        if self._cooldown_upperlimit >= 300:
+        if self._cooldown_upperlimit <= 300:
             self._cooldown_upperlimit = 300
         for tag in self._grab_tags(json_doc['Tags']):
             self.__dict__[tag['key']] = tag['value']
@@ -545,7 +543,9 @@ class LocalASG(object):
             if not _se.event_type:
                 continue
             _diff = _now - _se.start_time
-            if _diff.days == 0 and (_diff.seconds <= self._cooldown_upperlimit):
+            if ((_se.event_type == 'terminate') and (_se.instance in InventoryConfig.known_instances.keys())):
+                yield _se
+            elif _diff.days == 0 and (_diff.seconds <= self._cooldown_upperlimit):
                 yield _se
 
     def _grab_instance_metadata(self, json_doc):

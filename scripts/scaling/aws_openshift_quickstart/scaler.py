@@ -195,6 +195,8 @@ def scale_inventory_groups(ocp_version='3.7'):
     if _is.nodes_to_add['masters']:
       _is.nodes_to_add['nodes'] += _is.nodes_to_add['masters']
 
+    if _is.nodes_to_remove['masters']:
+        _is.nodes_to_remove['nodes'] += _is.nodes_to_remove['masters']
     _is.process_pipeline()
     InventoryConfig.write_ansible_inventory_file()
 
@@ -264,12 +266,24 @@ def scale_inventory_groups(ocp_version='3.7'):
                     log.info("- complete! We have {} to go...".format((numcats - completed_numproc)))
         # Now we do the necessary on the results.
         for cat in _is.ansible_results.keys():
+            additional_add = []
             cjson = _is.ansible_results[cat]
             log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
                     cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded','Failed', 'Unreachable'))
-            _is.migrate_nodes_between_section(cjson['succeeded'], cat)
+            if cat == 'masters':
+                additional_add=['nodes']
+            _is.migrate_nodes_between_section(cjson['succeeded'], cat, additional_add=additional_add)
         InventoryConfig.write_ansible_inventory_file()
 
+def check_for_pid_file():
+    pidfile="/run/aws-qs-ose-scaler.pid"
+    if not os.path.exists(pidfile):
+        pid = str(os.getpid())
+        with open(pidfile,'w') as f:
+            f.write(pid)
+    else:
+        log.info("Another invocation of this script is running. Exiting.")
+        sys.exit(0)
 
 def main():
     log.info("--------- Begin Script Invocation ---------")
