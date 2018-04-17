@@ -465,8 +465,8 @@ class LocalASG(object):
         for tag in self._grab_tags(json_doc['Tags']):
             self.__dict__[tag['key']] = tag['value']
         self.in_openshift_cluster = self._determine_cluster_membership()
-        self.openshift_config_category = self._determine_openshift_category(self.logical_id)
         if self.in_openshift_cluster:
+            self.openshift_config_category = self._determine_openshift_category(self.logical_id)
             # Set the logcal_name
             self.logical_name = InventoryConfig.logical_names[self.logical_id]
             # Sanity check to verify they're in the API.
