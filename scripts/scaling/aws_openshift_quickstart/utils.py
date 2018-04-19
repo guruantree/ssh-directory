@@ -49,6 +49,7 @@ class InventoryConfig(object):
     }
     _ansible_full_cfg = {}
     provisioning_hostdefs = {}
+    loaded_hostdefs = {}
     inventory_nodes = copy.deepcopy(_inventory_node_skel)
     inventory_nodes['ids'] = {}
     logical_names = {
@@ -65,6 +66,7 @@ class InventoryConfig(object):
         cls.log.info("Setting up the InventoryConfig Class")
         if not cls.initial_inventory:
             cls.load_ansible_inventory_file()
+        cls.load_openshift_node_hostdefs()
         cls.region_name = cls._determine_region_name()
         cls.instance_id = cls._determine_local_instance_id()
         cls.ec2 = boto3.client('ec2', cls.region_name)
@@ -92,6 +94,27 @@ class InventoryConfig(object):
                 continue
             cls.ansible_host_cfg[k] = v['hosts']
         cls.log.info("...Complete")
+
+    @classmethod
+    def load_openshift_node_hostdefs(cls):
+        try:
+            with open('/tmp/openshift_node_hostdefs.yml','r') as f:
+                unparsed_hostdef_yaml = f.read()
+        except:
+            cls.log.error("Unable to open the /tmp/openshift_node_hostdefs.yml file. Exiting")
+            sys.exit(1)
+
+        try:
+            cls.loaded_hostdefs = yaml.safe_load(unparsed_hostdef_yaml)
+        except yaml.YAMLError:
+            cls.log.error("Error parsing /tmp/openshift_node_hostdefs.yml. Exiting")
+            sys.exit(1)
+
+        try:
+            assert cls.loaded_hostdefs['hostdefs'].keys() == ['masters', 'nodes', 'etcd']
+        except AssertionError:
+            cls.log.error("The hostdef categories in /tmp/openshift_node_labels.yml {} do not match the required categories: {}. Cannot continue. Exiting.".format(cls.loaded_hostdefs['hostdefs'].keys(), ['masters', 'nodes', 'etcd']))
+            sys.exit(1)
 
     @classmethod
     def write_ansible_inventory_file(cls, init=False):
@@ -574,40 +597,27 @@ class LocalASG(object):
         """
         i = 0
         while i < len(self._instances['list']):
+            _etcd = False
             instance_id = self._instances['list'][i]
             node = self._instances[instance_id]
             # https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_InstanceState.html
             if node.State['Code'] not in [0, 16]:
                 i+=1
                 continue
-            _ihd = {
-                'instance_id': instance_id,
-                'openshift_node_labels':{
-                    'application_node': 'yes',
-                    'registry_node': 'yes',
-                    'router_node': 'yes',
-                    'region': 'infra',
-                    'zone': 'default'
-                    }
-                }
+            ihd = {'instance_id': instance_id}
+            if 'etcd' in cls.openshift_config_category:
+                _etcd = True
+                _ihd.update(cls.loaded_hostdefs['hostdefs']['etcd'])
+            elif 'node' in cls.openshift_config_category:
+                _ihd.update(cls.loaded_hostdefs['hostdefs']['nodes'])
+            elif 'master' in cls.openshift_config_category:
+                _ihd.update(cls.loaded_hostdefs['hostdefs']['masters'])
 
-            if 'master' in self.openshift_config_category:
-                _ihd.update({
-                    'openshift_schedulable': 'true',
-                    'openshift_node_labels': {
-                        'region':'primary',
-                        'zone':'default'
-                    }
-                })
-                if self.elb_name:
-                    # openshift_public_hostname is only needed if we're dealing with masters, and an ELB is present.
-                    _ihd['openshift_public_hostname'] = self.elb_name
-
-            elif not 'node' in self.openshift_config_category:
-                # Nodes don't need openshift_public_hostname (#3), or openshift_schedulable (#5)
-                # etcd only needs hostname and node labes. doing the 'if not' above addresses both
-                # of these conditions at once, as the remainder are default values prev. defined.
-                del _ihd['openshift_node_labels']
+            # Sanity Check. Juuuust in case.
+            if _etcd:
+                if 'openshift_node_labels' in _ihd.keys():
+                    cls.log.info("etcd clusters don't need node labels. Deleting them from the hostdef.")
+                    del _ihd['openshift_node_labels']
 
             hostdef = {node.PrivateDnsName: _ihd, 'ip_or_dns': node.PrivateDnsName}
             i+=1

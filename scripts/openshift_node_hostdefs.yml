@@ -1,0 +1,14 @@
+hostdefs:
+  masters:
+    openshift_schedulable: 'true'
+    openshift_node_labels:
+      region: 'primary'
+      zone: 'default'
+  nodes:
+    openshift_node_labels:
+      application_node: 'yes'
+      registry_node: 'yes'
+      router_node: 'yes'
+      region: 'infra'
+      zone: 'default'
+  etcd:
