@@ -74,6 +74,7 @@ atomic-openshift-excluder unexclude
 
 aws s3 cp ${QS_S3URI}scripts/scaleup_wrapper.yml  /usr/share/ansible/openshift-ansible/
 aws s3 cp ${QS_S3URI}scripts/bootstrap_wrapper.yml /usr/share/ansible/openshift-ansible/
+ansible-playbook /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /var/log/bootstrap.log
 if [ "${OCP_VERSION}" == "3.7" ]; then
     ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml > /var/log/bootstrap.log
 elif [ "${OCP_VERSION}" == "3.9" ]; then
@@ -90,8 +91,8 @@ scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
 
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     qs_retry_command 10 yum install -y wget
-    mkdir -p ~/aws_broker_install 
-    cd ~/aws_broker_install 
+    mkdir -p ~/aws_broker_install
+    cd ~/aws_broker_install
     qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
     qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy_aws_broker.sh
     chmod +x deploy_aws_broker.sh
