@@ -596,6 +596,11 @@ class LocalASG(object):
         Generates the host definition for populating the Ansible Inventory.
         """
         i = 0
+        ic = InventoryConfig
+        hd = ic.loaded_hostdefs['hostdefs']
+        for k,v in hd.iteritems():
+            if type(v) == type(None):
+                hd[k] = {}
         while i < len(self._instances['list']):
             _etcd = False
             instance_id = self._instances['list'][i]
@@ -604,19 +609,19 @@ class LocalASG(object):
             if node.State['Code'] not in [0, 16]:
                 i+=1
                 continue
-            ihd = {'instance_id': instance_id}
-            if 'etcd' in cls.openshift_config_category:
+            _ihd = {'instance_id': instance_id}
+            if 'etcd' in self.openshift_config_category:
                 _etcd = True
-                _ihd.update(cls.loaded_hostdefs['hostdefs']['etcd'])
-            elif 'node' in cls.openshift_config_category:
-                _ihd.update(cls.loaded_hostdefs['hostdefs']['nodes'])
-            elif 'master' in cls.openshift_config_category:
-                _ihd.update(cls.loaded_hostdefs['hostdefs']['masters'])
+                _ihd.update(ic.loaded_hostdefs['hostdefs']['etcd'])
+            elif 'node' in self.openshift_config_category:
+                _ihd.update(ic.loaded_hostdefs['hostdefs']['nodes'])
+            elif 'master' in self.openshift_config_category:
+                _ihd.update(ic.loaded_hostdefs['hostdefs']['masters'])
 
             # Sanity Check. Juuuust in case.
             if _etcd:
                 if 'openshift_node_labels' in _ihd.keys():
-                    cls.log.info("etcd clusters don't need node labels. Deleting them from the hostdef.")
+                    self.log.info("etcd clusters don't need node labels. Deleting them from the hostdef.")
                     del _ihd['openshift_node_labels']
 
             hostdef = {node.PrivateDnsName: _ihd, 'ip_or_dns': node.PrivateDnsName}
