@@ -984,7 +984,7 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfMaster'
-        Timeout: PT15M
+        Timeout: PT45M
   OpenShiftEtcdASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
@@ -1006,7 +1006,7 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfEtcd'
-        Timeout: PT15M
+        Timeout: PT45M
   OpenShiftNodeASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
@@ -1035,7 +1035,7 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfNodes'
-        Timeout: PT15M
+        Timeout: PT45M
   OpenShiftEtcdLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
