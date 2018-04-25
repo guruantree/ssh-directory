@@ -82,6 +82,7 @@ elif [ "${OCP_VERSION}" == "3.9" ]; then
     ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml >> /var/log/bootstrap.log
 fi
 
+ansible masters -a "htpasswd -b /etc/origin/master/htpasswd admin ${OCP_PASS}"
 aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
 
 qs_retry_command 10 yum install -y atomic-openshift-clients
