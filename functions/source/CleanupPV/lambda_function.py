@@ -16,12 +16,12 @@ def boto_throttle_backoff(boto_method, max_retries=10, backoff_multiplier=2, **k
         try:
             results = boto_method(**kwargs)
         except Exception as e:
-            if 'ThrottlingException' in str(e):
+            if 'ThrottlingException' in str(e) or 'VolumeInUse' in str(e):
                 retry += 1
                 if retry > max_retries:
-                    print("Maximum throttle retries of %s reached" % str(max_retries))
+                    print("Maximum retries of %s reached" % str(max_retries))
                     raise
-                print("hit an api throttle, waiting for %s seconds before retrying" % str(retry * backoff_multiplier))
+                print("hit an api throttle, or eventual consistency error, waiting for %s seconds before retrying" % str(retry * backoff_multiplier))
                 time.sleep(retry * backoff_multiplier)
             else:
                 raise
