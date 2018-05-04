@@ -296,16 +296,21 @@ Parameters:
     Type: String
   HostedZoneID:
     Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
-      will not be configured and DNS must be setup manually'
+      will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
     Type: String
     MaxLength: '32'
+    Default: ""
   DomainName:
-    Description: domain name configured for the cluster
+    Description: >-
+      OPTIONAL: domain name configured for the cluster, if left blank self signed
+      certificates will be used for TLS and the LoadBalancer's auto-generated hostname
+      will be used for connections from outside the cluster.
     Type: String
+    Default: ""
   SubDomainPrefix:
     Default: ''
     Description: 'OPTIONAL: Subdomain to use, if left blank DomainName will be used
-      without a prefix'
+      without a prefix. If you specify this you must also specify DomainName and HostedZoneID'
     Type: String
   HawkularMetrics:
     Default: Enabled
@@ -367,13 +372,23 @@ Conditions:
     - !Equals
       - !Ref 'ExistingAWSServiceBrokerRole'
       - ''
-  SetupRoute53: !Not
+  SetupRoute53: !And
+    - !Not
+      - !Equals
+        - !Ref 'HostedZoneID'
+        - ''
+    - !Not
+      - !Equals
+        - !Ref 'DomainName'
+        - ''
+  UseEmailForACMValidation: !And
     - !Equals
       - !Ref 'HostedZoneID'
       - ''
-  UseEmailForACMValidation: !Equals
-    - !Ref 'HostedZoneID'
-    - ''
+    - !Not
+      - !Equals
+        - !Ref 'DomainName'
+        - ''
   SetupSubdomain: !And
     - !Not
       - !Equals
@@ -383,9 +398,17 @@ Conditions:
       - !Equals
         - !Ref 'HostedZoneID'
         - ''
+    - !Not
+      - !Equals
+        - !Ref 'DomainName'
+        - ''
   UseSubdomain: !Not
     - !Equals
       - !Ref 'SubDomainPrefix'
+      - ''
+  UseCustomDomain: !Not
+    - !Equals
+      - !Ref 'DomainName'
       - ''
   EnableHawkular: !Equals
     - !Ref 'HawkularMetrics'
@@ -1444,13 +1467,22 @@ Resources:
         - !Ref 'OpenShiftSecurityGroup'
       Listeners:
         - InstancePort: '443'
-          InstanceProtocol: SSL
+          InstanceProtocol: !If
+            - UseCustomDomain
+            - SSL
+            - TCP
           LoadBalancerPort: '443'
-          Protocol: SSL
+          Protocol: !If
+            - UseCustomDomain
+            - SSL
+            - TCP
           SSLCertificateId: !If
-            - SetupRoute53
-            - !GetAtt 'ACMCertificateDNS.Arn'
-            - !Ref 'ACMCertificateEmail'
+            - UseCustomDomain
+            - !If
+              - SetupRoute53
+              - !GetAtt 'ACMCertificateDNS.Arn'
+              - !Ref 'ACMCertificateEmail'
+            - !Ref AWS::NoValue
       HealthCheck:
         Target: HTTPS:443/console/
         HealthyThreshold: '2'
@@ -1471,13 +1503,22 @@ Resources:
         - !Ref 'OpenShiftNodeSecurityGroup'
       Listeners:
         - InstancePort: '443'
-          InstanceProtocol: SSL
+          InstanceProtocol: !If
+            - UseCustomDomain
+            - SSL
+            - TCP
           LoadBalancerPort: '443'
-          Protocol: SSL
+          Protocol: !If
+            - UseCustomDomain
+            - SSL
+            - TCP
           SSLCertificateId: !If
-            - SetupRoute53
-            - !GetAtt 'ACMCertificateDNS.Arn'
-            - !Ref 'ACMCertificateEmail'
+            - UseCustomDomain
+            - !If
+              - SetupRoute53
+              - !GetAtt 'ACMCertificateDNS.Arn'
+              - !Ref 'ACMCertificateEmail'
+            - !Ref AWS::NoValue
         - InstancePort: '80'
           InstanceProtocol: TCP
           LoadBalancerPort: '80'
@@ -1660,7 +1701,7 @@ Resources:
             AwsSbRole: !If [ CreateAWSServiceBrokerRole, !GetAtt 'AWSServiceBrokerCFNRole.Arn', !Ref 'ExistingAWSServiceBrokerRole' ]
             HawkEnable: !If [ EnableHawkular, "True", "False" ]
             OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
-            LbHostname: !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ]
+            LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
     CreationPolicy:
       ResourceSignal:
         Timeout: PT240M
@@ -1699,13 +1740,7 @@ Outputs:
     Value: !Join
       - ''
       - - https://
-        - !Join
-          - ''
-          - - !If
-              - UseSubdomain
-              - !Sub '${SubDomainPrefix}.'
-              - ''
-            - !Ref 'DomainName'
+        - !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
   ContainerAccessELBName:
     Description: Use this ELB to expose ports to the internet
     Value: !Join

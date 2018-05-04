@@ -308,9 +308,11 @@ Parameters:
     Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
       will not be configured and DNS must be setup manually'
     Type: String
+    Default: ""
   DomainName:
     Description: domain name configured for the cluster
     Type: String
+    Default: ""
   SubDomainPrefix:
     Default: ''
     Description: 'OPTIONAL: Subdomain to use, if left blank DomainName will be used

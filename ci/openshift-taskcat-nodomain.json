@@ -1,0 +1,51 @@
+[
+    {
+        "ParameterKey": "AvailabilityZones",
+        "ParameterValue": "$[taskcat_genaz_3]"
+    },
+    {
+        "ParameterKey": "KeyPairName",
+        "ParameterValue": "tonynv"
+    },
+    {
+        "ParameterKey": "NumberOfNodes",
+        "ParameterValue": "3"
+    },
+    {
+        "ParameterKey": "OpenShiftAdminPassword",
+        "ParameterValue": "R3dhatPass"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionPassword",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionUserName",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionPoolID",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterValue": "3.7",
+        "ParameterKey": "OpenshiftContainerPlatformVersion"
+    },
+    {
+        "ParameterKey": "ContainerAccessCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "RemoteAccessCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "VPCCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "QSS3BucketName",
+        "ParameterValue": "$[taskcat_autobucket]"
+    }
+
+]

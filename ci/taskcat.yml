@@ -29,3 +29,8 @@ tests:
     regions:
       - us-east-2
     template_file: openshift-master.template
+  openshift-nodomain:
+    parameter_input: openshift-taskcat-nodomain.json
+    regions:
+      - us-east-1
+    template_file: openshift-master.template
