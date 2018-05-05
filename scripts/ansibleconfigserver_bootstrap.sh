@@ -39,6 +39,8 @@ fi
 if [ "${ENABLE_HAWKULAR}" == "True" ] ; then
     if [ "$(echo ${MASTER_ELBDNSNAME} | grep -c '\.elb\.amazonaws\.com')" == "0" ] ; then
         echo openshift_metrics_hawkular_hostname=metrics.${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
+    else
+        echo openshift_metrics_hawkular_hostname=metrics.router.default.svc.cluster.local >> /tmp/openshift_inventory_userdata_vars
     fi
     echo openshift_metrics_install_metrics=true >> /tmp/openshift_inventory_userdata_vars
     echo openshift_metrics_start_cluster=true >> /tmp/openshift_inventory_userdata_vars
