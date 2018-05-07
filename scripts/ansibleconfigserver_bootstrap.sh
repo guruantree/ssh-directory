@@ -113,7 +113,7 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     oc create -f ./secrets.yaml -n aws-service-broker
     oc get configmap broker-config -n aws-service-broker -o yaml > aws-sb-config.yaml
     sed -i "s/^kind: ConfigMap$/    secrets:\n&/" aws-sb-config.yaml
-    for apb in $(echo 'dh-sqs-apb dh-sns-apb dh-r53-apb dh-rds-apb dh-emr-apb dh-redshift-apb dh-elasticache-apb dh-dynamodb-apb dh-s3-apb dh-athena-apb dh-kinesis-apb dh-kms-apb dh-lex-apb dh-polly-apb dh-rdsmariadb-apb dh-rdspostgresql-apb dh-rekognition-apb dh-translate-apb'); do
+    for apb in $(echo 'dh-sqs dh-sns dh-route53 dh-rds dh-emr dh-redshift dh-elasticache dh-dynamodb dh-s3 dh-athena dh-kinesis dh-kms dh-lex dh-polly dh-rdsmariadb dh-rdspostgresql dh-rekognition dh-translate'); do
         sed -i "s/^kind: ConfigMap$/      - {apb_name: ${apb}, secret: aws-secret, title: aws-secret}\n&/" aws-sb-config.yaml
     done
     oc replace -f ./aws-sb-config.yaml -n aws-service-broker
