@@ -812,6 +812,16 @@ Resources:
                   - autoscaling:AttachLoadBalancers
                   - ec2:Describe*
                 Resource: '*'
+        - !If
+          - EnableAWSServiceBroker
+          - PolicyName: ServiceBroker
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - cloudformation:*
+                  Resource: '*'
+          - !Ref AWS::NoValue
         - PolicyName: K8s-AWSCloudProvider-requirements
           PolicyDocument:
             Statement:
