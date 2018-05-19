@@ -1126,7 +1126,7 @@ Resources:
             QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
             export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
@@ -1207,7 +1207,7 @@ Resources:
             QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
             export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
@@ -1288,7 +1288,7 @@ Resources:
             QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
             export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
@@ -1697,7 +1697,7 @@ Resources:
             export VPCID=${VPCID}
             export UTIL="${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source"
             export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -s $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -s $UTIL -o $P && break; n=$[$n+1]; done
+            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
