@@ -126,6 +126,51 @@ def generate_inital_inventory_nodes(write_hosts_to_temp=False):
 
     return 0
 
+def run_ansible_playbook(category=None, playbook=None, extra_args=None, prepared_commands=None):
+    """
+    Wrapper for running an ansible playbook.
+    :param category: Category to label this playbook invocation as (pre_etcd_teardown, etcd, nodes, so on) [OPTIONAL]
+    :param playbook: path to playbook to run
+    :param extra_args: extra_args to run with the playbook. [OPTIONAL]
+    :param prepared_commands: list of prepared commands. Bypasses command construction.
+    """
+    proc_cat = {}
+    file_cat = {}
+    completed_numproc = 0
+    completed_procs = []
+    if not prepared_commands:
+        ansible_cmd = "{} {} {}".format(
+            "ansible-playbook",
+            playbook
+        )
+        if extra_args:
+            ansible_cmd = "{} {}".format(ansible_cmd, '{}"{}"'.format('--extra-vars=', str(extra_args)))
+        prepared_comands[category] = ansible_cmd
+    FNULL = open(os.devnull, 'w')
+    for category in prepared_commands.keys()
+        command = prepared_commands[category]
+        stdout_tempfile = tempfile.mkstemp()[1]
+        with open(stdout_tempfile, 'w') as fileout:
+            process = subprocess.Popen(shlex.split(command), stdout=fileout, stderr=FNULL)
+            #TODO: is this needed?
+            proc_cat[category] = process
+            file_cat[category] = stdout_tempfile
+    numcats = len(proc_cat.keys())
+    log.info("We have {} ansible playbooks running!".format(numcats))
+    while True:
+        if numcats == completed_numproc:
+            break
+        for cat in proc_cat.keys():
+            p = proc_cat[cat]
+            if p in completed_procs:
+                continue
+            if p.poll() is not None:
+                log.info("- A process completed. We're parsing it...")
+                _is.process_playbook_json_output(jout_file=file_cat[cat], category=cat)
+                completed_procs.append(p)
+                completed_numproc += 1
+                log.info("- complete! We have {} to go...".format((numcats - completed_numproc)))
+
 def scale_inventory_groups(ocp_version='3.7'):
     """
     Processes the scaling activities.
@@ -197,6 +242,19 @@ def scale_inventory_groups(ocp_version='3.7'):
 
     if _is.nodes_to_remove['masters']:
         _is.nodes_to_remove['nodes'] += _is.nodes_to_remove['masters']
+
+    if _is.nodes_to_remove['etcd']:
+        for etcdnode in _is.nodes_to_remove['etcd']:
+            etcd_vars = {
+                terminating_etcd_node: etcdnode
+            }
+            run_ansible_playbook(category='etcd_prescale_down', playbook=InventoryConfig.etcd_pre_scaledown, extra_args=etcd_vars)
+            for cat in _is.ansible_results.keys():
+                cjson = _is.ansible_results[cat]
+                log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
+                        cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded','Failed', 'Unreachable'))
+        _is.ansible_results = {}
+
     _is.process_pipeline()
     InventoryConfig.write_ansible_inventory_file()
 
@@ -211,10 +269,6 @@ def scale_inventory_groups(ocp_version='3.7'):
     if scaleup_needed:
         log.info("We've detected that we need to run ansible playbooks to scale up the cluster!")
         ansible_commands = {}
-        proc_cat = {}
-        file_cat = {}
-        completed_numproc = 0
-        completed_procs = []
         for category in InventoryConfig._inventory_node_skel.keys():
             if category is 'provision':
                 continue
@@ -241,29 +295,7 @@ def scale_inventory_groups(ocp_version='3.7'):
             log.info("We will run the following ansible command:")
             log.info(_ansible_cmd)
             ansible_commands[_is_cat_name] = _ansible_cmd
-        FNULL = open(os.devnull, 'w')
-        for category in ansible_commands.keys():
-            command = ansible_commands[category]
-            stdout_tempfile = tempfile.mkstemp()[1]
-            with open(stdout_tempfile, 'w') as fileout:
-                process = subprocess.Popen(shlex.split(command), stdout=fileout, stderr=FNULL)
-                proc_cat[category] = process
-                file_cat[category] = stdout_tempfile
-        numcats = len(proc_cat.keys())
-        log.info("We have {} ansible playbooks running!".format(numcats))
-        while True:
-            if numcats == completed_numproc:
-                break
-            for cat in proc_cat.keys():
-                p = proc_cat[cat]
-                if p in completed_procs:
-                    continue
-                if p.poll() is not None:
-                    log.info("- A process completed. We're parsing it...")
-                    _is.process_playbook_json_output(jout_file=file_cat[cat], category=cat)
-                    completed_procs.append(p)
-                    completed_numproc += 1
-                    log.info("- complete! We have {} to go...".format((numcats - completed_numproc)))
+        run_ansible_playbook(prepared_commands=ansible_commands)
         # Now we do the necessary on the results.
         for cat in _is.ansible_results.keys():
             additional_add = []

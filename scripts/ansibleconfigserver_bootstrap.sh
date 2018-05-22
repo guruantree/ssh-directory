@@ -81,6 +81,7 @@ atomic-openshift-excluder unexclude
 
 aws s3 cp ${QS_S3URI}scripts/scaleup_wrapper.yml  /usr/share/ansible/openshift-ansible/
 aws s3 cp ${QS_S3URI}scripts/bootstrap_wrapper.yml /usr/share/ansible/openshift-ansible/
+aws s3 cp ${QS_S3URI}scripts/etcd_pre_scaledown_playbook.yml /usr/share/ansible/openshift-ansible/
 ansible-playbook /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /var/log/bootstrap.log
 if [ "${OCP_VERSION}" == "3.7" ]; then
     ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml > /var/log/bootstrap.log

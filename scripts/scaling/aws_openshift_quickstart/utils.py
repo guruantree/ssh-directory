@@ -29,6 +29,7 @@ class InventoryConfig(object):
     known_instances = dict()
     ansible_inventory_file = '/etc/ansible/hosts'
     ansible_playbook_wrapper="/usr/share/ansible/openshift-ansible/scaleup_wrapper.yml"
+    etcd_pre_scaledown = "/usr/share/ansible/openshift-ansible/etcd_pre_scaledown_playbook.yml"
     inventory_categories = {
                 "master": [ "masters", "new_masters" ],
                 "etcd": [ "etcd", "new_etcd" ],
