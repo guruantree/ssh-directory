@@ -147,7 +147,7 @@ def run_ansible_playbook(category=None, playbook=None, extra_args=None, prepared
             ansible_cmd = "{} {}".format(ansible_cmd, '{}"{}"'.format('--extra-vars=', str(extra_args)))
         prepared_comands[category] = ansible_cmd
     FNULL = open(os.devnull, 'w')
-    for category in prepared_commands.keys()
+    for category in prepared_commands.keys():
         command = prepared_commands[category]
         stdout_tempfile = tempfile.mkstemp()[1]
         with open(stdout_tempfile, 'w') as fileout:
