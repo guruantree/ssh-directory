@@ -54,7 +54,7 @@ if [ "${OCP_VERSION}" == "3.9" ]; then
     echo openshift_web_console_version=v3.9 >> /tmp/openshift_inventory_userdata_vars
 fi
 
-/bin/aws-ose-qs-scale --generate-initial-inventory --write-hosts-to-tempfiles --debug || qs_err "Generating the initial inventory failed!"
+/bin/aws-ose-qs-scale --generate-initial-inventory --write-hosts-to-tempfiles --debug
 cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars || true
 sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg
 sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg
@@ -84,9 +84,9 @@ aws s3 cp ${QS_S3URI}scripts/bootstrap_wrapper.yml /usr/share/ansible/openshift-
 aws s3 cp ${QS_S3URI}scripts/etcd_pre_scaledown_playbook.yml /usr/share/ansible/openshift-ansible/
 ansible-playbook /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /var/log/bootstrap.log
 if [ "${OCP_VERSION}" == "3.7" ]; then
-    ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml > /var/log/bootstrap.log
+    ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml >> /var/log/bootstrap.log
 elif [ "${OCP_VERSION}" == "3.9" ]; then
-    ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml > /var/log/bootstrap.log
+    ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml >> /var/log/bootstrap.log
     ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml >> /var/log/bootstrap.log
 fi
 
