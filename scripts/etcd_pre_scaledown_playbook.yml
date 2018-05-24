@@ -20,6 +20,8 @@
   - name: Determine ID of etcd node before removing it.
     shell: "{{ etcdctl_command }} list | grep {{ terminating_etcd_node }} | cut -d ':' -f 1"
     register: cmd_find_node_id
+
+  - name: Set orphaned_etcd_node_id fact
     set_fact:
       orphaned_etcd_node_id: "{{ cmd_find_node_id.stdout }}"
 
