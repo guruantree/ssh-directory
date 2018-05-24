@@ -400,7 +400,8 @@ class InventoryScaling(object):
         unreachable = []
         failed = []
         succeeded = []
-        del j['localhost']
+        if 'localhost' in j.keys():
+            del j['localhost']
         for h in j.keys():
             if j[h]['unreachable'] != 0:
                 unreachable.append(h)
@@ -408,6 +409,9 @@ class InventoryScaling(object):
                 failed.append(h)
             else:
                 succeeded.append(h)
+        # ran into issues where etcd_prescale_down category key does not exist in the dict
+        if category not in cls.nodes_to_add.keys():
+            cls.nodes_to_add[category] = []
         # Pruning down to category only.
         cat_results = {
             'succeeded': [x for x in succeeded if x in cls.nodes_to_add[category]],
