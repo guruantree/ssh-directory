@@ -8,7 +8,7 @@ setup_options = dict(
     author="AWS QuickStart Team",
     license="Apache 2.0", 
     packages=['aws_openshift_quickstart'],
-    zip_safe = False, 
+    zip_safe=False,
     extras_require={
       ':python_version=="2.6"': ['argparse>=1.1']
     },

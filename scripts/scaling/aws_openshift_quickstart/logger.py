@@ -1,5 +1,5 @@
 import logging
-import os
+
 
 class LogUtil(object):
     """
@@ -9,6 +9,7 @@ class LogUtil(object):
     """
     _format = "%(asctime)s %(filename)-10s %(levelname)-8s: %(message)s"
     _handlers = []
+
     @staticmethod
     def get_root_logger():
         return logging.getLogger("openshift-scaling")
