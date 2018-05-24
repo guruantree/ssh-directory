@@ -7,7 +7,7 @@
 # - Remove offending node from cluster.
 
 ---
-- hosts: etcd:!{{ terminating_etc_node }}.0
+- hosts: etcd:!{{ terminating_etcd_node }}.0
   tasks:
   - name: Populate endpoint URL for etcd cluster.
     set_fact:
@@ -18,7 +18,7 @@
       etcdctl_command: "etcdctl --ca-file /etc/etcd/ca.crt --cert-file /etc/etcd/peer.crt --key-file /etc/etcd/peer.key --endpoints \"{{ etcd_cluster_url }}\" member"
 
   - name: Determine ID of etcd node before removing it.
-    shell: "{{ etcdctl_command }} list | grep {{ terminating_etc_node }} | cut -d ':' -f 1"
+    shell: "{{ etcdctl_command }} list | grep {{ terminating_etcd_node }} | cut -d ':' -f 1"
     register: cmd_find_node_id
     set_fact:
       orphaned_etcd_node_id: "{{ cmd_find_node_id.stdout }}"
