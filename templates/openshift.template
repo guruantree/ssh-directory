@@ -133,7 +133,7 @@ Parameters:
       subnet-b1f432cd)
     Type: AWS::EC2::Subnet::Id
   PrivateSubnet3ID:
-    Description: ID of private subnet 2 in Availability Zone 3 for the Workload (e.g.,
+    Description: ID of private subnet 3 in Availability Zone 3 for the Workload (e.g.,
       subnet-b1f4a2cd)
     Type: AWS::EC2::Subnet::Id
   PublicSubnet1ID:
@@ -145,7 +145,7 @@ Parameters:
       (e.g., subnet-e3246d8e)
     Type: AWS::EC2::Subnet::Id
   PublicSubnet3ID:
-    Description: ID of public subnet 2 in Availability Zone 3 for the ELB load balancer
+    Description: ID of public subnet 3 in Availability Zone 3 for the ELB load balancer
       (e.g., subnet-e324ad8e)
     Type: AWS::EC2::Subnet::Id
   QSS3BucketName:
@@ -1050,7 +1050,7 @@ Resources:
         - !Ref 'ContainerAccessELB'
       DesiredCapacity: !Ref 'NumberOfNodes'
       MaxSize: !Ref 'NumberOfNodes'
-      MinSize: '2'
+      MinSize: '1'
       HealthCheckType: ELB
       HealthCheckGracePeriod: 1200
       LaunchConfigurationName: !Ref 'OpenShiftNodesLaunchConfig'
