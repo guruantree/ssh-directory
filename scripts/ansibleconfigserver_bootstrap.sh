@@ -10,10 +10,6 @@ qs_retry_command 20 ~/redhat_ose-register.sh ${RH_USER} ${RH_PASS} ${RH_POOLID}
 
 yum repolist | grep OpenShift
 
-qs_retry_command 10 aws autoscaling suspend-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
-
-qs_retry_command 10 aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${OPENSHIFTMASTERASG} --target-group-arns ${OPENSHIFTMASTERINTERNALTGARN} --region ${AWS_REGION}
-
 qs_retry_command 10 pip install boto3 &> /var/log/userdata.boto3_install.log
 mkdir -p /root/ose_scaling/aws_openshift_quickstart
 mkdir -p /root/ose_scaling/bin
@@ -54,15 +50,6 @@ if [ "${OCP_VERSION}" == "3.9" ]; then
     echo openshift_web_console_version=v3.9 >> /tmp/openshift_inventory_userdata_vars
 fi
 
-/bin/aws-ose-qs-scale --generate-initial-inventory --write-hosts-to-tempfiles --debug
-cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars || true
-sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg
-sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg
-sed -i 's/#stdout_callback.*/stdout_callback = json/g' /etc/ansible/ansible.cfg
-sed -i 's/#deprecation_warnings = True/deprecation_warnings = False/g' /etc/ansible/ansible.cfg
-
-qs_retry_command 50 ansible -m ping all
-
 yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct
 yum -y update
 yum -y install atomic-openshift-utils
@@ -82,6 +69,26 @@ atomic-openshift-excluder unexclude
 aws s3 cp ${QS_S3URI}scripts/scaleup_wrapper.yml  /usr/share/ansible/openshift-ansible/
 aws s3 cp ${QS_S3URI}scripts/bootstrap_wrapper.yml /usr/share/ansible/openshift-ansible/
 aws s3 cp ${QS_S3URI}scripts/etcd_pre_scaledown_playbook.yml /usr/share/ansible/openshift-ansible/
+
+while [ $(aws cloudformation describe-stack-events --stack-name ${AWS_STACKNAME} --region ${AWS_REGION} --query 'StackEvents[?ResourceStatus == `CREATE_COMPLETE` && ResourceType == `AWS::AutoScaling::AutoScalingGroup`].LogicalResourceId' --output json | grep -c 'OpenShift') -lt 3 ] ; do
+    echo "Waiting for ASG's to complete provisioning..."
+    sleep 120
+done
+
+export OPENSHIFTMASTERASG=$(aws cloudformation describe-stack-resources --stack-name ${AWS_STACKNAME} --region ${AWS_REGION} --query 'StackResources[? ResourceStatus == `CREATE_COMPLETE` && LogicalResourceId == `OpenShiftMasterASG`].PhysicalResourceId' --output text)
+
+qs_retry_command 10 aws autoscaling suspend-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
+qs_retry_command 10 aws autoscaling attach-load-balancer-target-groups --auto-scaling-group-name ${OPENSHIFTMASTERASG} --target-group-arns ${OPENSHIFTMASTERINTERNALTGARN} --region ${AWS_REGION}
+
+/bin/aws-ose-qs-scale --generate-initial-inventory --write-hosts-to-tempfiles --debug
+cat /tmp/openshift_ansible_inventory* >> /tmp/openshift_inventory_userdata_vars || true
+sed -i 's/#pipelining = False/pipelining = True/g' /etc/ansible/ansible.cfg
+sed -i 's/#log_path/log_path/g' /etc/ansible/ansible.cfg
+sed -i 's/#stdout_callback.*/stdout_callback = json/g' /etc/ansible/ansible.cfg
+sed -i 's/#deprecation_warnings = True/deprecation_warnings = False/g' /etc/ansible/ansible.cfg
+
+qs_retry_command 50 ansible -m ping all
+
 ansible-playbook /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /var/log/bootstrap.log
 if [ "${OCP_VERSION}" == "3.7" ]; then
     ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml >> /var/log/bootstrap.log

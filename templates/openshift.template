@@ -983,6 +983,11 @@ Resources:
                   - sts:GetCallerIdentity
                 Effect: Allow
                 Resource: '*'
+              - Action:
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStackResources
+                Effect: Allow
+                Resource: !Ref "AWS::StackId"
   SetupRoleProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -1594,7 +1599,6 @@ Resources:
         - arn:aws:iam::aws:policy/AdministratorAccess
   AnsibleConfigServer:
     Type: AWS::EC2::Instance
-    DependsOn: [ OpenShiftNodeASG, OpenShiftMasterASG, OpenShiftEtcdASG ]
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -1679,11 +1683,9 @@ Resources:
             export AWSSB_ROLE=${AwsSbRole}
             export MASTER_ELBDNSNAME=${LbHostname}
             export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
-            export OPENSHIFTMASTERASG=${OpenShiftMasterASG}
             export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB}
             export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
             export AWS_REGION=${AWS::Region}
-            export OPENSHIFTASG=${OpenShiftNodeASG}
             export CONTAINERACCESSELB=${ContainerAccessELB}
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export RH_USER=${RedhatSubscriptionUserName}
@@ -1714,7 +1716,7 @@ Resources:
             LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT240M
+        Timeout: PT360M
   OpenShiftScalingCWEventRule:
     Type: AWS::Events::Rule
     Properties:
