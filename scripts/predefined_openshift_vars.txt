@@ -1,3 +1,5 @@
+oreg_url=registry.access.redhat.com/openshift3/ose-${component}:${version}
+openshift_examples_modify_imagestreams=true
 ansible_ssh_user=root
 openshift_deployment_type=openshift-enterprise
 containerized=false

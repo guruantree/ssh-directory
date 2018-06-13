@@ -45,10 +45,6 @@ fi
 
 echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars
-if [ "${OCP_VERSION}" == "3.9" ]; then
-    echo openshift_web_console_prefix=openshift3/ose- >> /tmp/openshift_inventory_userdata_vars
-    echo openshift_web_console_version=v3.9 >> /tmp/openshift_inventory_userdata_vars
-fi
 
 yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct
 yum -y update
