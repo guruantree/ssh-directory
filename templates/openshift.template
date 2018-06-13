@@ -988,12 +988,31 @@ Resources:
                   - cloudformation:DescribeStackResources
                 Effect: Allow
                 Resource: !Ref "AWS::StackId"
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'logs:DescribeLogStreams'
+                Resource:
+                  - 'arn:aws:logs:*:*:*'
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:PutMetricData'
+                  - 'cloudwatch:GetMetricStatistics'
+                  - 'cloudwatch:ListMetrics'
+                Resource:
+                  - '*'
   SetupRoleProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: /
       Roles:
         - !Ref 'SetupRole'
+  OpenshiftLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      RetentionInDays: 7
   OpenShiftMasterASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn:
@@ -1129,9 +1148,9 @@ Resources:
           - |
             #!/bin/bash -x
             QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-            UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
-            export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
+            yum install -y git
+            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
@@ -1210,9 +1229,9 @@ Resources:
           - |
             #!/bin/bash -x
             QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-            UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
-            export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
+            yum install -y git
+            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
@@ -1291,9 +1310,9 @@ Resources:
           - |
             #!/bin/bash -x
             QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
-            UTIL=${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source
-            export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
+            yum install -y git
+            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
@@ -1697,9 +1716,9 @@ Resources:
             export AWS_STACKID=${AWS::StackId}
             export ENABLE_AWSSB=${AWSServiceBroker}
             export VPCID=${VPCID}
-            export UTIL="${!QSLOCATION}submodules/quickstart-linux-utilities/quickstart-cfn-tools.source"
-            export P=/tmp/quickstart-cfn-tools.source
-            curl --retry 10 -Ls $UTIL -o $P || n=0; until [[ $n -ge 50 ]]; do curl -Ls $UTIL -o $P && break; n=$[$n+1]; done
+            yum install -y git
+            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
             source $P
             qs_bootstrap_pip || qs_err " pip bootstrap failed "
             qs_aws-cfn-bootstrap || qs_err "cfn bootstrap failed"
