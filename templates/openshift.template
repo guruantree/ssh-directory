@@ -44,6 +44,7 @@ Metadata:
           - AWSServiceBroker
           - ExistingAWSServiceBrokerRole
           - HawkularMetrics
+          - ClusterName
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -119,6 +120,8 @@ Metadata:
         default: Route 53 Hosted Zone ID
       SubDomainPrefix:
         default: Subdomain Prefix
+      ClusterName:
+        default: Cluster Name
 Parameters:
   KeyPairName:
     Description: Name of an existing EC2 key pair. All instances will launch with
@@ -319,6 +322,10 @@ Parameters:
     AllowedValues:
       - Enabled
       - Disabled
+  ClusterName:
+    Default: ""
+    Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
+    Type: String
 Rules:
   SubnetsInVPC:
     Assertions:
@@ -419,6 +426,10 @@ Conditions:
   Is39: !Equals
     - !Ref 'OpenshiftContainerPlatformVersion'
     - '3.9'
+  CustomClusterName: !Not
+    - !Equals
+      - !Ref ClusterName
+      - ""
 Resources:
   Route53HostedSubdomainZone:
     Condition: SetupSubdomain
@@ -759,7 +770,12 @@ Resources:
           ToPort: '22'
           CidrIp: !Ref 'RemoteAccessCIDR'
       Tags:
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+        - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
           Value: owned
   OpenShiftNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -778,7 +794,12 @@ Resources:
           ToPort: '80'
           CidrIp: !Ref 'ContainerAccessCIDR'
       Tags:
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+        - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
           Value: owned
   SetupRole:
     Type: AWS::IAM::Role
@@ -1031,7 +1052,12 @@ Resources:
         - Key: Name
           PropagateAtLaunch: 'true'
           Value: openshift-master
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+        - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
           PropagateAtLaunch: 'true'
           Value: owned
       VPCZoneIdentifier:
@@ -1082,7 +1108,12 @@ Resources:
         - Key: Name
           PropagateAtLaunch: 'true'
           Value: openshift-nodes
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+        - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
           PropagateAtLaunch: 'true'
           Value: owned
       VPCZoneIdentifier:
@@ -1564,7 +1595,12 @@ Resources:
         Interval: '30'
         Timeout: '3'
       Tags:
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+        - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
           Value: owned
   OpenShiftMasterInternalELB:
     Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
@@ -1576,7 +1612,12 @@ Resources:
         - !Ref 'PrivateSubnet3ID'
       Type: network
       Tags:
-        - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+        - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
           Value: owned
   OpenShiftMasterInternalELBTargetGroup:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
@@ -1590,7 +1631,12 @@ Resources:
       UnhealthyThresholdCount: 3
       VpcId: !Ref VPCID
       Tags:
-      - Key: !Sub 'kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}'
+      - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
         Value: owned
   OpenShiftMasterInternalELBListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
