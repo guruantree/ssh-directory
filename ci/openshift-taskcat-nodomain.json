@@ -5,7 +5,7 @@
     },
     {
         "ParameterKey": "KeyPairName",
-        "ParameterValue": "tonynv"
+        "ParameterValue": "override"
     },
     {
         "ParameterKey": "NumberOfNodes",
@@ -13,7 +13,7 @@
     },
     {
         "ParameterKey": "OpenShiftAdminPassword",
-        "ParameterValue": "R3dhatPass"
+        "ParameterValue": "$[taskcat_genpass_16]"
     },
     {
         "ParameterKey": "RedhatSubscriptionPassword",
