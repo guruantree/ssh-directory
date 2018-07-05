@@ -1,13 +1,10 @@
 # Workflow
 # - Determine etcd node that is terminating.
-# - Check number of nodes (terminating aside) that are in the cluster.
-#   - If majority are in cluster,  (healthy / size) remove terminating node.
-#   - If not, fail.
 # - Determine offending node ID.
 # - Remove offending node from cluster.
 
 ---
-- hosts: etcd:!{{ terminating_etcd_node }}.0
+- hosts: etcd:!{{ etcdremove }}.0
   tasks:
   - name: Populate endpoint URL for etcd cluster.
     set_fact:
@@ -18,12 +15,13 @@
       etcdctl_command: "etcdctl --ca-file /etc/etcd/ca.crt --cert-file /etc/etcd/peer.crt --key-file /etc/etcd/peer.key --endpoints \"{{ etcd_cluster_url }}\" member"
 
   - name: Determine ID of etcd node before removing it.
-    shell: "{{ etcdctl_command }} list | grep {{ terminating_etcd_node }} | cut -d ':' -f 1"
+    shell: "{{ etcdctl_command }} list | egrep -i {{ etcdremove | join ('|') }} | cut -d ':' -f 1"
     register: cmd_find_node_id
 
   - name: Set orphaned_etcd_node_id fact
     set_fact:
-      orphaned_etcd_node_id: "{{ cmd_find_node_id.stdout }}"
+      orphaned_etcd_node_id_list: "{{ cmd_find_node_id.stdout | list }}"
 
   - name: Remove etcd node from cluster.
-    shell: "{{ etcdctl_command }} remove {{ orphaned_etcd_node_id }}"
+    shell: "{{ etcdctl_command }} remove {{ item }}"
+    with_items: "{{ orphaned_etcd_node_id_list }}"

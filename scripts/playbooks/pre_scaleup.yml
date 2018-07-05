@@ -1,0 +1,5 @@
+# Variables passed to this playbook:
+# -         'etcdadd': list of instances that'll be added to the etcd cluster.
+# -         'nodeadd': list of instances that'll be added to the node category.
+# -         'masteradd': list of instances that'll be added to the master category.
+# Note: This playbook is called *PRIOR* to OpenShift installation on new instances.

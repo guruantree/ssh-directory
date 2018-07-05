@@ -77,6 +77,7 @@ def generate_inital_inventory_nodes(write_hosts_to_temp=False):
     # Userdata: Applies as a result of Template conditions.
     # User-defined: Passed as input to the template.
 
+    #TODO: YAML Config
     # - Pre-defined vars.
     _pre_defined_vars = _varsplit('/tmp/openshift_inventory_predefined_vars')
 
@@ -179,6 +180,7 @@ def scale_inventory_groups(ocp_version='3.7'):
     Processes the scaling activities.
     - Fires off the ansible playbook if needed.
     - Prunes the ansible inventory to remove instances that have scaled down / terminated.
+    :param ocp_version: Version of the OpenShift Container Platform that's in use. Defaults to 3.7.
     """
 
     InventoryConfig.ip_to_id_map = {v: k for (k, v) in InventoryConfig.id_to_ip_map.iteritems()}
@@ -215,9 +217,12 @@ def scale_inventory_groups(ocp_version='3.7'):
         _is.nodes_to_add['combined'] += _is.nodes_to_add[group.logical_name]
         _is.nodes_to_remove['combined'] += _is.nodes_to_remove[group.logical_name]
 
-    # We wait for the API to populate with the new instance IDs.
+    if _is.nodes_to_remove['combined']:
+        scaledown_needed = True
+
     if _is.nodes_to_add['combined']:
         scaleup_needed = True
+        # We wait for the API to populate with the new instance IDs.
         _is.wait_for_api()
 
     # Now we convert the IDs in each list to IP Addresses.
@@ -236,43 +241,61 @@ def scale_inventory_groups(ocp_version='3.7'):
                 continue
         _is.nodes_to_remove[e] = _templist
 
-    # For the moment, master scaleup'd hosts need to be in both
-    #   - new_masters
-    #   - new_nodes
-    # This statement accomplishes that. More code below to prune out before running the playbook.
-    if _is.nodes_to_add['masters']:
-        _is.nodes_to_add['nodes'] += _is.nodes_to_add['masters']
+    # if _is.nodes_to_remove['etcd']:
+    #     for etcdnode in _is.nodes_to_remove['etcd']:
+    #         etcd_vars = {
+    #             "node_input_var": etcdnode
+    #         }
+    #         run_ansible_playbook(category='etcd_prescale_down', playbook=InventoryConfig.etcd_pre_scaledown,
+    #                              extra_args=etcd_vars)
+    #         for cat in _is.ansible_results.keys():
+    #             cjson = _is.ansible_results[cat]
+    #             log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
+    #                 cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded',
+    #                 'Failed', 'Unreachable'))
+        # _is.ansible_results = {}
 
-    if _is.nodes_to_remove['masters']:
-        _is.nodes_to_remove['nodes'] += _is.nodes_to_remove['masters']
-
-    if _is.nodes_to_remove['etcd']:
-        for etcdnode in _is.nodes_to_remove['etcd']:
-            etcd_vars = {
-                "terminating_etcd_node": etcdnode
-            }
-            run_ansible_playbook(category='etcd_prescale_down', playbook=InventoryConfig.etcd_pre_scaledown,
-                                 extra_args=etcd_vars)
-            for cat in _is.ansible_results.keys():
-                cjson = _is.ansible_results[cat]
-                log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
-                    cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded',
-                    'Failed', 'Unreachable'))
-        _is.ansible_results = {}
-
+    scaleup_extra_args = {
+        'etcdremove':   _is.nodes_to_remove['etcd']
+        'noderemove':   _is.nodes_to_remove['nodes']
+        'masterremove': _is.nodes_to_remove['masters']
+    }
+    scaledown_extra_args = {
+        'etcdadd':   _is.nodes_to_add['etcd']
+        'nodeadd':   _is.nodes_to_add['nodes']
+        'masteradd': _is.nodes_to_add['masters']
+    }
+    if scaledown_needed:
+        # Housekeeping.
+        # TODO: YAML Config
+        if _is.nodes_to_remove['masters']:
+            _is.nodes_to_remove['nodes'] += _is.nodes_to_remove['masters']
+        log.info("Performing pre-scaledown tasks.")
+        run_ansible_playbook(category='pre_scaledown_tasks',
+                             playbook=InventoryConfig.pre_scaledown_playbook,
+                             extra_args=scaleup_extra_args)
+    if scaleup_needed:
+        # Housekeeping.
+        # TODO: YAML Config
+        if _is.nodes_to_add['masters']:
+            _is.nodes_to_add['nodes'] += _is.nodes_to_add['masters']
+        log.info("We've detected that we need to run ansible playbooks to scale up the cluster!")
+        log.info("Performing pre-scaleup tasks.")
+        run_ansible_playbook(category='pre_scaleup_tasks'
+                             playbook=InventoryConfig.pre_scaleup_playbook,
+                             extra_args=scaledown_extra_args)
     _is.process_pipeline()
     InventoryConfig.write_ansible_inventory_file()
 
     # See note above about new_masters/new_nodes; This weeds those out.
+    # Housekeeping.
+    # TODO: YAML Config
     _n = _is.nodes_to_add['masters']
     _m = _is.nodes_to_add['nodes']
     for host in _m:
         if host in _n:
             del _is.nodes_to_add['nodes'][_n.index(host)]
 
-    # If we need to scale up, then run the ansible playbook.
-    if scaleup_needed:
-        log.info("We've detected that we need to run ansible playbooks to scale up the cluster!")
         ansible_commands = {}
         for category in InventoryConfig.inventory_node_skel.keys():
             if category is 'provision':
@@ -285,10 +308,7 @@ def scale_inventory_groups(ocp_version='3.7'):
             if len(_is.nodes_to_add[_is_cat_name]) == 0:
                 continue
             provisioning_category = InventoryConfig.inventory_categories['provision'][0]
-            svars = {
-                "target": provisioning_category,
-                "scaling_category": category
-            }
+            svars = { "target": provisioning_category, "scaling_category": category }
             if ocp_version != '3.7':
                 svars['scale_prefix'] = '/usr/share/ansible/openshift-ansible/playbooks'
             _extra_vars = '{}"{}"'.format('--extra-vars=', str(svars))
@@ -300,18 +320,22 @@ def scale_inventory_groups(ocp_version='3.7'):
             log.info("We will run the following ansible command:")
             log.info(_ansible_cmd)
             ansible_commands[_is_cat_name] = _ansible_cmd
+
         run_ansible_playbook(prepared_commands=ansible_commands)
-        # Now we do the necessary on the results.
-        for cat in _is.ansible_results.keys():
-            additional_add = []
-            cjson = _is.ansible_results[cat]
-            log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
-                cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded', 'Failed',
-                'Unreachable'))
-            if cat == 'masters':
-                additional_add = ['nodes']
-            _is.migrate_nodes_between_section(cjson['succeeded'], cat, additional_add=additional_add)
         InventoryConfig.write_ansible_inventory_file()
+
+        if scaleup_needed:
+            log.info("Performing post-scaleup tasks.")
+            run_ansible_playbook(category='post_scaleup_tasks',
+                                 playbook=InventoryConfig.post_scaleup_playbook)
+
+        if scaledown_needed:
+            log.info("Performing post-scaledown tasks.")
+            run_ansible_playbook(category'post_scaledown_tasks',
+                                 playbook=InventoryConfig.post_scaledown_playbook)
+            
+        _is.summarize_playbook_results()
+
 
 
 def check_for_pid_file():
