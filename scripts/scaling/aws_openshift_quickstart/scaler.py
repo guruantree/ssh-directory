@@ -5,8 +5,9 @@ import tempfile
 import shlex
 import time
 import sys
-from aws_openshift_quickstart.utils import *
-from aws_openshift_quickstart.logger import LogUtil
+import os
+from .utils import InventoryConfig, ClusterGroups, InventoryScaling
+from .logger import LogUtil
 
 LogUtil.set_log_handler('/var/log/openshift-quickstart-scaling.log')
 log = LogUtil.get_root_logger()
@@ -77,7 +78,7 @@ def generate_inital_inventory_nodes(write_hosts_to_temp=False):
     # Userdata: Applies as a result of Template conditions.
     # User-defined: Passed as input to the template.
 
-    #TODO: YAML Config
+    # TODO: YAML Config
     # - Pre-defined vars.
     _pre_defined_vars = _varsplit('/tmp/openshift_inventory_predefined_vars')
 
@@ -206,6 +207,7 @@ def scale_inventory_groups(ocp_version='3.7'):
 
     _is = InventoryScaling
     scaleup_needed = False
+    scaledown_needed = False
     for group in ClusterGroups.groups:
         if (not group.scale_override) and (not group.scaling_events):
             continue
@@ -222,8 +224,7 @@ def scale_inventory_groups(ocp_version='3.7'):
 
     if _is.nodes_to_add['combined']:
         scaleup_needed = True
-        # We wait for the API to populate with the new instance IDs.
-        _is.wait_for_api()
+        # We wait for the API to populate with the new instance IDs.        _is.wait_for_api()
 
     # Now we convert the IDs in each list to IP Addresses.
     for e in _is.nodes_to_add.keys():
@@ -256,13 +257,13 @@ def scale_inventory_groups(ocp_version='3.7'):
         # _is.ansible_results = {}
 
     scaleup_extra_args = {
-        'etcdremove':   _is.nodes_to_remove['etcd']
-        'noderemove':   _is.nodes_to_remove['nodes']
+        'etcdremove':   _is.nodes_to_remove['etcd'],
+        'noderemove':   _is.nodes_to_remove['nodes'],
         'masterremove': _is.nodes_to_remove['masters']
     }
     scaledown_extra_args = {
-        'etcdadd':   _is.nodes_to_add['etcd']
-        'nodeadd':   _is.nodes_to_add['nodes']
+        'etcdadd':   _is.nodes_to_add['etcd'],
+        'nodeadd':   _is.nodes_to_add['nodes'],
         'masteradd': _is.nodes_to_add['masters']
     }
     if scaledown_needed:
@@ -281,7 +282,7 @@ def scale_inventory_groups(ocp_version='3.7'):
             _is.nodes_to_add['nodes'] += _is.nodes_to_add['masters']
         log.info("We've detected that we need to run ansible playbooks to scale up the cluster!")
         log.info("Performing pre-scaleup tasks.")
-        run_ansible_playbook(category='pre_scaleup_tasks'
+        run_ansible_playbook(category='pre_scaleup_tasks',
                              playbook=InventoryConfig.pre_scaleup_playbook,
                              extra_args=scaledown_extra_args)
     _is.process_pipeline()
@@ -308,7 +309,7 @@ def scale_inventory_groups(ocp_version='3.7'):
             if len(_is.nodes_to_add[_is_cat_name]) == 0:
                 continue
             provisioning_category = InventoryConfig.inventory_categories['provision'][0]
-            svars = { "target": provisioning_category, "scaling_category": category }
+            svars = {"target": provisioning_category, "scaling_category": category}
             if ocp_version != '3.7':
                 svars['scale_prefix'] = '/usr/share/ansible/openshift-ansible/playbooks'
             _extra_vars = '{}"{}"'.format('--extra-vars=', str(svars))
@@ -331,11 +332,10 @@ def scale_inventory_groups(ocp_version='3.7'):
 
         if scaledown_needed:
             log.info("Performing post-scaledown tasks.")
-            run_ansible_playbook(category'post_scaledown_tasks',
+            run_ansible_playbook(category='post_scaledown_tasks',
                                  playbook=InventoryConfig.post_scaledown_playbook)
             
         _is.summarize_playbook_results()
-
 
 
 def check_for_pid_file():
