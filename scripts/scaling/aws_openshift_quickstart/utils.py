@@ -31,7 +31,6 @@ class InventoryConfig(object):
     ansible_playbook_wrapper = "/usr/share/ansible/openshift-ansible/scaleup_wrapper.yml"
     playbooks = dict()
     playbook_directory = "/usr/share/ansible/openshift-ansible/"
-    #TODO: YAML Config
     pre_scaleup_playbook = "{}{}".format(cls.playbook_directory, "pre_scaleup_wrapper.yml")
     pre_scaledown_playbook = "{}{}".format(cls.playbook_directory, "pre_scaledown_wrapper.yml")
     post_scaleup_playbook = "{}{}".format(cls.playbook_directory, "post_scaleup_wrapper.yml")
