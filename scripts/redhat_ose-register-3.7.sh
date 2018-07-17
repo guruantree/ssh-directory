@@ -19,4 +19,7 @@ if [ $? -eq 0 ]; then
 fi
 
 subscription-manager attach --pool=${REDHAT_POOLID}
-subscription-manager repos --enable="rhel-7-server-ose-3.7-rpms" --enable="rhel-7-server-extras-rpms" --enable="rhel-7-fast-datapath-rpms"
+subscription-manager repos --enable="rhel-7-server-ose-3.7-rpms" \
+    --enable="rhel-7-server-extras-rpms" \
+    --enable="rhel-7-fast-datapath-rpms" \
+    --enable="rhel-7-server-ansible-2.4-rpms"
