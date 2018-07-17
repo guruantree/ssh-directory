@@ -8,6 +8,9 @@ qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSI
 chmod 755 ~/redhat_ose-register.sh
 qs_retry_command 20 ~/redhat_ose-register.sh ${RH_USER} ${RH_PASS} ${RH_POOLID}
 
+yum -y install ansible-2.4.6.0 yum-versionlock
+sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg
+yum versionlock add ansible
 yum repolist | grep OpenShift
 
 qs_retry_command 10 pip install boto3 &> /var/log/userdata.boto3_install.log
@@ -23,7 +26,6 @@ qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/predefined_openshift_vars.txt /
 pip install /root/ose_scaling
 
 qs_retry_command 10 cfn-init -v --stack ${AWS_STACKNAME} --resource AnsibleConfigServer --configsets cfg_node_keys --region ${AWS_REGION}
-qs_retry_command 10 cfn-init -v --stack ${AWS_STACKNAME} --resource AnsibleConfigServer --configsets cfg_ansible --region ${AWS_REGION}
 
 echo openshift_master_cluster_hostname=${INTERNAL_MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_cluster_public_hostname=${MASTER_ELBDNSNAME} >> /tmp/openshift_inventory_userdata_vars
@@ -56,6 +58,7 @@ systemctl enable amazon-ssm-agent
 CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-${OCP_ANSIBLE_RELEASE}.tar.gz
 curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz
 tar -zxf openshift-ansible.tar.gz
+rm -rf /usr/share/ansible
 mkdir -p /usr/share/ansible
 mv openshift-ansible-* /usr/share/ansible/openshift-ansible
 

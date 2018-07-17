@@ -358,9 +358,9 @@ Mappings:
       Code: RHEL74HVM
   OpenshiftVersionMap:
     '3.7':
-      AnsiblePlaybookGitRepoTag: 3.7.53-1
+      AnsiblePlaybookGitRepoTag: 3.7.58-1
     '3.9':
-      AnsiblePlaybookGitRepoTag: 3.9.32-1
+      AnsiblePlaybookGitRepoTag: 3.9.35-1
 Conditions:
   GovCloudCondition: !Equals
     - !Ref 'AWS::Region'
@@ -1450,6 +1450,11 @@ Resources:
                     - SetupSubdomain
                     - !Sub 'arn:aws:route53:::hostedzone/${Route53HostedSubdomainZone}'
                     - !Sub 'arn:aws:route53:::hostedzone/${HostedZoneID}'
+              - Effect: Allow
+                Action:
+                  - logs:FilterLogEvents
+                Resource:
+                  - '*'
   ACMCertificateLambda:
     Condition: SetupRoute53
     DependsOn: CopyZips
@@ -1671,8 +1676,6 @@ Resources:
             - GetPublicKey
             - AddPublicKey
             - SetPrivateKey
-          cfg_ansible:
-            - CfgAnsible
           cfg_networkmgr:
             - rpms
             - NetworkManager
@@ -1710,15 +1713,6 @@ Resources:
           commands:
             append-publickey:
               command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
-              ignoreErrors: 'false'
-        CfgAnsible:
-          packages:
-            yum:
-              ansible: []
-          commands:
-            disable-host-key-checking:
-              command: sed -i 's/#host_key_checking = False/host_key_checking = False/g'
-                /etc/ansible/ansible.cfg
               ignoreErrors: 'false'
     Properties:
       KeyName: !Ref 'KeyPairName'
