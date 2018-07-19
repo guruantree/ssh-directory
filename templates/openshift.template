@@ -1378,7 +1378,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Path: /
       Policies:
-        - PolicyName: lambda-acm
+        - PolicyName: lambda-cleanuppv
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
