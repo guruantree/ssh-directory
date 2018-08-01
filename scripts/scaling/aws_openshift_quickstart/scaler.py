@@ -142,6 +142,7 @@ def run_ansible_playbook(category=None, playbook=None, extra_args=None, prepared
     file_cat = {}
     completed_numproc = 0
     completed_procs = []
+    log.debug("category: %s, playbook: %s, extra_args: %s, prepared_commands %s" % (category, playbook, extra_args, prepared_commands))
     if not prepared_commands:
         if not category:
             raise Exception("category is required if prepared_commands is not specified")
@@ -150,8 +151,10 @@ def run_ansible_playbook(category=None, playbook=None, extra_args=None, prepared
             ansible_cmd = "{} {}".format(ansible_cmd, '{}"{}"'.format('--extra-vars=', str(extra_args)))
         prepared_commands = {category: ansible_cmd}
     fnull = open(os.devnull, 'w')
+    log.debug("prepared_commands: " % prepared_commands)
     for category in prepared_commands.keys():
         command = prepared_commands[category]
+        log.debug("executing command for category %s is: %s" % (category, command))
         stdout_tempfile = tempfile.mkstemp()[1]
         with open(stdout_tempfile, 'w') as fileout:
             process = subprocess.Popen(shlex.split(command), stdout=fileout, stderr=fnull)
@@ -264,6 +267,10 @@ def scale_inventory_groups(ocp_version='3.7'):
         'nodeadd':   _is.nodes_to_add['nodes'],
         'masteradd': _is.nodes_to_add['masters']
     }
+    log.debug("scaleup_needed: %s" % scaleup_needed)
+    log.debug("scaledown_needed: %s" % scaledown_needed)
+    log.debug("scaleup_extra_args: %s" % scaleup_extra_args)
+    log.debug("scaledown_extra_args: %s" % scaledown_extra_args)
     if scaledown_needed:
         # Housekeeping.
         # TODO: YAML Config
