@@ -31,10 +31,10 @@ class InventoryConfig(object):
     ansible_playbook_wrapper = "/usr/share/ansible/openshift-ansible/scaleup_wrapper.yml"
     playbooks = dict()
     playbook_directory = "/usr/share/ansible/openshift-ansible/"
-    pre_scaleup_playbook = "{}{}".format(cls.playbook_directory, "pre_scaleup_wrapper.yml")
-    pre_scaledown_playbook = "{}{}".format(cls.playbook_directory, "pre_scaledown_wrapper.yml")
-    post_scaleup_playbook = "{}{}".format(cls.playbook_directory, "post_scaleup_wrapper.yml")
-    post_scaledown_playbook = "{}{}".format(cls.playbook_directory, "post_scaledown_wrapper.yml")
+    pre_scaleup_playbook = "{}{}".format(playbook_directory, "pre_scaleup.yml")
+    pre_scaledown_playbook = "{}{}".format(playbook_directory, "pre_scaledown.yml")
+    post_scaleup_playbook = "{}{}".format(playbook_directory, "post_scaleup.yml")
+    post_scaledown_playbook = "{}{}".format(playbook_directory, "post_scaledown.yml")
     inventory_categories = {
         "master": ["masters", "new_masters"],
         "etcd": ["etcd", "new_etcd"],
