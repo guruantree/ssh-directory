@@ -325,17 +325,17 @@ def scale_inventory_groups(ocp_version='3.7'):
         run_ansible_playbook(prepared_commands=ansible_commands)
         InventoryConfig.write_ansible_inventory_file()
 
-        if scaleup_needed:
-            log.info("Performing post-scaleup tasks.")
-            run_ansible_playbook(category='post_scaleup_tasks',
-                                 playbook=InventoryConfig.post_scaleup_playbook)
+    if scaleup_needed:
+        log.info("Performing post-scaleup tasks.")
+        run_ansible_playbook(category='post_scaleup_tasks',
+                             playbook=InventoryConfig.post_scaleup_playbook)
 
-        if scaledown_needed:
-            log.info("Performing post-scaledown tasks.")
-            run_ansible_playbook(category='post_scaledown_tasks',
-                                 playbook=InventoryConfig.post_scaledown_playbook)
-            
-        _is.summarize_playbook_results()
+    if scaledown_needed:
+        log.info("Performing post-scaledown tasks.")
+        run_ansible_playbook(category='post_scaledown_tasks',
+                             playbook=InventoryConfig.post_scaledown_playbook)
+
+    _is.summarize_playbook_results()
 
 
 def check_for_pid_file():
