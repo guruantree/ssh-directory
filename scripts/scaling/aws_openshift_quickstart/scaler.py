@@ -148,9 +148,7 @@ def run_ansible_playbook(category=None, playbook=None, extra_args=None, prepared
         ansible_cmd = "{} {}".format("ansible-playbook", playbook)
         if extra_args:
             ansible_cmd = "{} {}".format(ansible_cmd, '{}"{}"'.format('--extra-vars=', str(extra_args)))
-            prepared_commands = {category: ansible_cmd}
-        else:
-            prepared_commands = {}
+        prepared_commands = {category: ansible_cmd}
     fnull = open(os.devnull, 'w')
     for category in prepared_commands.keys():
         command = prepared_commands[category]
@@ -256,12 +254,12 @@ def scale_inventory_groups(ocp_version='3.7'):
     #                 'Failed', 'Unreachable'))
         # _is.ansible_results = {}
 
-    scaleup_extra_args = {
+    scaledown_extra_args = {
         'etcdremove':   _is.nodes_to_remove['etcd'],
         'noderemove':   _is.nodes_to_remove['nodes'],
         'masterremove': _is.nodes_to_remove['masters']
     }
-    scaledown_extra_args = {
+    scaleup_extra_args = {
         'etcdadd':   _is.nodes_to_add['etcd'],
         'nodeadd':   _is.nodes_to_add['nodes'],
         'masteradd': _is.nodes_to_add['masters']
@@ -274,7 +272,7 @@ def scale_inventory_groups(ocp_version='3.7'):
         log.info("Performing pre-scaledown tasks.")
         run_ansible_playbook(category='pre_scaledown_tasks',
                              playbook=InventoryConfig.pre_scaledown_playbook,
-                             extra_args=scaleup_extra_args)
+                             extra_args=scaledown_extra_args)
     if scaleup_needed:
         # Housekeeping.
         # TODO: YAML Config
@@ -284,7 +282,7 @@ def scale_inventory_groups(ocp_version='3.7'):
         log.info("Performing pre-scaleup tasks.")
         run_ansible_playbook(category='pre_scaleup_tasks',
                              playbook=InventoryConfig.pre_scaleup_playbook,
-                             extra_args=scaledown_extra_args)
+                             extra_args=scaleup_extra_args)
     _is.process_pipeline()
     InventoryConfig.write_ansible_inventory_file()
 
