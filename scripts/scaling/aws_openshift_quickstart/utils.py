@@ -432,15 +432,15 @@ class InventoryScaling(object):
 
     @classmethod
     def summarize_playbook_results(cls):
-        for cat in _is.ansible_results.keys():
+        for cat in cls.ansible_results.keys():
             additional_add = []
-            cjson = _is.ansible_results[cat]
-            log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
+            cjson = cls.ansible_results[cat]
+            cls.log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
                 cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded', 'Failed',
                 'Unreachable'))
             if cat == 'masters':
                 additional_add = ['nodes']
-            _is.migrate_nodes_between_section(cjson['succeeded'], cat, additional_add=additional_add)
+            cls.migrate_nodes_between_section(cjson['succeeded'], cat, additional_add=additional_add)
 
 
 class LocalScalingActivity(object):
