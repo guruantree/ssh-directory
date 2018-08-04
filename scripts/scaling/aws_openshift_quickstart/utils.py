@@ -361,6 +361,7 @@ class InventoryScaling(object):
         """
         if additional_add is None:
             additional_add = []
+        cls.log.debug("migrate_nodes_between_section - nodes: %s category: %s additional_add: %s" % (nodes, category, additional_add))
         add_dict = cls.remove_node_from_section(nodes, category, migrate=True)
         if 'master' in category:
             _ = cls.remove_node_from_section(nodes, 'nodes', migrate=True, use_migration_dict=False)
@@ -425,22 +426,29 @@ class InventoryScaling(object):
         }
         cls.ansible_results[category] = cat_results
         cls.log.info("- [{}] playbook run results: {}".format(category, cat_results))
-        final_logfile = "/var/log/aws-quickstart-openshift-scaling.{}-{}-{}T{}{}".format(dt.year, dt.month, dt.day,
-                                                                                         dt.hour, dt.minute)
+        final_logfile = "/var/log/aws-quickstart-openshift-scaling.{}-{}-{}-{}T{}{}{}".format(
+            category, dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
+        )
         os.rename(jout_file, final_logfile)
         cls.log.info("The json output logfile has been moved to %s" % final_logfile)
 
     @classmethod
     def summarize_playbook_results(cls):
+        cls.log.debug("ansible_results: %s" % cls.ansible_results)
         for cat in cls.ansible_results.keys():
-            additional_add = []
-            cjson = cls.ansible_results[cat]
-            cls.log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
-                cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded', 'Failed',
-                'Unreachable'))
-            if cat == 'masters':
-                additional_add = ['nodes']
-            cls.migrate_nodes_between_section(cjson['succeeded'], cat, additional_add=additional_add)
+            cls.log.debug("running %s to see whether inventory must be updated" % cat)
+            if not cat.startswith("pre_"):
+                additional_add = []
+                cjson = cls.ansible_results[cat]
+                cls.log.debug("cjson: %s" % cjson)
+                cls.log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
+                    cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded', 'Failed',
+                    'Unreachable'))
+                if cat == 'masters':
+                    additional_add = ['nodes']
+                cls.log.debug(
+                    "running cls.migrate_nodes_between_section(%s, %s, %s)" % (cjson['succeeded'], cat, additional_add))
+                cls.migrate_nodes_between_section(cjson['succeeded'], cat, additional_add=additional_add)
 
 
 class LocalScalingActivity(object):

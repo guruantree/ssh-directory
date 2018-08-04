@@ -225,7 +225,8 @@ def scale_inventory_groups(ocp_version='3.7'):
 
     if _is.nodes_to_add['combined']:
         scaleup_needed = True
-        # We wait for the API to populate with the new instance IDs.        _is.wait_for_api()
+        # We wait for the API to populate with the new instance IDs.
+        _is.wait_for_api()
 
     # Now we convert the IDs in each list to IP Addresses.
     for e in _is.nodes_to_add.keys():
@@ -242,20 +243,6 @@ def scale_inventory_groups(ocp_version='3.7'):
             except KeyError:
                 continue
         _is.nodes_to_remove[e] = _templist
-
-    # if _is.nodes_to_remove['etcd']:
-    #     for etcdnode in _is.nodes_to_remove['etcd']:
-    #         etcd_vars = {
-    #             "node_input_var": etcdnode
-    #         }
-    #         run_ansible_playbook(category='etcd_prescale_down', playbook=InventoryConfig.etcd_pre_scaledown,
-    #                              extra_args=etcd_vars)
-    #         for cat in _is.ansible_results.keys():
-    #             cjson = _is.ansible_results[cat]
-    #             log.info("Category: {}, Results: {} / {} / {}, ({} / {} / {})".format(
-    #                 cat, len(cjson['succeeded']), len(cjson['failed']), len(cjson['unreachable']), 'Succeeded',
-    #                 'Failed', 'Unreachable'))
-        # _is.ansible_results = {}
 
     scaledown_extra_args = {
         'etcdremove':   _is.nodes_to_remove['etcd'],
@@ -302,33 +289,35 @@ def scale_inventory_groups(ocp_version='3.7'):
         if host in _n:
             del _is.nodes_to_add['nodes'][_n.index(host)]
 
-        ansible_commands = {}
-        for category in InventoryConfig.inventory_node_skel.keys():
-            if category is 'provision':
-                continue
-            if category is 'etcd':
-                _is_cat_name = category
-            else:
-                _is_cat_name = "{}{}".format(category, 's')
-            # categories are plural in the nodes_to_add dict, singular in everything else.
-            if len(_is.nodes_to_add[_is_cat_name]) == 0:
-                continue
-            provisioning_category = InventoryConfig.inventory_categories['provision'][0]
-            svars = {"target": provisioning_category, "scaling_category": category}
-            if ocp_version != '3.7':
-                svars['scale_prefix'] = '/usr/share/ansible/openshift-ansible/playbooks'
-            _extra_vars = '{}"{}"'.format('--extra-vars=', str(svars))
-            _ansible_cmd = "{} {} {}".format(
-                "ansible-playbook",
-                InventoryConfig.ansible_playbook_wrapper,
-                _extra_vars
-            )
-            log.info("We will run the following ansible command:")
-            log.info(_ansible_cmd)
-            ansible_commands[_is_cat_name] = _ansible_cmd
+    ansible_commands = {}
+    for category in InventoryConfig.inventory_node_skel.keys():
+        if category is 'provision':
+            continue
+        if category is 'etcd':
+            _is_cat_name = category
+        else:
+            _is_cat_name = "{}{}".format(category, 's')
+        # categories are plural in the nodes_to_add dict, singular in everything else.
+        if len(_is.nodes_to_add[_is_cat_name]) == 0:
+            continue
+        provisioning_category = InventoryConfig.inventory_categories['provision'][0]
+        svars = {"target": provisioning_category, "scaling_category": category}
+        if ocp_version != '3.7':
+            svars['scale_prefix'] = '/usr/share/ansible/openshift-ansible/playbooks'
+        _extra_vars = '{}"{}"'.format('--extra-vars=', str(svars))
+        _ansible_cmd = "{} {} {}".format(
+            "ansible-playbook",
+            InventoryConfig.ansible_playbook_wrapper,
+            _extra_vars
+        )
+        log.info("We will run the following ansible command:")
+        log.info(_ansible_cmd)
+        ansible_commands[_is_cat_name] = _ansible_cmd
 
-        run_ansible_playbook(prepared_commands=ansible_commands)
-        InventoryConfig.write_ansible_inventory_file()
+    run_ansible_playbook(prepared_commands=ansible_commands)
+    InventoryConfig.write_ansible_inventory_file()
+    _is.summarize_playbook_results()
+    InventoryConfig.write_ansible_inventory_file()
 
     if scaleup_needed:
         log.info("Performing post-scaleup tasks.")
@@ -339,8 +328,6 @@ def scale_inventory_groups(ocp_version='3.7'):
         log.info("Performing post-scaledown tasks.")
         run_ansible_playbook(category='post_scaledown_tasks',
                              playbook=InventoryConfig.post_scaledown_playbook)
-
-    _is.summarize_playbook_results()
 
 
 def check_for_pid_file():

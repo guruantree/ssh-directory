@@ -19,11 +19,10 @@
   tasks:
   - block:
     - debug:
-      msg: running pre-scaledown for etcd
+      msg: removing failed node from etcd cluster
     - include_tasks: remove_node_from_etcd_cluster.yml
-      msg: running pre-scaledown for etcd
-    when: etcdremove | length > 0
-
+      run_once: true
+    when: etcdremove | length > 0 and [inventory_hostname] != etcdremove
 - hosts: nodes
   tasks:
   - block:
