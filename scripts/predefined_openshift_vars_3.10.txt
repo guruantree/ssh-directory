@@ -1,0 +1,32 @@
+---
+oreg_url: registry.access.redhat.com/openshift3/ose-${component}:${version}
+openshift_examples_modify_imagestreams: 'true'
+ansible_ssh_user: root
+openshift_deployment_type: openshift-enterprise
+containerized: 'false'
+openshift_master_cluster_method: native
+openshift_clock_enabled: 'true'
+openshift_router_selector: 'router_node=yes'
+openshift_registry_selector: 'registry_node=yes'
+osm_default_node_selector: 'application_node=yes'
+openshift_clusterid: owned
+openshift_cloudprovider_kind: aws
+openshift_master_identity_providers:
+- name: htpasswd_auth
+  login: 'true'
+  challenge: 'true'
+  kind: HTPasswdPasswordIdentityProvider
+openshift_node_groups:
+- name: node-config-master
+  labels:
+  - 'node-role.kubernetes.io/master=true'
+- name: node-config-compute-infra
+  labels:
+  - 'node-role.kubernetes.io/infra=true'
+  - 'node-role.kubernetes.io/compute=true'
+- name: node-config-compute
+  labels:
+  - 'node-role.kubernetes.io/compute=true'
+- name: node-config-infra
+  labels:
+  - 'node-role.kubernetes.io/infra=true'

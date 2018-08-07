@@ -218,9 +218,9 @@ Parameters:
     Type: String
   OpenshiftContainerPlatformVersion:
     Description: OpenShift version to deploy
-    Default: '3.7'
+    Default: '3.9'
     Type: String
-    AllowedValues: [ '3.7', '3.9' ]
+    AllowedValues: [ '3.9', '3.10' ]
   VPCCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28

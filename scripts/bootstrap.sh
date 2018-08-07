@@ -14,7 +14,11 @@ printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGIO
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
 if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
-    yum install docker-client-1.12.6 docker-common-1.12.6 docker-rhel-push-plugin-1.12.6 docker-1.12.6 -y
+    if [ "${OCP_VERSION}" != "3.9" ] ; then
+        yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
+    else
+        yum install docker-client-1.12.6 docker-common-1.12.6 docker-rhel-push-plugin-1.12.6 docker-1.12.6 -y
+    fi
     systemctl enable docker.service
     qs_retry_command 20 'systemctl start docker.service'
     echo "CONTAINER_THINPOOL=docker-pool" >> /etc/sysconfig/docker-storage-setup
