@@ -209,7 +209,7 @@ def scale_inventory_groups(ocp_version='3.7'):
             break
         if len(total_scaled_nodes) == 0:
             time.sleep(10)
-            ClusterGroups.setup()
+            ClusterGroups.setup(ocp_version)
             attempts += 1
         else:
             log.info("Great! The API contains scaling events that we need to process!")
@@ -378,7 +378,7 @@ def main():
     if args.generate_initial_inventory:
         InventoryConfig.initial_inventory = True
         InventoryConfig.setup()
-        ClusterGroups.setup()
+        ClusterGroups.setup(args.ocp_version)
         generate_inital_inventory_nodes(write_hosts_to_temp=write_to_temp, version=args.ocp_version)
         sys.exit(0)
 
@@ -389,7 +389,7 @@ def main():
     # - account for that possibility.
     InventoryConfig.verify_required_sections_exist()
     InventoryConfig.populate_from_ansible_inventory()
-    ClusterGroups.setup()
+    ClusterGroups.setup(args.ocp_version)
 
     if args.scale_in_progress:
         InventoryConfig.scale = True

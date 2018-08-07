@@ -497,7 +497,7 @@ class LocalASG(object):
     Class to objectify an ASG
     """
 
-    def __init__(self, json_doc):
+    def __init__(self, json_doc, version='3.9'):
         self.log = LogUtil.get_root_logger()
         self._instances = {'list': [], "scaling": []}
         self._asg = boto3.client('autoscaling', InventoryConfig.region_name)
@@ -558,7 +558,7 @@ class LocalASG(object):
                         self.scale_in_progress_instances['launch'].append(instance)
                         self.scale_override = True
             # Grab Inventory host definitions
-            for combined_hostdef in self.generate_asg_node_hostdefs():
+            for combined_hostdef in self.generate_asg_node_hostdefs(version):
                 instance_id, hostdef = combined_hostdef
                 InventoryConfig.id_to_ip_map[instance_id] = hostdef['ip_or_dns']
                 del hostdef['ip_or_dns']
@@ -676,7 +676,8 @@ class LocalASG(object):
                 # etcd only needs hostname and node labes. doing the 'if not' above addresses both
                 # of these conditions at once, as the remainder are default values prev. defined.
                 del _ihd['openshift_node_labels']
-                del _ihd['openshift_node_group_name']
+                if version != '3.9':
+                    del _ihd['openshift_node_group_name']
 
             hostdef = {node.PrivateDnsName: _ihd, 'ip_or_dns': node.PrivateDnsName}
             i += 1
@@ -719,12 +720,12 @@ class ClusterGroups(object):
     groups = []
 
     @classmethod
-    def setup(cls):
-        for group in cls._determine_cluster_groups():
+    def setup(cls, version='3.9'):
+        for group in cls._determine_cluster_groups(version):
             cls.groups.append(group)
 
     @classmethod
-    def _determine_cluster_groups(cls):
+    def _determine_cluster_groups(cls, version):
         """
         Generator that determines what ASGs are within the cluster.
         """
@@ -732,7 +733,7 @@ class ClusterGroups(object):
         all_groups = asg.describe_auto_scaling_groups()['AutoScalingGroups']
         i = 0
         while i < len(all_groups):
-            _g = LocalASG(all_groups[i])
+            _g = LocalASG(all_groups[i], version)
             i += 1
             if _g.in_openshift_cluster:
                 yield _g
