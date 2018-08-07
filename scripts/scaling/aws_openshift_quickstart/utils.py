@@ -629,7 +629,7 @@ class LocalASG(object):
             return None
         return openshift_category
 
-    def generate_asg_node_hostdefs(self):
+    def generate_asg_node_hostdefs(self, version='3.9'):
         # - ADD IN FILE TO READ FROM DISK FOR DYNAMIC NODE LABELS.
         """
         Generates the host definition for populating the Ansible Inventory.
@@ -653,6 +653,12 @@ class LocalASG(object):
                 }
             }
 
+            if version != '3.9':
+                if 'master' in self.openshift_config_category:
+                    _ihd.update({'openshift_node_group_name': 'node-config-master'})
+                else:
+                    _ihd.update({'openshift_node_group_name': 'node-config-compute-infra'})
+
             if 'master' in self.openshift_config_category:
                 _ihd.update({
                     'openshift_schedulable': 'true',
@@ -670,6 +676,7 @@ class LocalASG(object):
                 # etcd only needs hostname and node labes. doing the 'if not' above addresses both
                 # of these conditions at once, as the remainder are default values prev. defined.
                 del _ihd['openshift_node_labels']
+                del _ihd['openshift_node_group_name']
 
             hostdef = {node.PrivateDnsName: _ihd, 'ip_or_dns': node.PrivateDnsName}
             i += 1
