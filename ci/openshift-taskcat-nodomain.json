@@ -28,7 +28,7 @@
         "ParameterValue": "override"
     },
     {
-        "ParameterValue": "3.9",
+        "ParameterValue": "3.10",
         "ParameterKey": "OpenshiftContainerPlatformVersion"
     },
     {
