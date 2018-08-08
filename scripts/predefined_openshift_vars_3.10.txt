@@ -10,6 +10,10 @@ openshift_router_selector: 'router_node=true'
 openshift_registry_selector: 'registry_node=true'
 openshift_clusterid: owned
 openshift_cloudprovider_kind: aws
+openshift_storage_glusterfs_image: 'registry.access.redhat.com/rhgs3/rhgs-server-rhel7:v3.10'
+openshift_storage_glusterfs_heketi_image: 'registry.access.redhat.com/rhgs3/rhgs-volmanager-rhel7:v3.10'
+openshift_storage_glusterfs_block_image: 'registry.access.redhat.com/rhgs3/rhgs-gluster-block-prov-rhel7:v3.10'
+openshift_storage_glusterfs_s3_deploy: 'false'
 openshift_master_identity_providers:
 - name: htpasswd_auth
   login: 'true'
@@ -28,6 +32,8 @@ openshift_node_groups:
 - name: node-config-compute
   labels:
   - 'node-role.kubernetes.io/compute=true'
+- name: node-config-glusterfs
+  labels: []
 - name: node-config-infra
   labels:
   - 'node-role.kubernetes.io/infra=true'

@@ -44,6 +44,13 @@ Metadata:
           - AWSServiceBroker
           - ExistingAWSServiceBrokerRole
           - HawkularMetrics
+          - GlusterFS
+          - GlusterStorageSize
+          - GlusterStorageType
+          - GlusterStorageIops
+          - GlusterStorageEncrypted
+          - GlusterInstanceType
+          - NumberOfGluster
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -117,6 +124,20 @@ Metadata:
         default: Route 53 Hosted Zone ID
       SubDomainPrefix:
         default: Subdomain Prefix
+      GlusterFS:
+        default: GlusterFS
+      GlusterStorageSize:
+        default: Gluster Storage Size
+      GlusterStorageType:
+        default: Gluster EBS volume type
+      GlusterInstanceType:
+        default: Gluster Instance Type
+      NumberOfGluster:
+        default: Number of Gluster Hosts
+      GlusterStorageIops:
+        default: Gluster Storage Iops
+      GlusterStorageEncrypted:
+        default: Gluster Storage Encrypted
 Parameters:
   AvailabilityZones:
     Description: List of Availability Zones to use for the subnets in the VPC. Three
@@ -326,6 +347,54 @@ Parameters:
     Description: Enable Hawkular cluster metrics
     Type: String
     AllowedValues: [ Enabled, Disabled ]
+  GlusterFS:
+    Default: Enabled
+    Description: Enable GlusterFS storage cluster
+    Type: String
+    AllowedValues:
+      - Enabled
+      - Disabled
+  GlusterStorageSize:
+    Description: Size in GB of the available storage (will create 3x ebs volumes of this size)
+    Type: Number
+    Default: 1000
+  GlusterStorageType:
+    Default: io1
+    Description: EBS volume type to use for storage
+    Type: String
+    AllowedValues:
+      - io1
+      - gp2
+      - st1
+  GlusterInstanceType:
+    Default: i3.large
+    AllowedValues:
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+    ConstraintDescription: Must contain valid instance type
+    Description: Type of EC2 instance for the Node instances
+    Type: String
+  NumberOfGluster:
+    Default: '3'
+    Description: This Deployment requires a minimum of 3 Gluster instances
+    Type: Number
+    AllowedValues:
+      - '3'
+  GlusterStorageIops:
+    Default: 3000
+    Description: EBS volume IOPS to allocate (only applicable if io1 has been selected for GlusterStorageType)
+    Type: Number
+  GlusterStorageEncrypted:
+    Default: False
+    Description: Enable EBS encryption for Gluster storage volumes
+    Type: String
+    AllowedValues:
+      - False
+      - True
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -383,6 +452,13 @@ Resources:
         SubDomainPrefix: !Ref 'SubDomainPrefix'
         HawkularMetrics: !Ref 'HawkularMetrics'
         ClusterName: !Sub '${AWS::StackName}-${AWS::Region}'
+        GlusterStorageEncrypted: !Ref GlusterStorageEncrypted
+        GlusterStorageIops: !Ref GlusterStorageIops
+        NumberOfGluster: !Ref NumberOfGluster
+        GlusterInstanceType: !Ref GlusterInstanceType
+        GlusterStorageType: !Ref GlusterStorageType
+        GlusterStorageSize: !Ref GlusterStorageSize
+        GlusterFS: !Ref GlusterFS
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI

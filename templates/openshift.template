@@ -45,6 +45,13 @@ Metadata:
           - ExistingAWSServiceBrokerRole
           - HawkularMetrics
           - ClusterName
+          - GlusterFS
+          - GlusterStorageSize
+          - GlusterStorageType
+          - GlusterStorageIops
+          - GlusterStorageEncrypted
+          - GlusterInstanceType
+          - NumberOfGluster
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -122,6 +129,20 @@ Metadata:
         default: Subdomain Prefix
       ClusterName:
         default: Cluster Name
+      GlusterFS:
+        default: GlusterFS
+      GlusterStorageSize:
+        default: Gluster Storage Size
+      GlusterStorageType:
+        default: Gluster EBS volume type
+      GlusterInstanceType:
+        default: Gluster Instance Type
+      NumberOfGluster:
+        default: Number of Gluster Hosts
+      GlusterStorageIops:
+        default: Gluster Storage Iops
+      GlusterStorageEncrypted:
+        default: Gluster Storage Encrypted
 Parameters:
   KeyPairName:
     Description: Name of an existing EC2 key pair. All instances will launch with
@@ -326,6 +347,54 @@ Parameters:
     Default: ""
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
     Type: String
+  GlusterFS:
+    Default: Enabled
+    Description: Enable GlusterFS storage cluster
+    Type: String
+    AllowedValues:
+      - Enabled
+      - Disabled
+  GlusterStorageSize:
+    Description: Size in GB of the available storage (will create 3x ebs volumes of this size)
+    Type: Number
+    Default: 1000
+  GlusterStorageType:
+    Default: io1
+    Description: EBS volume type to use for storage
+    Type: String
+    AllowedValues:
+      - io1
+      - gp2
+      - st1
+  GlusterStorageIops:
+    Default: 3000
+    Description: EBS volume IOPS to allocate (only applicable if io1 has been selected for GlusterStorageType)
+    Type: Number
+  GlusterStorageEncrypted:
+    Default: False
+    Description: Enable EBS encryption for Gluster storage volumes
+    Type: String
+    AllowedValues:
+      - False
+      - True
+  GlusterInstanceType:
+    Default: i3.large
+    AllowedValues:
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+    ConstraintDescription: Must contain valid instance type
+    Description: Type of EC2 instance for the Node instances
+    Type: String
+  NumberOfGluster:
+    Default: '3'
+    Description: This Deployment requires a minimum of 3 Gluster instances
+    Type: Number
+    AllowedValues:
+      - '3'
 Rules:
   SubnetsInVPC:
     Assertions:
@@ -372,6 +441,12 @@ Conditions:
   EnableAWSServiceBroker: !Equals
     - !Ref 'AWSServiceBroker'
     - Enabled
+  EnableGlusterFS: !Equals
+    - !Ref 'GlusterFS'
+    - Enabled
+  Isio1: !Equals
+    - !Ref 'GlusterStorageType'
+    - io1
   CreateAWSServiceBrokerRole: !And
     - !Equals
       - !Ref 'AWSServiceBroker'
@@ -1125,6 +1200,112 @@ Resources:
       ResourceSignal:
         Count: !Ref 'NumberOfNodes'
         Timeout: PT45M
+  OpenShiftGlusterASG:
+    Condition: EnableGlusterFS
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - GetRSA
+      - CleanupPV
+    Properties:
+      DesiredCapacity: !Ref 'NumberOfGluster'
+      MaxSize: !Ref 'NumberOfGluster'
+      MinSize: '2'
+      LaunchConfigurationName: !Ref 'OpenShiftGlusterLaunchConfig'
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: openshift-gluster
+      VPCZoneIdentifier:
+        - !Ref 'PrivateSubnet1ID'
+        - !Ref 'PrivateSubnet2ID'
+        - !Ref 'PrivateSubnet3ID'
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref 'NumberOfGluster'
+        Timeout: PT45M
+  OpenShiftGlusterLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Condition: EnableGlusterFS
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          quickstart:
+            - GetPublicKey
+            - AddPublicKey
+            - rpms
+            - NetworkManager
+        rpms:
+          packages:
+            yum:
+              NetworkManager: []
+        GetPublicKey:
+          files:
+            /root/.ssh/public.key:
+              content: !Join
+                - ''
+                - - "#QuickStart Generated\n"
+                  - !GetAtt 'GetRSA.PUB'
+                  - "\n"
+              mode: '000400'
+              owner: root
+              group: root
+        AddPublicKey:
+          commands:
+            append-publickey:
+              command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
+              ignoreErrors: 'false'
+        NetworkManager:
+          commands:
+            start_enable_nm:
+              command: systemctl start NetworkManager && systemctl enable  NetworkManager
+              ignoreErrors: 'false'
+    Properties:
+      KeyName: !Ref 'KeyPairName'
+      ImageId: !FindInMap
+        - AWSAMIRegionMap
+        - !Ref 'AWS::Region'
+        - RHEL74HVM
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: '80'
+        - DeviceName: /dev/sdf
+          Ebs:
+            VolumeSize: !Ref GlusterStorageSize
+            VolumeType: !Ref GlusterStorageType
+            Iops: !If [ Isio1, !Ref GlusterStorageIops, !Ref 'AWS::NoValue' ]
+            Encrypted: !Ref GlusterStorageEncrypted
+      InstanceMonitoring: 'true'
+      IamInstanceProfile: !Ref 'SetupRoleProfile'
+      InstanceType: !Ref 'GlusterInstanceType'
+      SecurityGroups:
+        - !Ref 'OpenShiftSecurityGroup'
+      UserData: !Base64
+        Fn::Sub:
+          - |
+            #!/bin/bash -x
+            QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            yum install -y git
+            git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
+            export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
+            source $P
+            qs_bootstrap_pip || qs_err " pip bootstrap failed "
+            qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed "
+            pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
+            export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
+            export AWS_REGION=${AWS::Region}
+            export AWS_STACKNAME=${AWS::StackName}
+            export RH_POOLID=${RedhatSubscriptionPoolID}
+            export RH_USER=${RedhatSubscriptionUserName}
+            export RH_PASS='${RedhatSubscriptionPassword}'
+            export OCP_VERSION=${OpenshiftContainerPlatformVersion}
+            export LAUNCH_CONFIG=OpenShiftGlusterLaunchConfig
+            aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
+            chmod +x bootstrap.sh
+            ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
+            cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftGlusterASG --region ${AWS::Region}
+          -
+            S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   OpenShiftEtcdLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata:
@@ -1153,7 +1334,7 @@ Resources:
         AddPublicKey:
           commands:
             append-publickey:
-              command: cat /root/.ssh/public.key >>/root/.ssh/authorized_keys
+              command: cat /root/.ssh/public.key >> /root/.ssh/authorized_keys
               ignoreErrors: 'false'
         NetworkManager:
           commands:

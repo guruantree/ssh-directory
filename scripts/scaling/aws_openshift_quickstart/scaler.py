@@ -89,6 +89,7 @@ def generate_inital_inventory_nodes(write_hosts_to_temp=False, version='3.9'):
             _pre_defined_vars = yaml.safe_load(open(f))
         except Exception:
             _is_yaml=False
+            _pre_defined_vars = None
         if type(_pre_defined_vars) != dict:
             _is_yaml = False
         if not _is_yaml:
@@ -107,14 +108,17 @@ def generate_inital_inventory_nodes(write_hosts_to_temp=False, version='3.9'):
         }
         _children.update(group_hostdefs)
 
-    # Masters as nodes for the purposes of software installation.
+    # Masters/glusterfs as nodes for the purposes of software installation.
     _children['nodes']['hosts'].update(_children['masters']['hosts'])
+    _children['nodes']['hosts'].update(_children['glusterfs']['hosts'])
 
     # Add openshift_node_group_name required >= v3.10
     if version != '3.9':
         for n in _children['nodes']['hosts'].keys():
             if n in _children['masters']['hosts'].keys():
                 _children['nodes']['hosts'][n]['openshift_node_group_name'] = 'node-config-master'
+            if n in _children['glusterfs']['hosts'].keys():
+                _children['nodes']['hosts'][n]['openshift_node_group_name'] = 'node-config-glusterfs'
             else:
                 _children['nodes']['hosts'][n]['openshift_node_group_name'] = 'node-config-compute-infra'
 
