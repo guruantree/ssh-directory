@@ -13,7 +13,7 @@ printf "[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/place
 printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGION}'\n" >> /etc/aws/aws.conf
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
-if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ] && [ "${LAUNCH_CONFIG}" != "OpenShiftGlusterLaunchConfig" ]; then
+if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
     if [ "${OCP_VERSION}" != "3.9" ] ; then
         yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     else

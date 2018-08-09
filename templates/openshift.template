@@ -495,12 +495,6 @@ Conditions:
   EnableHawkular: !Equals
     - !Ref 'HawkularMetrics'
     - Enabled
-  Is37: !Equals
-    - !Ref 'OpenshiftContainerPlatformVersion'
-    - '3.7'
-  Is39: !Equals
-    - !Ref 'OpenshiftContainerPlatformVersion'
-    - '3.9'
   CustomClusterName: !Not
     - !Equals
       - !Ref ClusterName
@@ -596,7 +590,7 @@ Resources:
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/KeyGen/lambda.zip'
       Handler: service.handler
       Runtime: python2.7
-      Timeout: '5'
+      Timeout: 5
       Role: !GetAtt 'LambdaExecutionRole.Arn'
   GetRSA:
     Type: Custom::GenerateKeys
@@ -616,14 +610,12 @@ Resources:
           - - !Ref 'AWS::StackId'
             - RequestId
         LogicalResourceId: KeyGenLogicalResourceId
-    DependsOn:
-      - KeyGen
   LambdaZipsBucket:
     Type: AWS::S3::Bucket
     Properties:
       Tags: []
   CopyZips:
-    Type: AWS::CloudFormation::CustomResource
+    Type: Custom::CopyZips
     Properties:
       ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
       DestBucket: !Ref 'LambdaZipsBucket'
@@ -639,18 +631,16 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: lambda_function.lambda_handler
-      MemorySize: '128'
+      MemorySize: 128
       Role: !GetAtt 'DeleteBucketContentsRole.Arn'
       Runtime: python2.7
-      Timeout: '300'
+      Timeout: 300
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/DeleteBucketContents/lambda.zip'
   DeleteBucketContents:
-    Type: AWS::CloudFormation::CustomResource
+    Type: Custom::DeleteBucketContents
     Version: '1.0'
-    DependsOn:
-      - OutputBucket
     Properties:
       ServiceToken: !GetAtt 'DeleteBucketContentsLambda.Arn'
       OutputBucket: !Ref 'OutputBucket'
@@ -837,12 +827,12 @@ Resources:
         - IpProtocol: '-1'
           CidrIp: !Ref 'VPCCIDR'
         - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
+          FromPort: 443
+          ToPort: 443
           CidrIp: !Ref 'RemoteAccessCIDR'
         - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
+          FromPort: 22
+          ToPort: 22
           CidrIp: !Ref 'RemoteAccessCIDR'
       Tags:
         - Key: !Sub
@@ -861,12 +851,12 @@ Resources:
         - IpProtocol: '-1'
           CidrIp: !Ref 'VPCCIDR'
         - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
+          FromPort: 443
+          ToPort: 443
           CidrIp: !Ref 'ContainerAccessCIDR'
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
+          FromPort: 80
+          ToPort: 80
           CidrIp: !Ref 'ContainerAccessCIDR'
       Tags:
         - Key: !Sub
@@ -1126,7 +1116,7 @@ Resources:
       LaunchConfigurationName: !Ref 'OpenShiftMasterASLaunchConfig'
       Tags:
         - Key: Name
-          PropagateAtLaunch: 'true'
+          PropagateAtLaunch: true
           Value: openshift-master
         - Key: !Sub
           - 'kubernetes.io/cluster/${ClusterName}'
@@ -1134,7 +1124,7 @@ Resources:
             - CustomClusterName
             - !Ref ClusterName
             - !Sub '${AWS::StackName}-${AWS::Region}'
-          PropagateAtLaunch: 'true'
+          PropagateAtLaunch: true
           Value: owned
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
@@ -1156,7 +1146,7 @@ Resources:
       LaunchConfigurationName: !Ref 'OpenShiftEtcdLaunchConfig'
       Tags:
         - Key: Name
-          PropagateAtLaunch: 'true'
+          PropagateAtLaunch: true
           Value: openshift-etcd
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
@@ -1182,7 +1172,7 @@ Resources:
       LaunchConfigurationName: !Ref 'OpenShiftNodesLaunchConfig'
       Tags:
         - Key: Name
-          PropagateAtLaunch: 'true'
+          PropagateAtLaunch: true
           Value: openshift-nodes
         - Key: !Sub
           - 'kubernetes.io/cluster/${ClusterName}'
@@ -1190,7 +1180,7 @@ Resources:
             - CustomClusterName
             - !Ref ClusterName
             - !Sub '${AWS::StackName}-${AWS::Region}'
-          PropagateAtLaunch: 'true'
+          PropagateAtLaunch: true
           Value: owned
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
@@ -1213,8 +1203,16 @@ Resources:
       LaunchConfigurationName: !Ref 'OpenShiftGlusterLaunchConfig'
       Tags:
         - Key: Name
-          PropagateAtLaunch: 'true'
-          Value: openshift-gluster
+          PropagateAtLaunch: true
+          Value: openshift-glusterfs
+        - Key: !Sub
+          - 'kubernetes.io/cluster/${ClusterName}'
+          - ClusterName: !If
+            - CustomClusterName
+            - !Ref ClusterName
+            - !Sub '${AWS::StackName}-${AWS::Region}'
+          PropagateAtLaunch: true
+          Value: owned
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1ID'
         - !Ref 'PrivateSubnet2ID'
@@ -1268,14 +1266,18 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: '80'
-        - DeviceName: /dev/sdf
+            VolumeSize: 80
+        - DeviceName: /dev/xvdb
+          Ebs:
+            VolumeSize: 110
+            VolumeType: gp2
+        - DeviceName: /dev/xvdc
           Ebs:
             VolumeSize: !Ref GlusterStorageSize
             VolumeType: !Ref GlusterStorageType
             Iops: !If [ Isio1, !Ref GlusterStorageIops, !Ref 'AWS::NoValue' ]
             Encrypted: !Ref GlusterStorageEncrypted
-      InstanceMonitoring: 'true'
+      InstanceMonitoring: true
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'GlusterInstanceType'
       SecurityGroups:
@@ -1350,8 +1352,8 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: '80'
-      InstanceMonitoring: 'true'
+            VolumeSize: 80
+      InstanceMonitoring: true
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'EtcdInstanceType'
       SecurityGroups:
@@ -1426,13 +1428,13 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: '80'
+            VolumeSize: 80
             VolumeType: gp2
         - DeviceName: /dev/xvdb
           Ebs:
-            VolumeSize: '110'
+            VolumeSize: 110
             VolumeType: gp2
-      InstanceMonitoring: 'true'
+      InstanceMonitoring: true
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'NodesInstanceType'
       SecurityGroups:
@@ -1465,7 +1467,6 @@ Resources:
             S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
   OpenShiftMasterASLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
-    DependsOn: GetRSA
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -1508,12 +1509,12 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: '80'
+            VolumeSize: 80
         - DeviceName: /dev/xvdb
           Ebs:
-            VolumeSize: '110'
+            VolumeSize: 110
             VolumeType: gp2
-      InstanceMonitoring: 'true'
+      InstanceMonitoring: true
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'MasterInstanceType'
       SecurityGroups:
@@ -1589,7 +1590,7 @@ Resources:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/CleanupPV/lambda.zip'
   CleanupPV:
-    Type: AWS::CloudFormation::CustomResource
+    Type: Custom::CleanupPV
     Properties:
       ServiceToken: !GetAtt 'CleanupPVLambda.Arn'
       ClusterId: !Sub '${AWS::StackName}-${AWS::Region}'
@@ -1653,7 +1654,7 @@ Resources:
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/ACMCert/lambda.zip'
   ACMCertificateDNS:
     Condition: SetupRoute53
-    Type: AWS::CloudFormation::CustomResource
+    Type: Custom::ACMCertificateDNS
     Properties:
       ServiceToken: !GetAtt 'ACMCertificateLambda.Arn'
       HostedZoneId: !If
@@ -1810,7 +1811,7 @@ Resources:
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties:
       HealthCheckIntervalSeconds: 30
-      HealthCheckPort: 22
+      HealthCheckPort: '22'
       HealthCheckProtocol: TCP
       HealthyThresholdCount: 3
       Port: 443
@@ -1908,8 +1909,8 @@ Resources:
           Value: ansible-configserver
       InstanceType: !Ref 'MasterInstanceType'
       NetworkInterfaces:
-        - DeleteOnTermination: 'true'
-          AssociatePublicIpAddress: 'true'
+        - DeleteOnTermination: true
+          AssociatePublicIpAddress: true
           DeviceIndex: '0'
           GroupSet:
             - !Ref 'OpenShiftSecurityGroup'

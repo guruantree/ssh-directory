@@ -434,7 +434,7 @@ Resources:
         PublicSubnet2ID: !GetAtt 'VPCStack.Outputs.PublicSubnet2ID'
         PublicSubnet3ID: !GetAtt 'VPCStack.Outputs.PublicSubnet3ID'
         RemoteAccessCIDR: !Ref 'RemoteAccessCIDR'
-        ContainerAccessCIDR: !Ref 'RemoteAccessCIDR'
+        ContainerAccessCIDR: !Ref 'ContainerAccessCIDR'
         QSS3BucketName: !Ref 'QSS3BucketName'
         QSS3KeyPrefix: !Ref 'QSS3KeyPrefix'
         OpenShiftAdminPassword: !Ref 'OpenShiftAdminPassword'
