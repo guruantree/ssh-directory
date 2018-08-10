@@ -51,6 +51,7 @@ Metadata:
           - GlusterStorageEncrypted
           - GlusterInstanceType
           - NumberOfGluster
+          - AutomationBroker
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -138,6 +139,8 @@ Metadata:
         default: Gluster Storage Iops
       GlusterStorageEncrypted:
         default: Gluster Storage Encrypted
+      AutomationBroker:
+        default: OpenSift Automation Broker
 Parameters:
   AvailabilityZones:
     Description: List of Availability Zones to use for the subnets in the VPC. Three
@@ -395,6 +398,11 @@ Parameters:
     AllowedValues:
       - False
       - True
+  AutomationBroker:
+    Default: Enabled
+    Description: Enable the OpenShift Automation Service Broker
+    Type: String
+    AllowedValues: [ Enabled, Disabled ]
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -459,6 +467,7 @@ Resources:
         GlusterStorageType: !Ref GlusterStorageType
         GlusterStorageSize: !Ref GlusterStorageSize
         GlusterFS: !Ref GlusterFS
+        AutomationBroker: !Ref AutomationBroker
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI

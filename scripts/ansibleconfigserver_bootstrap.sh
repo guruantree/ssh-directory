@@ -49,6 +49,10 @@ if [ "${ENABLE_HAWKULAR}" == "True" ] ; then
     echo openshift_metrics_cassandra_storage_type=dynamic >> /tmp/openshift_inventory_userdata_vars
 fi
 
+if [ "${ENABLE_AUTOMATIONBROKER}" == "Disabled" ] ; then
+    echo ansible_service_broker_install=false >> /tmp/openshift_inventory_userdata_vars
+fi
+
 echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars
 

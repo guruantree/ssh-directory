@@ -52,6 +52,7 @@ Metadata:
           - GlusterStorageEncrypted
           - GlusterInstanceType
           - NumberOfGluster
+          - AutomationBroker
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -143,6 +144,8 @@ Metadata:
         default: Gluster Storage Iops
       GlusterStorageEncrypted:
         default: Gluster Storage Encrypted
+      AutomationBroker:
+        default: OpenSift Automation Broker
 Parameters:
   KeyPairName:
     Description: Name of an existing EC2 key pair. All instances will launch with
@@ -393,8 +396,11 @@ Parameters:
     Default: '3'
     Description: This Deployment requires a minimum of 3 Gluster instances
     Type: Number
-    AllowedValues:
-      - '3'
+  AutomationBroker:
+    Default: Enabled
+    Description: Enable the OpenShift Automation Service Broker
+    Type: String
+    AllowedValues: [ Enabled, Disabled ]
 Rules:
   SubnetsInVPC:
     Assertions:
@@ -440,6 +446,9 @@ Conditions:
       - ''
   EnableAWSServiceBroker: !Equals
     - !Ref 'AWSServiceBroker'
+    - Enabled
+  EnableAutomationBroker: !Equals
+    - !Ref 'AutomationBroker'
     - Enabled
   EnableGlusterFS: !Equals
     - !Ref 'GlusterFS'
@@ -1939,6 +1948,7 @@ Resources:
             export AWS_STACKID=${AWS::StackId}
             export ENABLE_AWSSB=${AWSServiceBroker}
             export VPCID=${VPCID}
+            export ENABLE_AUTOMATIONBROKER=${AutomationBroker}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
