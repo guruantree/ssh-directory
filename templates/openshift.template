@@ -447,9 +447,6 @@ Conditions:
   EnableAWSServiceBroker: !Equals
     - !Ref 'AWSServiceBroker'
     - Enabled
-  EnableAutomationBroker: !Equals
-    - !Ref 'AutomationBroker'
-    - Enabled
   EnableGlusterFS: !Equals
     - !Ref 'GlusterFS'
     - Enabled
@@ -508,7 +505,14 @@ Conditions:
     - !Equals
       - !Ref ClusterName
       - ""
+  GreaterThan39: !Not
+    - !Equals
+      - !Ref 'OpenshiftContainerPlatformVersion'
+      - '3.9'
 Resources:
+  RegistryBucket:
+    Condition: GreaterThan39
+    Type: "AWS::S3::Bucket"
   Route53HostedSubdomainZone:
     Condition: SetupSubdomain
     Type: AWS::Route53::HostedZone
@@ -647,7 +651,14 @@ Resources:
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/DeleteBucketContents/lambda.zip'
-  DeleteBucketContents:
+  DeleteRegistryBucketContents:
+    Condition: GreaterThan39
+    Type: Custom::DeleteBucketContents
+    Version: '1.0'
+    Properties:
+      ServiceToken: !GetAtt 'DeleteBucketContentsLambda.Arn'
+      OutputBucket: !Ref 'RegistryBucket'
+  DeleteTempBucketContents:
     Type: Custom::DeleteBucketContents
     Version: '1.0'
     Properties:
@@ -673,15 +684,10 @@ Resources:
                 Action:
                   - s3:*
                 Resource:
-                  - !Join
-                    - ''
-                    - - 'arn:aws:s3:::'
-                      - !Ref 'OutputBucket'
-                      - /*
-                  - !Join
-                    - ''
-                    - - 'arn:aws:s3:::'
-                      - !Ref 'OutputBucket'
+                  - !Sub 'arn:aws:s3:::${OutputBucket}'
+                  - !Sub 'arn:aws:s3:::${OutputBucket}/*'
+                  - !Sub 'arn:aws:s3:::${RegistryBucket}'
+                  - !Sub 'arn:aws:s3:::${RegistryBucket}/*'
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -709,14 +715,7 @@ Resources:
               - Action: ssm:SendCommand
                 Effect: Allow
                 Resource:
-                  - !Join
-                    - ''
-                    - - 'arn:aws:ec2:'
-                      - !Ref 'AWS::Region'
-                      - ':'
-                      - !Ref 'AWS::AccountId'
-                      - :instance/
-                      - !Sub '${AnsibleConfigServer}'
+                  - !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/${AnsibleConfigServer}'
                   - !Sub 'arn:aws:ssm:${AWS::Region}::document/AWS-RunShellScript'
   CopyZipsRole:
     Type: AWS::IAM::Role
@@ -756,67 +755,65 @@ Resources:
       Role: !GetAtt 'CopyZipsRole.Arn'
       Timeout: 240
       Code:
-        ZipFile: !Join
-          - "\n"
-          - - import json
-            - import logging
-            - import threading
-            - import boto3
-            - import cfnresponse
-            - ''
-            - ''
-            - 'def copy_objects(source_bucket, dest_bucket, prefix, objects):'
-            - '    s3 = boto3.client(''s3'')'
-            - '    for o in objects:'
-            - '        key = prefix + o'
-            - '        copy_source = {'
-            - '            ''Bucket'': source_bucket,'
-            - '            ''Key'': key'
-            - '        }'
-            - '        print(''copy_source: %s'' % copy_source)'
-            - '        print(''dest_bucket = %s''%dest_bucket)'
-            - '        print(''key = %s'' %key)'
-            - '        s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
-              Key=key)'
-            - ''
-            - ''
-            - 'def delete_objects(bucket, prefix, objects):'
-            - '    s3 = boto3.client(''s3'')'
-            - '    objects = {''Objects'': [{''Key'': prefix + o} for o in objects]}'
-            - '    s3.delete_objects(Bucket=bucket, Delete=objects)'
-            - ''
-            - ''
-            - 'def timeout(event, context):'
-            - '    logging.error(''Execution is about to time out, sending failure
-              response to CloudFormation'')'
-            - '    cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)'
-            - ''
-            - ''
-            - 'def handler(event, context):'
-            - '    # make sure we send a failure to CloudFormation if the function
-              is going to timeout'
-            - '    timer = threading.Timer((context.get_remaining_time_in_millis()
-              / 1000.00) - 0.5, timeout, args=[event, context])'
-            - '    timer.start()'
-            - ''
-            - '    print(''Received event: %s'' % json.dumps(event))'
-            - '    status = cfnresponse.SUCCESS'
-            - '    try:'
-            - '        source_bucket = event[''ResourceProperties''][''SourceBucket'']'
-            - '        dest_bucket = event[''ResourceProperties''][''DestBucket'']'
-            - '        prefix = event[''ResourceProperties''][''Prefix'']'
-            - '        objects = event[''ResourceProperties''][''Objects'']'
-            - '        if event[''RequestType''] == ''Delete'':'
-            - '            delete_objects(dest_bucket, prefix, objects)'
-            - '        else:'
-            - '            copy_objects(source_bucket, dest_bucket, prefix, objects)'
-            - '    except Exception as e:'
-            - '        logging.error(''Exception: %s'' % e, exc_info=True)'
-            - '        status = cfnresponse.FAILED'
-            - '    finally:'
-            - '        timer.cancel()'
-            - '        cfnresponse.send(event, context, status, {}, None)'
-            - ''
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import cfnresponse
+          
+          
+          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              for o in objects:
+                  key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print('copy_source: %s' % copy_source)
+                  print('dest_bucket = %s'%dest_bucket)
+                  print('key = %s' %key)
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                        Key=key)
+          
+          
+          def delete_objects(bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+              s3.delete_objects(Bucket=bucket, Delete=objects)
+          
+          
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+          
+          
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                        / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+
+              print('Received event: %s' % json.dumps(event))
+              status = cfnresponse.SUCCESS
+              try:
+                  source_bucket = event['ResourceProperties']['SourceBucket']
+                  dest_bucket = event['ResourceProperties']['DestBucket']
+                  prefix = event['ResourceProperties']['Prefix']
+                  objects = event['ResourceProperties']['Objects']
+                  if event['RequestType'] == 'Delete':
+                      delete_objects(dest_bucket, prefix, objects)
+                  else:
+                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+              except Exception as e:
+                  logging.error('Exception: %s' % e, exc_info=True)
+                  status = cfnresponse.FAILED
+              finally:
+                  timer.cancel()
+                  cfnresponse.send(event, context, status, {}, None)
+
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -1099,6 +1096,12 @@ Resources:
                   - 'cloudwatch:ListMetrics'
                 Resource:
                   - '*'
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource:
+                  - !Sub '${RegistryBucket.Arn}'
+                  - !Sub '${RegistryBucket.Arn}/*'
   SetupRoleProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -1248,11 +1251,9 @@ Resources:
         GetPublicKey:
           files:
             /root/.ssh/public.key:
-              content: !Join
-                - ''
-                - - "#QuickStart Generated\n"
-                  - !GetAtt 'GetRSA.PUB'
-                  - "\n"
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PUB}
               mode: '000400'
               owner: root
               group: root
@@ -1334,11 +1335,9 @@ Resources:
         GetPublicKey:
           files:
             /root/.ssh/public.key:
-              content: !Join
-                - ''
-                - - "#QuickStart Generated\n"
-                  - !GetAtt 'GetRSA.PUB'
-                  - "\n"
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PUB}
               mode: '000400'
               owner: root
               group: root
@@ -1410,11 +1409,9 @@ Resources:
         GetPublicKey:
           files:
             /root/.ssh/public.key:
-              content: !Join
-                - ''
-                - - "#QuickStart Generated\n"
-                  - !GetAtt 'GetRSA.PUB'
-                  - "\n"
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PUB}
               mode: '000400'
               owner: root
               group: root
@@ -1491,11 +1488,9 @@ Resources:
         GetPublicKey:
           files:
             /root/.ssh/public.key:
-              content: !Join
-                - ''
-                - - "#QuickStart Generated\n"
-                  - !GetAtt 'GetRSA.PUB'
-                  - "\n"
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PUB}
               mode: '000400'
               owner: root
               group: root
@@ -1883,21 +1878,18 @@ Resources:
         SetPrivateKey:
           files:
             /root/.ssh/id_rsa:
-              content: !Join
-                - ''
-                - - !GetAtt 'GetRSA.PEM'
-                  - "\n"
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PEM}
               mode: '000400'
               owner: root
               group: root
         GetPublicKey:
           files:
             /root/.ssh/public.key:
-              content: !Join
-                - ''
-                - - "#QuickStart Generated\n"
-                  - !GetAtt 'GetRSA.PUB'
-                  - "\n"
+              content: !Sub |
+                #QuickStart Generated
+                ${GetRSA.PUB}
               mode: '000400'
               owner: root
               group: root
@@ -1949,6 +1941,7 @@ Resources:
             export ENABLE_AWSSB=${AWSServiceBroker}
             export VPCID=${VPCID}
             export ENABLE_AUTOMATIONBROKER=${AutomationBroker}
+            export REGISTRY_BUCKET=${RegistryBucket}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
@@ -2007,7 +2000,4 @@ Outputs:
         - !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
   ContainerAccessELBName:
     Description: Use this ELB to expose ports to the internet
-    Value: !Join
-      - ''
-      - - http://
-        - !GetAtt 'ContainerAccessELB.DNSName'
+    Value: !Sub "http://${ContainerAccessELB.DNSName}"

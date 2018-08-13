@@ -53,6 +53,11 @@ if [ "${ENABLE_AUTOMATIONBROKER}" == "Disabled" ] ; then
     echo ansible_service_broker_install=false >> /tmp/openshift_inventory_userdata_vars
 fi
 
+if [ "${OCP_VERSION}" != "3.9" ] ; then
+    echo openshift_hosted_registry_storage_s3_bucket=${REGISTRY_BUCKET} >> /tmp/openshift_inventory_userdata_vars
+    echo openshift_hosted_registry_storage_s3_region=${AWS_REGION} >> /tmp/openshift_inventory_userdata_vars
+fi
+
 echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars
 
