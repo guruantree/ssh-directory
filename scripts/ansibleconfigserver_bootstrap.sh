@@ -105,7 +105,6 @@ mkdir -p ~/.kube/
 scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
 
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
-    qs_retry_command 10 yum install -y wget
     mkdir -p ~/aws_broker_install
     cd ~/aws_broker_install
     qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
