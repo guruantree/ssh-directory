@@ -1179,7 +1179,7 @@ Resources:
         Fn::Sub:
           - |
             #!/bin/bash -x
-            QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
@@ -1260,7 +1260,7 @@ Resources:
         Fn::Sub:
           - |
             #!/bin/bash -x
-            QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
@@ -1341,7 +1341,7 @@ Resources:
         Fn::Sub:
           - |
             #!/bin/bash -x
-            QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
+            export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
