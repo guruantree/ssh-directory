@@ -1782,7 +1782,7 @@ Resources:
     Properties:
       Description: CWEvent rule to trigger OpenShift Scaling scripts within the Ansible
         config server. (AWS QuickStart)
-      Name: OpenshiftQuickstart-TriggerAnsibleScaling
+      Name: !Sub "OpenshiftQuickstart-TriggerAnsibleScaling-${ClusterName}"
       State: ENABLED
       EventPattern:
         source:
