@@ -52,6 +52,9 @@ Metadata:
           - GlusterInstanceType
           - NumberOfGluster
           - AutomationBroker
+          - AggregatedLogging
+          - AggregatedLoggingMemory
+          - AggregatedLoggingDisk
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -141,6 +144,12 @@ Metadata:
         default: Gluster Storage Encrypted
       AutomationBroker:
         default: OpenSift Automation Broker
+      AggregatedLogging:
+        default: Aggregated Logging
+      AggregatedLoggingMemory:
+        default: Aggregated Logging Memory
+      AggregatedLoggingDisk:
+        default: Aggregated Logging Disk
 Parameters:
   AvailabilityZones:
     Description: List of Availability Zones to use for the subnets in the VPC. Three
@@ -403,6 +412,19 @@ Parameters:
     Description: Enable the OpenShift Automation Service Broker
     Type: String
     AllowedValues: [ Enabled, Disabled ]
+  AggregatedLogging:
+    Default: Enabled
+    Description: Enable Aggregated Logging using an in cluster EFK stack
+    Type: String
+    AllowedValues: [ Enabled, Disabled ]
+  AggregatedLoggingMemory:
+    Default: 2
+    Description: Memory in GB to allocate to the ElasticSearch pod
+    Type: Number
+  AggregatedLoggingDisk:
+    Default: 20
+    Description: Persistent storage size in GB to allocate for log storage, will use glusterfs is enabled, otherwise EBS
+    Type: Number
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
@@ -468,6 +490,9 @@ Resources:
         GlusterStorageSize: !Ref GlusterStorageSize
         GlusterFS: !Ref GlusterFS
         AutomationBroker: !Ref AutomationBroker
+        AggregatedLogging: !Ref AggregatedLogging
+        AggregatedLoggingMemory: !Ref AggregatedLoggingMemory
+        AggregatedLoggingDisk: !Ref AggregatedLoggingDisk
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI

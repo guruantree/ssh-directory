@@ -53,6 +53,17 @@ if [ "${ENABLE_AUTOMATIONBROKER}" == "Disabled" ] ; then
     echo ansible_service_broker_install=false >> /tmp/openshift_inventory_userdata_vars
 fi
 
+if [ "${ENABLE_LOGGING}" == "Enabled" ] ; then
+    echo openshift_logging_install_logging=true >> /tmp/openshift_inventory_userdata_vars
+    echo openshift_logging_es_memory_limit=${LOGGING_MEM}G >> /tmp/openshift_inventory_userdata_vars
+    echo openshift_logging_es_pvc_size=${LOGGING_DISK}G >> /tmp/openshift_inventory_userdata_vars
+    if [ "${ENABLE_GLUSTERFS}" == "Enabled" ] ; then
+        echo openshift_logging_es_pvc_storage_class_name=glusterfs-storage >> /tmp/openshift_inventory_userdata_vars
+    else
+        echo openshift_logging_es_pvc_storage_class_name=gp2 >> /tmp/openshift_inventory_userdata_vars
+    fi
+fi
+
 if [ "${OCP_VERSION}" != "3.9" ] ; then
     echo openshift_hosted_registry_storage_s3_bucket=${REGISTRY_BUCKET} >> /tmp/openshift_inventory_userdata_vars
     echo openshift_hosted_registry_storage_s3_region=${AWS_REGION} >> /tmp/openshift_inventory_userdata_vars
