@@ -365,9 +365,9 @@ Mappings:
       Code: RHEL74HVM
   OpenshiftVersionMap:
     '3.7':
-      AnsiblePlaybookGitRepoTag: 3.7.58-1
+      AnsiblePlaybookGitRepoTag: 3.7.62-1
     '3.9':
-      AnsiblePlaybookGitRepoTag: 3.9.35-1
+      AnsiblePlaybookGitRepoTag: 3.9.41-1
 Conditions:
   GovCloudCondition: !Equals
     - !Ref 'AWS::Region'
