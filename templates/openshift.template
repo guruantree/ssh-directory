@@ -44,6 +44,7 @@ Metadata:
           - AWSServiceBroker
           - ExistingAWSServiceBrokerRole
           - HawkularMetrics
+          - AnsibleFromGit
           - ClusterName
       - Label:
           default: Red Hat Subscription Information
@@ -114,6 +115,8 @@ Metadata:
         default: Existing AWS Service Broker Role ARN
       HawkularMetrics:
         default: Hawkular Metrics
+      AnsibleFromGit:
+        default: Get Ansible from Git
       DomainName:
         default: Domain Name
       HostedZoneID:
@@ -322,6 +325,13 @@ Parameters:
     AllowedValues:
       - Enabled
       - Disabled
+  AnsibleFromGit:
+    Default: False
+    Description: Get openshift installer playbooks from GitHub. By default, they come from RPM.
+    Type: String
+    AllowedValues:
+      - True
+      - False
   ClusterName:
     Default: ""
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
@@ -1739,6 +1749,7 @@ Resources:
             #!/bin/bash -x
             export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             export ENABLE_HAWKULAR=${HawkEnable}
+            export GET_ANSIBLE_FROM_GIT=${AnsibleFromGit}
             export OCP_ANSIBLE_RELEASE=${OsbRelease}
             export AWSSB_ROLE=${AwsSbRole}
             export MASTER_ELBDNSNAME=${LbHostname}
