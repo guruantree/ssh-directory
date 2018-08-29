@@ -52,7 +52,7 @@ qs_retry_command 10 yum -y install wget git net-tools bind-utils iptables-servic
 # Workaround this not-a-bug https://bugzilla.redhat.com/show_bug.cgi?id=1187057
 pip uninstall -y urllib3
 qs_retry_command 10 yum -y update
-qs_retry_command 10 pip install -y urllib3
+qs_retry_command 10 pip install urllib3
 qs_retry_command 10 yum -y install atomic-openshift-utils
 qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
 qs_retry_command 10 yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
