@@ -17,7 +17,7 @@
     },
     {
         "ParameterKey": "DomainName",
-        "ParameterValue": "ocp.awsqs.com"
+        "ParameterValue": "override"
     },
     {
         "ParameterKey": "HostedZoneID",
