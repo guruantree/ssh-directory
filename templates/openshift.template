@@ -28,6 +28,7 @@ Metadata:
           default: Amazon EC2 Configuration
         Parameters:
           - KeyPairName
+          - KmsKeyId
       - Label:
           default: OpenShift Nodes Configuration
         Parameters:
@@ -61,6 +62,8 @@ Metadata:
     ParameterLabels:
       KeyPairName:
         default: SSH Key Name
+      KmsKeyId:
+        default: Kms key used to encrypt volumes
       PrivateSubnet1ID:
         default: Private Subnet 1 ID
       PrivateSubnet2ID:
@@ -130,6 +133,11 @@ Parameters:
     Description: Name of an existing EC2 key pair. All instances will launch with
       this key pair.
     Type: AWS::EC2::KeyPair::KeyName
+  KmsKeyId:
+    Description: 'OPTIONAL: Id of a KmsKey that will be used to encrypt all volumes.
+      Keep in mind that the key policy should allow use of the key from AWSServiceRoleForAutoScaling.
+      If no values are entered, volumes will not be encrypted.'
+    Type: AWS::KMS::Key::Id
   PrivateSubnet1ID:
     Description: ID of private subnet 1 in Availability Zone 1 for the Workload (e.g.,
       subnet-a0246dcd)
@@ -385,6 +393,10 @@ Conditions:
       - Enabled
     - !Equals
       - !Ref 'ExistingAWSServiceBrokerRole'
+      - ''
+  EncryptVolumes: !Not
+    - !Equals
+      - !Ref 'KmsKeyId'
       - ''
   SetupRoute53: !And
     - !Not
@@ -1188,6 +1200,14 @@ Resources:
           Ebs:
             VolumeSize: '80'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'            
       InstanceMonitoring: 'true'
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'EtcdInstanceType'
@@ -1265,10 +1285,26 @@ Resources:
           Ebs:
             VolumeSize: '80'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
         - DeviceName: /dev/xvdb
           Ebs:
             VolumeSize: '110'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
       InstanceMonitoring: 'true'
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'NodesInstanceType'
@@ -1347,10 +1383,26 @@ Resources:
           Ebs:
             VolumeSize: '80'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
         - DeviceName: /dev/xvdb
           Ebs:
             VolumeSize: '110'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
       InstanceMonitoring: 'true'
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'MasterInstanceType'
