@@ -23,6 +23,7 @@ Metadata:
           - DomainName
           - HostedZoneID
           - SubDomainPrefix
+          - CertificateArn
       - Label:
           default: Amazon EC2 Configuration
         Parameters:
@@ -117,6 +118,8 @@ Metadata:
         default: Existing AWS Service Broker Role ARN
       HawkularMetrics:
         default: Hawkular Metrics
+      CertificateArn:
+        default: Certificate Arn
       DomainName:
         default: Domain Name
       HostedZoneID:
@@ -314,6 +317,10 @@ Parameters:
     Type: String
     MaxLength: '32'
     Default: ""
+  CertificateArn:
+    Description: 'OPTIONAL: Specify the arn of the certificate that will be presented.'
+    Type: String
+    Default: ""
   DomainName:
     Description: >-
       OPTIONAL: domain name configured for the cluster, if left blank self signed
@@ -369,9 +376,9 @@ Mappings:
       Code: RHEL74HVM
   OpenshiftVersionMap:
     '3.7':
-      AnsiblePlaybookGitRepoTag: 3.7.58-1
+      AnsiblePlaybookGitRepoTag: 3.7.62-1
     '3.9':
-      AnsiblePlaybookGitRepoTag: 3.9.35-1
+      AnsiblePlaybookGitRepoTag: 3.9.41-1
 Conditions:
   GovCloudCondition: !Equals
     - !Ref 'AWS::Region'
@@ -399,14 +406,6 @@ Conditions:
       - !Equals
         - !Ref 'DomainName'
         - ''
-  UseEmailForACMValidation: !And
-    - !Equals
-      - !Ref 'HostedZoneID'
-      - ''
-    - !Not
-      - !Equals
-        - !Ref 'DomainName'
-        - ''
   SetupSubdomain: !And
     - !Not
       - !Equals
@@ -428,6 +427,24 @@ Conditions:
     - !Equals
       - !Ref 'AmiId'
       - ''
+  UseCustomCertificate: !Not
+    - !Equals
+      - !Ref 'CertificateArn'
+      - ''
+  UseEmailForACMValidation: !And
+    - !Equals
+      - !Ref 'HostedZoneID'
+      - ''
+    - !Not
+      - !Equals
+        - !Ref 'DomainName'
+        - ''
+    - !Not
+      - Condition: UseCustomCertificate
+  UseDnsForACMValidation: !And
+    - Condition: SetupRoute53
+    - !Not
+      - Condition: UseCustomCertificate
   UseCustomDomain: !Not
     - !Equals
       - !Ref 'DomainName'
@@ -1188,6 +1205,7 @@ Resources:
         - DeviceName: /dev/sda1
           Ebs:
             VolumeSize: '80'
+            VolumeType: gp2
       InstanceMonitoring: 'true'
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'EtcdInstanceType'
@@ -1352,6 +1370,7 @@ Resources:
         - DeviceName: /dev/sda1
           Ebs:
             VolumeSize: '80'
+            VolumeType: gp2
         - DeviceName: /dev/xvdb
           Ebs:
             VolumeSize: '110'
@@ -1495,7 +1514,7 @@ Resources:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/ACMCert/lambda.zip'
   ACMCertificateDNS:
-    Condition: SetupRoute53
+    Condition: UseDnsForACMValidation
     Type: AWS::CloudFormation::CustomResource
     Properties:
       ServiceToken: !GetAtt 'ACMCertificateLambda.Arn'
@@ -1574,9 +1593,12 @@ Resources:
           SSLCertificateId: !If
             - UseCustomDomain
             - !If
-              - SetupRoute53
-              - !GetAtt 'ACMCertificateDNS.Arn'
-              - !Ref 'ACMCertificateEmail'
+              - UseCustomCertificate
+              - !Ref 'CertificateArn'
+              - !If
+                - SetupRoute53
+                - !GetAtt 'ACMCertificateDNS.Arn'
+                - !Ref 'ACMCertificateEmail'
             - !Ref AWS::NoValue
       HealthCheck:
         Target: HTTPS:443/console/
@@ -1610,9 +1632,12 @@ Resources:
           SSLCertificateId: !If
             - UseCustomDomain
             - !If
-              - SetupRoute53
-              - !GetAtt 'ACMCertificateDNS.Arn'
-              - !Ref 'ACMCertificateEmail'
+              - UseCustomCertificate
+              - !Ref 'CertificateArn'
+              - !If
+                - SetupRoute53
+                - !GetAtt 'ACMCertificateDNS.Arn'
+                - !Ref 'ACMCertificateEmail'
             - !Ref AWS::NoValue
         - InstancePort: '80'
           InstanceProtocol: TCP
