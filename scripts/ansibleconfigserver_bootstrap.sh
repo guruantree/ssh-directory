@@ -2,6 +2,11 @@
 
 source ${P}
 
+if [ -f /quickstart/pre-install.sh ]
+then
+  /quickstart/pre-install.sh
+fi
+
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log
 
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
@@ -134,3 +139,8 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
 fi
 
 rm -rf /tmp/openshift_initial_*
+
+if [ -f /quickstart/post-install.sh ]
+then
+  /quickstart/post-install.sh
+fi
