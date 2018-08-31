@@ -33,7 +33,7 @@ if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
 fi
 
 qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${LAUNCH_CONFIG} --configsets quickstart --region ${AWS_REGION}
-qs_retry_command 10 yum install -y atomic-openshift-docker-excluder atomic-openshift-node \
+qs_retry_command 10 yum install -y wget atomic-openshift-docker-excluder atomic-openshift-node \
     atomic-openshift-sdn-ovs ceph-common conntrack-tools dnsmasq glusterfs \
     glusterfs-client-xlators glusterfs-fuse glusterfs-libs iptables-services \
     iscsi-initiator-utils iscsi-initiator-utils-iscsiuio tuned-profiles-atomic-openshift-node
@@ -44,9 +44,12 @@ qs_retry_command 25 ls /var/run/dbus/system_bus_socket
 systemctl restart NetworkManager
 systemctl restart systemd-logind
 
-qs_retry_command 10 yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+cd /tmp
+qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
+rm ./amazon-ssm-agent.rpm
 
 if [ -f /quickstart/post-install.sh ]
 then
