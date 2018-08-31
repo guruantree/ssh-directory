@@ -141,6 +141,7 @@ Parameters:
       Keep in mind that the key policy should allow use of the key from AWSServiceRoleForAutoScaling.
       If no values are entered, volumes will not be encrypted.'
     Type: AWS::KMS::Key::Id
+    Default: ''
   PrivateSubnet1ID:
     Description: ID of private subnet 1 in Availability Zone 1 for the Workload (e.g.,
       subnet-a0246dcd)
