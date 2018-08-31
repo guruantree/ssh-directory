@@ -2,6 +2,11 @@
 
 source ${P}
 
+if [ -f /quickstart/pre-install.sh ]
+then
+  /quickstart/pre-install.sh
+fi
+
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || true
 
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
@@ -43,3 +48,7 @@ qs_retry_command 10 yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
 
+if [ -f /quickstart/post-install.sh ]
+then
+  /quickstart/post-install.sh
+fi

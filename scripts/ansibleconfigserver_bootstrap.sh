@@ -2,6 +2,11 @@
 
 source ${P}
 
+if [ -f /quickstart/pre-install.sh ]
+then
+  /quickstart/pre-install.sh
+fi
+
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log
 
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
@@ -58,12 +63,17 @@ qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-do
 qs_retry_command 10 yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
-CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-${OCP_ANSIBLE_RELEASE}.tar.gz
-curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz
-tar -zxf openshift-ansible.tar.gz
-rm -rf /usr/share/ansible
-mkdir -p /usr/share/ansible
-mv openshift-ansible-* /usr/share/ansible/openshift-ansible
+
+if [ "${GET_ANSIBLE_FROM_GIT}" == "True" ]
+  CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-${OCP_ANSIBLE_RELEASE}.tar.gz
+  curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz
+  tar -zxf openshift-ansible.tar.gz
+  rm -rf /usr/share/ansible
+  mkdir -p /usr/share/ansible
+  mv openshift-ansible-* /usr/share/ansible/openshift-ansible
+else
+  qs_retry_command 10 yum -y install openshift-ansible
+fi
 
 qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
 atomic-openshift-excluder unexclude
@@ -134,3 +144,8 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
 fi
 
 rm -rf /tmp/openshift_initial_*
+
+if [ -f /quickstart/post-install.sh ]
+then
+  /quickstart/post-install.sh
+fi

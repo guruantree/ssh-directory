@@ -29,6 +29,7 @@ Metadata:
         Parameters:
           - KeyPairName
           - AmiId
+          - KmsKeyId
       - Label:
           default: OpenShift Nodes Configuration
         Parameters:
@@ -46,6 +47,7 @@ Metadata:
           - AWSServiceBroker
           - ExistingAWSServiceBrokerRole
           - HawkularMetrics
+          - AnsibleFromGit
           - ClusterName
       - Label:
           default: Red Hat Subscription Information
@@ -64,6 +66,8 @@ Metadata:
         default: SSH Key Name
       AmiId:
         default: AMI ID
+      KmsKeyId:
+        default: Kms key used to encrypt volumes
       PrivateSubnet1ID:
         default: Private Subnet 1 ID
       PrivateSubnet2ID:
@@ -118,6 +122,8 @@ Metadata:
         default: Existing AWS Service Broker Role ARN
       HawkularMetrics:
         default: Hawkular Metrics
+      AnsibleFromGit:
+        default: Get Ansible from Git
       CertificateArn:
         default: Certificate Arn
       DomainName:
@@ -141,6 +147,12 @@ Parameters:
     Description: Name of an existing EC2 key pair. All instances will launch with
       this key pair.
     Type: AWS::EC2::KeyPair::KeyName
+  KmsKeyId:
+    Description: 'OPTIONAL: Id of a KmsKey that will be used to encrypt all volumes.
+      Keep in mind that the key policy should allow use of the key from AWSServiceRoleForAutoScaling.
+      If no values are entered, volumes will not be encrypted.'
+    Type: AWS::KMS::Key::Id
+    Default: ''
   PrivateSubnet1ID:
     Description: ID of private subnet 1 in Availability Zone 1 for the Workload (e.g.,
       subnet-a0246dcd)
@@ -340,6 +352,13 @@ Parameters:
     AllowedValues:
       - Enabled
       - Disabled
+  AnsibleFromGit:
+    Default: False
+    Description: Get openshift installer playbooks from GitHub. By default, they come from RPM.
+    Type: String
+    AllowedValues:
+      - True
+      - False
   ClusterName:
     Default: ""
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
@@ -396,6 +415,10 @@ Conditions:
       - Enabled
     - !Equals
       - !Ref 'ExistingAWSServiceBrokerRole'
+      - ''
+  EncryptVolumes: !Not
+    - !Equals
+      - !Ref 'KmsKeyId'
       - ''
   SetupRoute53: !And
     - !Not
@@ -1206,6 +1229,14 @@ Resources:
           Ebs:
             VolumeSize: '80'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'            
       InstanceMonitoring: 'true'
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'EtcdInstanceType'
@@ -1286,10 +1317,26 @@ Resources:
           Ebs:
             VolumeSize: '80'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
         - DeviceName: /dev/xvdb
           Ebs:
             VolumeSize: '110'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
       InstanceMonitoring: 'true'
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'NodesInstanceType'
@@ -1371,10 +1418,26 @@ Resources:
           Ebs:
             VolumeSize: '80'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
         - DeviceName: /dev/xvdb
           Ebs:
             VolumeSize: '110'
             VolumeType: gp2
+            Encrypted: !If
+              - EncryptVolumes
+              - True
+              - False
+            KmsKeyId: !If
+              - EncryptVolumes
+              - !Ref 'KmsKeyId'
+              - !Ref 'AWS::NoValue'
       InstanceMonitoring: 'true'
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       InstanceType: !Ref 'MasterInstanceType'
@@ -1791,6 +1854,7 @@ Resources:
             #!/bin/bash -x
             export QSLOCATION=https://${QSS3BucketName}.${S3Region}.amazonaws.com/${QSS3KeyPrefix}
             export ENABLE_HAWKULAR=${HawkEnable}
+            export GET_ANSIBLE_FROM_GIT=${AnsibleFromGit}
             export OCP_ANSIBLE_RELEASE=${OsbRelease}
             export AWSSB_ROLE=${AwsSbRole}
             export MASTER_ELBDNSNAME=${LbHostname}
