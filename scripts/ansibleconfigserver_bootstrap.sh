@@ -64,7 +64,7 @@ qs_retry_command 10 yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
 
-if [ "${GET_ANSIBLE_FROM_GIT}" == "True" ]
+if [ "${GET_ANSIBLE_FROM_GIT}" == "True" ]; then
   CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-${OCP_ANSIBLE_RELEASE}.tar.gz
   curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz
   tar -zxf openshift-ansible.tar.gz
