@@ -60,9 +60,14 @@ qs_retry_command 10 yum -y update
 qs_retry_command 10 pip install urllib3
 qs_retry_command 10 yum -y install atomic-openshift-utils
 qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
-qs_retry_command 10 yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+
+cd /tmp
+qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
+rm ./amazon-ssm-agent.rpm
+cd -
 
 if [ "${GET_ANSIBLE_FROM_GIT}" == "True" ]; then
   CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-${OCP_ANSIBLE_RELEASE}.tar.gz
