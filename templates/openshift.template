@@ -1213,7 +1213,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL74HVM
+          - RHEL75HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -1293,7 +1293,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL74HVM
+          - RHEL75HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -1378,7 +1378,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL74HVM
+          - RHEL75HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -1785,7 +1785,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL74HVM
+          - RHEL75HVM
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       Tags:
         - Key: Name
