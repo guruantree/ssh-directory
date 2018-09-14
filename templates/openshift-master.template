@@ -128,7 +128,7 @@ Parameters:
       If the AMI is encrypted, keep in mind that the key policy should allow use of
       the key from AWSServiceRoleForAutoScaling.
       If left blank, we'll use the base RHEL image from your region.
-    Type: AWS::EC2::Image::Id
+    Type: String
     Default: ""
   AvailabilityZones:
     Description: List of Availability Zones to use for the subnets in the VPC. Three

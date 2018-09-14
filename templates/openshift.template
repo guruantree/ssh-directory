@@ -139,7 +139,7 @@ Parameters:
       If the AMI is encrypted, keep in mind that the key policy should allow use of
       the key from AWSServiceRoleForAutoScaling.
       If left blank, we'll use the base RHEL image from your region.
-    Type: AWS::EC2::Image::Id
+    Type: String
     Default: ""
   KeyPairName:
     Description: Name of an existing EC2 key pair. All instances will launch with
