@@ -29,7 +29,6 @@ Metadata:
         Parameters:
           - KeyPairName
           - AmiId
-          - KmsKeyId
       - Label:
           default: OpenShift Nodes Configuration
         Parameters:
@@ -66,8 +65,6 @@ Metadata:
         default: SSH Key Name
       AmiId:
         default: AMI ID
-      KmsKeyId:
-        default: Kms key used to encrypt volumes
       PrivateSubnet1ID:
         default: Private Subnet 1 ID
       PrivateSubnet2ID:
@@ -143,6 +140,7 @@ Parameters:
       the key from AWSServiceRoleForAutoScaling.
       If left blank, we'll use the base RHEL image from your region.
     Type: AWS::EC2::Image::Id
+    Default: ""
   KeyPairName:
     Description: Name of an existing EC2 key pair. All instances will launch with
       this key pair.

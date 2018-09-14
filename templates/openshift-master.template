@@ -27,6 +27,7 @@ Metadata:
           default: Amazon EC2 Configuration
         Parameters:
           - KeyPairName
+          - AmiId
       - Label:
           default: OpenShift Nodes Configuration
         Parameters:
@@ -57,6 +58,8 @@ Metadata:
           - QSS3KeyPrefix
           - OutputBucketName
     ParameterLabels:
+      AmiId:
+        default: AMI ID
       KeyPairName:
         default: SSH Key Name
       PrivateSubnet1CIDR:
@@ -118,6 +121,15 @@ Metadata:
       SubDomainPrefix:
         default: Subdomain Prefix
 Parameters:
+  AmiId:
+    Description: >-
+      OPTIONAL: bring your own AMI. In Enterprise environment, you might
+      need to bring your own AMI (with proxy, softwares, ...).
+      If the AMI is encrypted, keep in mind that the key policy should allow use of
+      the key from AWSServiceRoleForAutoScaling.
+      If left blank, we'll use the base RHEL image from your region.
+    Type: AWS::EC2::Image::Id
+    Default: ""
   AvailabilityZones:
     Description: List of Availability Zones to use for the subnets in the VPC. Three
       Availability Zones are used for this deployment, and the logical order of your
@@ -383,6 +395,7 @@ Resources:
         SubDomainPrefix: !Ref 'SubDomainPrefix'
         HawkularMetrics: !Ref 'HawkularMetrics'
         ClusterName: !Sub '${AWS::StackName}-${AWS::Region}'
+        AmiId: !Ref AmiId
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI
