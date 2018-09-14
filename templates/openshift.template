@@ -369,24 +369,30 @@ Rules:
 Mappings:
   AWSAMIRegionMap:
     AMI:
-      RHEL74HVM: RHEL-7.4_HVM_GA-20170808-x86_64-2-Hourly2-GP2
+      RHEL75HVM: RHEL-7.5_HVM_GA
     eu-central-1:
-      RHEL74HVM: ami-d74be5b8
+      RHEL75HVM: ami-c86c3f23
     ap-southeast-2:
-      RHEL74HVM: ami-ccecf5af
+      RHEL75HVM: ami-67589505
     eu-west-1:
-      RHEL74HVM: ami-bb9a6bc2
+      RHEL75HVM: ami-7c491f05
     us-east-1:
-      RHEL74HVM: ami-c998b6b2
+      RHEL75HVM: ami-6871a115
     us-east-2:
-      RHEL74HVM: ami-cfdafaaa
+      RHEL75HVM: ami-03291866
     us-west-2:
-      RHEL74HVM: ami-9fa343e7
+      RHEL75HVM: ami-28e07e50
     ap-northeast-1:
-      RHEL74HVM: ami-30ef0556
+      RHEL75HVM: ami-6b0d5f0d
+    eu-west-2:
+      RHEL75HVM: ami-7c1bfd1b
+    eu-west-3:
+      RHEL75HVM: ami-5026902d
+    ap-southeast-1:
+      RHEL75HVM: ami-76144b0a
   LinuxAMINameMap:
     Redhat-Enterprise-Linux-7:
-      Code: RHEL74HVM
+      Code: RHEL75HVM
   OpenshiftVersionMap:
     '3.7':
       AnsiblePlaybookGitRepoTag: 3.7.62-1
