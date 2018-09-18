@@ -1577,7 +1577,7 @@ Resources:
                 - !Ref 'ACMCertificateEmail'
             - !Ref AWS::NoValue
       HealthCheck:
-        Target: HTTPS:443/console/
+        Target: HTTPS:443/api/
         HealthyThreshold: '2'
         UnhealthyThreshold: '3'
         Interval: '30'
