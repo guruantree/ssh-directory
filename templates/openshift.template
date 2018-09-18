@@ -271,14 +271,12 @@ Parameters:
     Default: '3'
     Description: This Deployment requires 3 OpenShift Master instances
     Type: Number
-    AllowedValues:
-      - '3'
+    MinValue: '3'
   NumberOfEtcd:
     Default: '3'
     Description: This Deployment requires 3 OpenShift Etcd instances
     Type: Number
-    AllowedValues:
-      - '3'
+    MinValue: '3'
   NumberOfNodes:
     Default: '3'
     Description: The desired capacity for the OpenShift node instances
