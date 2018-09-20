@@ -270,13 +270,13 @@ Parameters:
   NumberOfMaster:
     Default: '3'
     Description: This Deployment requires 3 OpenShift Master instances
-    Type: Number
-    MinValue: '3'
+    Type: String
+    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
   NumberOfEtcd:
     Default: '3'
     Description: This Deployment requires 3 OpenShift Etcd instances
-    Type: Number
-    MinValue: '3'
+    Type: String
+    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
   NumberOfNodes:
     Default: '3'
     Description: The desired capacity for the OpenShift node instances
