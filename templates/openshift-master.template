@@ -27,6 +27,7 @@ Metadata:
           default: Amazon EC2 Configuration
         Parameters:
           - KeyPairName
+          - AmiId
       - Label:
           default: OpenShift Nodes Configuration
         Parameters:
@@ -68,6 +69,8 @@ Metadata:
           - QSS3KeyPrefix
           - OutputBucketName
     ParameterLabels:
+      AmiId:
+        default: AMI ID
       KeyPairName:
         default: SSH Key Name
       PrivateSubnet1CIDR:
@@ -151,6 +154,15 @@ Metadata:
       AggregatedLoggingDisk:
         default: Aggregated Logging Disk
 Parameters:
+  AmiId:
+    Description: >-
+      OPTIONAL: bring your own AMI. In Enterprise environment, you might
+      need to bring your own AMI (with proxy, softwares, ...).
+      If the AMI is encrypted, keep in mind that the key policy should allow use of
+      the key from AWSServiceRoleForAutoScaling.
+      If left blank, we'll use the base RHEL image from your region.
+    Type: String
+    Default: ""
   AvailabilityZones:
     Description: List of Availability Zones to use for the subnets in the VPC. Three
       Availability Zones are used for this deployment, and the logical order of your
@@ -310,14 +322,14 @@ Parameters:
     Type: String
   NumberOfMaster:
     Default: '3'
-    Description: This Deployment requires 3 OpenShift Master instances
-    Type: Number
-    AllowedValues: [ '3' ]
+    Description: This Deployment requires at least 3 OpenShift Master instances
+    Type: String
+    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
   NumberOfEtcd:
     Default: '3'
-    Description: This Deployment requires 3 OpenShift Etcd instances
-    Type: Number
-    AllowedValues: [ '3' ]
+    Description: This Deployment requires at least 3 OpenShift Etcd instances
+    Type: String
+    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
   NumberOfNodes:
     Default: '3'
     Description: The desired capacity for the OpenShift node instances
@@ -493,6 +505,7 @@ Resources:
         AggregatedLogging: !Ref AggregatedLogging
         AggregatedLoggingMemory: !Ref AggregatedLoggingMemory
         AggregatedLoggingDisk: !Ref AggregatedLoggingDisk
+        AmiId: !Ref AmiId
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI

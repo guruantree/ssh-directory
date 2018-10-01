@@ -2,6 +2,11 @@
 
 source ${P}
 
+if [ -f /quickstart/pre-install.sh ]
+then
+  /quickstart/pre-install.sh
+fi
+
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log
 
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
@@ -73,20 +78,33 @@ echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars
 
 qs_retry_command 10 yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct
+# Workaround this not-a-bug https://bugzilla.redhat.com/show_bug.cgi?id=1187057
+pip uninstall -y urllib3
 qs_retry_command 10 yum -y update
+qs_retry_command 10 pip install urllib3
 if [ "${OCP_VERSION}" == "3.9" ] ; then
     qs_retry_command 10 yum -y install atomic-openshift-utils
 fi
-qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder httpd-tools java-1.8.0-openjdk-headless
-qs_retry_command 10 yum install -y https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
+
+cd /tmp
+qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
 systemctl start amazon-ssm-agent
 systemctl enable amazon-ssm-agent
-CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-${OCP_ANSIBLE_RELEASE}.tar.gz
-curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz
-tar -zxf openshift-ansible.tar.gz
-rm -rf /usr/share/ansible
-mkdir -p /usr/share/ansible
-mv openshift-ansible-* /usr/share/ansible/openshift-ansible
+rm ./amazon-ssm-agent.rpm
+cd -
+
+if [ "${GET_ANSIBLE_FROM_GIT}" == "True" ]; then
+  CURRENT_PLAYBOOK_VERSION=https://github.com/openshift/openshift-ansible/archive/openshift-ansible-${OCP_ANSIBLE_RELEASE}.tar.gz
+  curl  --retry 5  -Ls ${CURRENT_PLAYBOOK_VERSION} -o openshift-ansible.tar.gz
+  tar -zxf openshift-ansible.tar.gz
+  rm -rf /usr/share/ansible
+  mkdir -p /usr/share/ansible
+  mv openshift-ansible-* /usr/share/ansible/openshift-ansible
+else
+  qs_retry_command 10 yum -y install openshift-ansible
+fi
 
 qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
 atomic-openshift-excluder unexclude
@@ -130,7 +148,6 @@ mkdir -p ~/.kube/
 scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
 
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
-    qs_retry_command 10 yum install -y wget
     mkdir -p ~/aws_broker_install
     cd ~/aws_broker_install
     qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
@@ -154,3 +171,8 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
 fi
 
 rm -rf /tmp/openshift_initial_*
+
+if [ -f /quickstart/post-install.sh ]
+then
+  /quickstart/post-install.sh
+fi
