@@ -755,8 +755,8 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${OutputBucket}'
                   - !Sub 'arn:aws:s3:::${OutputBucket}/*'
-                  - !Sub 'arn:aws:s3:::${RegistryBucket}'
-                  - !Sub 'arn:aws:s3:::${RegistryBucket}/*'
+                  - !If [ GreaterThan39, !Sub 'arn:aws:s3:::${RegistryBucket}', !Ref "AWS::NoValue" ]
+                  - !If [ GreaterThan39, !Sub 'arn:aws:s3:::${RegistryBucket}/*', !Ref "AWS::NoValue" ]
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
@@ -1165,12 +1165,15 @@ Resources:
                   - 'cloudwatch:ListMetrics'
                 Resource:
                   - '*'
-              - Effect: Allow
-                Action:
-                  - 's3:*'
-                Resource:
-                  - !Sub '${RegistryBucket.Arn}'
-                  - !Sub '${RegistryBucket.Arn}/*'
+              - !If
+                - GreaterThan39
+                - Effect: Allow
+                  Action:
+                    - 's3:*'
+                  Resource:
+                    - !Sub '${RegistryBucket.Arn}'
+                    - !Sub '${RegistryBucket.Arn}/*'
+                - !Ref "AWS::NoValue"
   SetupRoleProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -1428,7 +1431,7 @@ Resources:
       ImageId: !FindInMap
         - AWSAMIRegionMap
         - !Ref 'AWS::Region'
-        - RHEL74HVM
+        - RHEL75HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -2035,7 +2038,7 @@ Resources:
             export ENABLE_LOGGING=${AggregatedLogging}
             export LOGGING_MEM=${AggregatedLoggingMemory}
             export LOGGING_DISK=${AggregatedLoggingDisk}
-            export REGISTRY_BUCKET=${RegistryBucket}
+            export REGISTRY_BUCKET=${RegBucket}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
@@ -2053,6 +2056,7 @@ Resources:
             HawkEnable: !If [ EnableHawkular, "True", "False" ]
             OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
             LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
+            RegBucket: !If [ GreaterThan39, !Ref RegistryBucket, "" ]
     CreationPolicy:
       ResourceSignal:
         Timeout: PT360M
