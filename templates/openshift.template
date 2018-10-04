@@ -44,7 +44,6 @@ Metadata:
         Parameters:
           - OpenshiftContainerPlatformVersion
           - AWSServiceBroker
-          - ExistingAWSServiceBrokerRole
           - HawkularMetrics
           - AnsibleFromGit
           - ClusterName
@@ -123,8 +122,6 @@ Metadata:
         default: Output S3 Bucket Name
       AWSServiceBroker:
         default: AWS Service Broker
-      ExistingAWSServiceBrokerRole:
-        default: Existing AWS Service Broker Role ARN
       HawkularMetrics:
         default: Hawkular Metrics
       AnsibleFromGit:
@@ -332,11 +329,6 @@ Parameters:
     AllowedValues:
       - Enabled
       - Disabled
-  ExistingAWSServiceBrokerRole:
-    Default: ''
-    Description: 'OPTIONAL: Existing service role ARN for the AWS Service Broker.
-      If left blank a role with AdministratorAccess will be created'
-    Type: String
   HostedZoneID:
     Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
       will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
@@ -486,13 +478,6 @@ Conditions:
   Isio1: !Equals
     - !Ref 'GlusterStorageType'
     - io1
-  CreateAWSServiceBrokerRole: !And
-    - !Equals
-      - !Ref 'AWSServiceBroker'
-      - Enabled
-    - !Equals
-      - !Ref 'ExistingAWSServiceBrokerRole'
-      - ''
   SetupRoute53: !And
     - !Not
       - !Equals
@@ -2001,21 +1986,6 @@ Resources:
       LoadBalancerArn: !Ref OpenShiftMasterInternalELB
       Port: 443
       Protocol: TCP
-  AWSServiceBrokerCFNRole:
-    Condition: CreateAWSServiceBrokerRole
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - cloudformation.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Path: /
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AdministratorAccess
   AnsibleConfigServer:
     Type: AWS::EC2::Instance
     Metadata:
@@ -2089,7 +2059,6 @@ Resources:
             export ENABLE_HAWKULAR=${HawkEnable}
             export GET_ANSIBLE_FROM_GIT=${AnsibleFromGit}
             export OCP_ANSIBLE_RELEASE=${OsbRelease}
-            export AWSSB_ROLE=${AwsSbRole}
             export MASTER_ELBDNSNAME=${LbHostname}
             export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
             export OPENSHIFTMASTERINTERNALELB=${OpenShiftMasterInternalELB}
@@ -2126,7 +2095,6 @@ Resources:
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
           -
             S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
-            AwsSbRole: !If [ CreateAWSServiceBrokerRole, !GetAtt 'AWSServiceBrokerCFNRole.Arn', !Ref 'ExistingAWSServiceBrokerRole' ]
             HawkEnable: !If [ EnableHawkular, "True", "False" ]
             OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
             LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
