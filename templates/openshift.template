@@ -56,9 +56,6 @@ Metadata:
           - GlusterInstanceType
           - NumberOfGluster
           - AutomationBroker
-          - AggregatedLogging
-          - AggregatedLoggingMemory
-          - AggregatedLoggingDisk
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -158,12 +155,6 @@ Metadata:
         default: Gluster Storage Encrypted
       AutomationBroker:
         default: OpenSift Automation Broker
-      AggregatedLogging:
-        default: Aggregated Logging
-      AggregatedLoggingMemory:
-        default: Aggregated Logging Memory
-      AggregatedLoggingDisk:
-        default: Aggregated Logging Disk
 Parameters:
   AmiId:
     Description: >-
@@ -437,19 +428,6 @@ Parameters:
     Description: Enable the OpenShift Automation Service Broker
     Type: String
     AllowedValues: [ Enabled, Disabled ]
-  AggregatedLogging:
-    Default: Enabled
-    Description: Enable Aggregated Logging using an in cluster EFK stack
-    Type: String
-    AllowedValues: [ Enabled, Disabled ]
-  AggregatedLoggingMemory:
-    Default: 2
-    Description: Memory in GB to allocate to the ElasticSearch pod
-    Type: Number
-  AggregatedLoggingDisk:
-    Default: 20
-    Description: Persistent storage size in GB to allocate for log storage, will use glusterfs is enabled, otherwise EBS
-    Type: Number
 Rules:
   SubnetsInVPC:
     Assertions:
@@ -2130,9 +2108,6 @@ Resources:
             export VPCID=${VPCID}
             export ENABLE_AUTOMATIONBROKER=${AutomationBroker}
             export ENABLE_GLUSTERFS=${GlusterFS}
-            export ENABLE_LOGGING=${AggregatedLogging}
-            export LOGGING_MEM=${AggregatedLoggingMemory}
-            export LOGGING_DISK=${AggregatedLoggingDisk}
             export REGISTRY_BUCKET=${RegBucket}
             export SB_ROLE=${SbRole}
             export SB_TABLE=${SbTable}
