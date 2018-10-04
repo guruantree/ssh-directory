@@ -147,6 +147,7 @@ if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     sed -i "s/TARGETACCOUNTID=/TARGETACCOUNTID=${SB_ACCOUNTID}/" parameters.env
     sed -i "s/TARGETROLENAME=/TARGETROLENAME=${SB_ROLE}/" parameters.env
     sed -i "s/VPCID=/VPCID=${VPCID}/" parameters.env
+    sed -i "s/^REGION=us-east-1$/REGION=${AWS_REGION}/" parameters.env
     export KUBECONFIG=/root/.kube/config
     ./deploy.sh
     cd ../
