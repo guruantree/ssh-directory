@@ -29,7 +29,7 @@ Metadata:
           - KeyPairName
           - AmiId
       - Label:
-          default: OpenShift Nodes Configuration
+          default: OpenShift Hosts Configuration
         Parameters:
           - NumberOfMaster
           - NumberOfEtcd

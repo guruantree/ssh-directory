@@ -30,7 +30,7 @@ Metadata:
           - KeyPairName
           - AmiId
       - Label:
-          default: OpenShift Nodes Configuration
+          default: OpenShift Hosts Configuration
         Parameters:
           - NumberOfMaster
           - NumberOfEtcd
@@ -409,7 +409,7 @@ Parameters:
       - i3.8xlarge
       - i3.16xlarge
     ConstraintDescription: Must contain valid instance type
-    Description: Type of EC2 instance for the Node instances
+    Description: Type of EC2 instance for the GlusterFS instances
     Type: String
   NumberOfGluster:
     Default: '3'
