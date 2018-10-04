@@ -150,24 +150,18 @@ scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     mkdir -p ~/aws_broker_install
     cd ~/aws_broker_install
-    qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy-awsservicebroker.template.yaml
-    qs_retry_command 10 wget https://s3.amazonaws.com/awsservicebroker/scripts/deploy_aws_broker.sh
-    chmod +x deploy_aws_broker.sh
+    qs_retry_command 10 wget https://raw.githubusercontent.com/awslabs/aws-servicebroker/release-${SB_VERSION}/packaging/openshift/deploy.sh
+    qs_retry_command 10 wget https://raw.githubusercontent.com/awslabs/aws-servicebroker/release-${SB_VERSION}/packaging/openshift/aws-servicebroker.yaml
+    qs_retry_command 10 wget https://raw.githubusercontent.com/awslabs/aws-servicebroker/release-${SB_VERSION}/packaging/openshift/parameters.env
+    chmod +x deploy.sh
+    sed -i "s/TABLENAME=awssb/TABLENAME=${SB_TABLE}/" parameters.env
+    sed -i "s/TARGETACCOUNTID=/TARGETACCOUNTID=${SB_ACCOUNTID}/" parameters.env
+    sed -i "s/TARGETROLENAME=/TARGETROLENAME=${SB_ROLE}/" parameters.env
+    sed -i "s/VPCID=/VPCID=${VPCID}/" parameters.env
     export KUBECONFIG=/root/.kube/config
-    qs_retry_command 10 ./deploy_aws_broker.sh
-    aws s3 cp ${QS_S3URI}scripts/secrets.yaml ./secrets.yaml
-    sed -i "s~<CFN_ROLE_ARN>~${AWSSB_ROLE}~g" ./secrets.yaml
-    sed -i "s/<REGION>/${AWS_REGION}/" ./secrets.yaml
-    sed -i "s/<VPC_ID>/${VPCID}/" ./secrets.yaml
-    oc create -f ./secrets.yaml -n aws-service-broker
-    oc get configmap broker-config -n aws-service-broker -o yaml > aws-sb-config.yaml
-    sed -i "s/^kind: ConfigMap$/    secrets:\n&/" aws-sb-config.yaml
-    for apb in $(echo 'dh-sqs dh-sns dh-route53 dh-rdsmysql dh-emr dh-redshift dh-elasticache dh-dynamodb dh-s3 dh-athena dh-kinesis dh-kms dh-lex dh-polly dh-rdsmariadb dh-rdspostgresql dh-rekognition dh-translate'); do
-        sed -i "s/^kind: ConfigMap$/      - {apb_name: ${apb}, secret: aws-secret, title: aws-secret}\n&/" aws-sb-config.yaml
-    done
-    oc replace -f ./aws-sb-config.yaml -n aws-service-broker
-    oc rollout status dc/aws-asb  -n aws-service-broker
-    oc rollout latest aws-asb -n aws-service-broker
+    ./deploy.sh
+    cd ../
+    rm -rf ./aws_broker_install/
 fi
 
 rm -rf /tmp/openshift_initial_*

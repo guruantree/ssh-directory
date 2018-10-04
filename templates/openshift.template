@@ -941,6 +941,96 @@ Resources:
             - !Ref ClusterName
             - !Sub '${AWS::StackName}-${AWS::Region}'
           Value: owned
+  ServiceBrokerTable:
+    Type: "AWS::DynamoDB::Table"
+    Condition: EnableAWSServiceBroker
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "id"
+        AttributeType: "S"
+      - AttributeName: "userid"
+        AttributeType: "S"
+      - AttributeName: "type"
+        AttributeType: "S"
+      KeySchema:
+      - AttributeName: "id"
+        KeyType: "HASH"
+      - AttributeName: "userid"
+        KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+      - IndexName: "type-userid-index"
+        KeySchema:
+        - AttributeName: "type"
+          KeyType: "HASH"
+        - AttributeName: "userid"
+          KeyType: "RANGE"
+        Projection:
+          NonKeyAttributes:
+          - "id"
+          - "userid"
+          - "type"
+          - "locked"
+          ProjectionType: "INCLUDE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+  ServiceBrokerRole:
+    Type: "AWS::IAM::Role"
+    Condition: EnableAWSServiceBroker
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: [ !GetAtt SetupRole.Arn ]
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: servicebroker-provisioning-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: "SsmForSecretBindings"
+                Action: "ssm:PutParameter"
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+                Effect: "Allow"
+              - Sid: "AllowCfnToGetTemplates"
+                Action: "s3:GetObject"
+                Resource: "arn:aws:s3:::awsservicebroker/templates/*"
+                Effect: "Allow"
+              - Sid: "CloudFormation"
+                Action:
+                - "cloudformation:CreateStack"
+                - "cloudformation:DeleteStack"
+                - "cloudformation:DescribeStacks"
+                - "cloudformation:UpdateStack"
+                - "cloudformation:CancelUpdateStack"
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/aws-service-broker-*/*"
+                Effect: "Allow"
+              - Sid: "ServiceClassPermissions"
+                Action:
+                - "athena:*"
+                - "dynamodb:*"
+                - "kms:*"
+                - "elasticache:*"
+                - "elasticmapreduce:*"
+                - "kinesis:*"
+                - "rds:*"
+                - "redshift:*"
+                - "route53:*"
+                - "s3:*"
+                - "sns:*"
+                - "sns:*"
+                - "sqs:*"
+                - "ec2:*"
+                - "iam:*"
+                - "lambda:*"
+                Resource: "*"
+                Effect: "Allow"
   SetupRole:
     Type: AWS::IAM::Role
     Properties:
@@ -979,10 +1069,15 @@ Resources:
           - PolicyName: ServiceBroker
             PolicyDocument:
               Statement:
-                - Effect: Allow
-                  Action:
-                    - cloudformation:*
-                  Resource: '*'
+                - Action: [ "s3:GetObject", "s3:ListBucket" ]
+                  Resource: [ "arn:aws:s3:::awsservicebroker/templates/*", "arn:aws:s3:::awsservicebroker" ]
+                  Effect: "Allow"
+                - Action: [ "dynamodb:PutItem", "dynamodb:GetItem" ]
+                  Resource: !GetAtt ServiceBrokerTable.Arn
+                  Effect: "Allow"
+                - Action: [ "ssm:GetParameter", "ssm:GetParameters" ]
+                  Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+                  Effect: "Allow"
           - !Ref AWS::NoValue
         - PolicyName: K8s-AWSCloudProvider-requirements
           PolicyDocument:
@@ -2039,6 +2134,10 @@ Resources:
             export LOGGING_MEM=${AggregatedLoggingMemory}
             export LOGGING_DISK=${AggregatedLoggingDisk}
             export REGISTRY_BUCKET=${RegBucket}
+            export SB_ROLE=${SbRole}
+            export SB_TABLE=${SbTable}
+            export SB_VERSION=v1.0.0-beta.2
+            export SB_ACCOUNTID=${AWS::AccountId}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
@@ -2057,6 +2156,8 @@ Resources:
             OsbRelease: !FindInMap [ OpenshiftVersionMap, !Ref 'OpenshiftContainerPlatformVersion', AnsiblePlaybookGitRepoTag ]
             LbHostname: !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
             RegBucket: !If [ GreaterThan39, !Ref RegistryBucket, "" ]
+            SbRole: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerRole, "" ]
+            SbTable: !If [ EnableAWSServiceBroker, !Ref ServiceBrokerTable, "" ]
     CreationPolicy:
       ResourceSignal:
         Timeout: PT360M
