@@ -259,7 +259,7 @@ Parameters:
     Type: String
   OpenshiftContainerPlatformVersion:
     Description: OpenShift version to deploy
-    Default: '3.9'
+    Default: '3.10'
     Type: String
     AllowedValues: [ '3.9', '3.10' ]
   VPCCIDR:
