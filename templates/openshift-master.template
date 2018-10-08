@@ -44,6 +44,8 @@ Metadata:
           - OpenshiftContainerPlatformVersion
           - AWSServiceBroker
           - HawkularMetrics
+          - AnsibleFromGit
+          - ClusterName
           - GlusterFS
           - GlusterStorageSize
           - GlusterStorageType
@@ -143,6 +145,10 @@ Metadata:
         default: OpenSift Automation Broker
       AvailabilityZones:
         default: Availability Zones
+      AnsibleFromGit:
+        default: Get Ansible from Git
+      ClusterName:
+        default: Cluster Name
 Parameters:
   AmiId:
     Description: >-
@@ -409,6 +415,17 @@ Parameters:
     Description: Enable the OpenShift Automation Service Broker
     Type: String
     AllowedValues: [ Enabled, Disabled ]
+  AnsibleFromGit:
+    Default: False
+    Description: Get openshift installer playbooks from GitHub. By default, they come from RPM.
+    Type: String
+    AllowedValues:
+      - True
+      - False
+  ClusterName:
+    Default: ""
+    Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
+    Type: String
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
