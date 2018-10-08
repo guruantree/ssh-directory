@@ -141,6 +141,8 @@ Metadata:
         default: Gluster Storage Encrypted
       AutomationBroker:
         default: OpenSift Automation Broker
+      AvailabilityZones:
+        default: Availability Zones
 Parameters:
   AmiId:
     Description: >-
