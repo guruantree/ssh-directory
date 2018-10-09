@@ -110,7 +110,8 @@ def generate_inital_inventory_nodes(write_hosts_to_temp=False, version='3.9'):
 
     # Masters/glusterfs as nodes for the purposes of software installation.
     _children['nodes']['hosts'].update(_children['masters']['hosts'])
-    _children['nodes']['hosts'].update(_children['glusterfs']['hosts'])
+    if 'glusterfs' in _children.keys():
+        _children['nodes']['hosts'].update(_children['glusterfs']['hosts'])
 
     # Pushing the children and vars into the skeleton
     _initial_ansible_skel['OSEv3']['children'].update(_children)
