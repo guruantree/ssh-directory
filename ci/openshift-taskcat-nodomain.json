@@ -46,6 +46,11 @@
     {
         "ParameterKey": "QSS3BucketName",
         "ParameterValue": "$[taskcat_autobucket]"
+    },
+    {
+        "ParameterKey": "GlusterFS",
+        "ParameterValue": "Disabled"
     }
+
 
 ]
