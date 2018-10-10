@@ -315,12 +315,12 @@ class InventoryScaling(object):
         """
         ClassMethod to get UUID Tags from the EC2 Instance nodeID
         """
-	find_instance = ec2.Instance(nodeID)
-	i = 0
-	while i < len(find_instance.tags):
-	    if 'UUID' in find_instance.tags[i]['Key']:
-		return find_instance.tags[i]['Value']
-	    i=i+1
+        find_instance = ec2.Instance(nodeID)
+        i = 0
+        while i < len(find_instance.tags):
+            if 'UUID' in find_instance.tags[i]['Key']:
+                return find_instance.tags[i]['Value']
+            i=i+1
 			
     @classmethod
     def unsubscribe_nodes(cls, node, category):
@@ -328,12 +328,12 @@ class InventoryScaling(object):
         ClassMethod to unsubscribe nodes from RHEL subscription manager
         """
 	cls.log.debug("Unsubscribing Nodes")
-	for node_key in node:
-	    unsubscribe_url = 'http://subscription.rhn.redhat.com/subscription/consumers/', cls.get_UUID(node_key)
-	    cls.log.debug("URL : ", unsubscribe_url)
-	    conn = httplib.HTTPConnection(unsubscribe_url)
-	    conn.request("DELETE", "")
-	    response = conn.getresponse()
+        for node_key in node:
+            unsubscribe_url = 'http://subscription.rhn.redhat.com/subscription/consumers/', cls.get_UUID(node_key)
+            cls.log.debug("URL : ", unsubscribe_url)
+            conn = httplib.HTTPConnection(unsubscribe_url)
+            conn.request("DELETE", "")
+            response = conn.getresponse()
 
     @classmethod
     def add_nodes_to_section(cls, nodes, category, fluff=True, migrate=False):
