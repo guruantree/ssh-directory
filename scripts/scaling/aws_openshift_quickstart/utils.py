@@ -39,21 +39,18 @@ class InventoryConfig(object):
         "master": ["masters", "new_masters"],
         "etcd": ["etcd", "new_etcd"],
         "node": ["nodes", "new_nodes"],
-        "glusterfs": ["glusterfs", "new_glusterfs"],
         "provision": ["provision_in_progress"]
     }
     inventory_node_skel = {
         "master": [],
         "etcd": [],
         "node": [],
-        "glusterfs": [],
         "provision": []
     }
     asg_node_skel = {
         "masters": [],
         "etcd": [],
         "nodes": [],
-        "glusterfs": [],
         "provision": []
     }
     ansible_full_cfg = {}
@@ -63,8 +60,7 @@ class InventoryConfig(object):
     logical_names = {
         "OpenShiftEtcdASG": "etcd",
         "OpenShiftMasterASG": "masters",
-        "OpenShiftNodeASG": "nodes",
-        "OpenShiftGlusterASG": "glusterfs"
+        "OpenShiftNodeASG": "nodes"
     }
     stack_id = None
     ec2 = None
@@ -293,6 +289,7 @@ class InventoryScaling(object):
                     continue
                 # cls.nodes_to_remove[category] is a list of instance IDs.
                 cls.remove_node_from_section(cls.nodes_to_remove[category], category)
+		cls.unsubscribe_nodes(cls.nodes_to_remove[category], category)
         else:
             cls.log.info("No nodes were found to remove from the inventory.")
 
@@ -308,6 +305,33 @@ class InventoryScaling(object):
             cls.log.info("Complete!")
         else:
             cls.log.info("No nodes were found to add to the inventory.")
+
+
+    @classmethod
+    def get_UUID(cls, nodeID):			
+        """
+        ClassMethod to get UUID Tags from the EC2 Instance nodeID
+        """
+	find_instance = ec2.Instance(nodeID)
+	i = 0
+	while i < len(find_instance.tags):
+	    if 'UUID' in find_instance.tags[i]['Key']:
+		return find_instance.tags[i]['Value']
+	    i=i+1
+			
+    @classmethod
+    def unsubscribe_nodes(cls, node, category):
+        """
+        ClassMethod to unsubscribe nodes from RHEL subscription manager
+        """
+	cls.log.debug("Unsubscribing Nodes")
+	for node_key in node:
+	    unsubscribe_url = 'http://subscription.rhn.redhat.com/subscription/consumers/', cls.get_UUID(node_key)
+	    cls.log.debug("URL : ", unsubscribe_url)
+	    conn = httplib.HTTPConnection(unsubscribe_url)
+	    conn.request("DELETE", "")
+	    response = conn.getresponse()
+
 
     @classmethod
     def add_nodes_to_section(cls, nodes, category, fluff=True, migrate=False):
@@ -501,7 +525,7 @@ class LocalASG(object):
     Class to objectify an ASG
     """
 
-    def __init__(self, json_doc, version='3.9'):
+    def __init__(self, json_doc):
         self.log = LogUtil.get_root_logger()
         self._instances = {'list': [], "scaling": []}
         self._asg = boto3.client('autoscaling', InventoryConfig.region_name)
@@ -562,7 +586,7 @@ class LocalASG(object):
                         self.scale_in_progress_instances['launch'].append(instance)
                         self.scale_override = True
             # Grab Inventory host definitions
-            for combined_hostdef in self.generate_asg_node_hostdefs(version):
+            for combined_hostdef in self.generate_asg_node_hostdefs():
                 instance_id, hostdef = combined_hostdef
                 InventoryConfig.id_to_ip_map[instance_id] = hostdef['ip_or_dns']
                 del hostdef['ip_or_dns']
@@ -633,7 +657,7 @@ class LocalASG(object):
             return None
         return openshift_category
 
-    def generate_asg_node_hostdefs(self, version='3.9'):
+    def generate_asg_node_hostdefs(self):
         # - ADD IN FILE TO READ FROM DISK FOR DYNAMIC NODE LABELS.
         """
         Generates the host definition for populating the Ansible Inventory.
@@ -646,52 +670,34 @@ class LocalASG(object):
             if node.State['Code'] not in [0, 16]:
                 i += 1
                 continue
-            _ihd = {'instance_id': instance_id}
-            if version == '3.9':
+            _ihd = {
+                'instance_id': instance_id,
+                'openshift_node_labels': {
+                    'application_node': 'yes',
+                    'registry_node': 'yes',
+                    'router_node': 'yes',
+                    'region': 'infra',
+                    'zone': 'default'
+                }
+            }
+
+            if 'master' in self.openshift_config_category:
                 _ihd.update({
+                    'openshift_schedulable': 'true',
                     'openshift_node_labels': {
-                        'application_node': 'yes',
-                        'registry_node': 'yes',
-                        'router_node': 'yes',
-                        'region': 'infra',
+                        'region': 'primary',
                         'zone': 'default'
                     }
                 })
-
-            if version != '3.9':
-                if 'glusterfs' in self.openshift_config_category:
-                    _ihd.update({'openshift_node_group_name': 'node-config-glusterfs'})
-                else:
-                    _ihd.update({'openshift_node_group_name': 'node-config-compute-infra'})
-
-            if 'master' in self.openshift_config_category:
-                print("making schedulable")
-                _ihd.update({'openshift_schedulable': 'true'})
-                if version == '3.9':
-                    _ihd.update({
-                        'openshift_node_labels': {
-                            'region': 'primary',
-                            'zone': 'default'
-                        }
-                    })
-                else:
-                    print('setting node group')
-                    _ihd['openshift_node_group_name'] = 'node-config-master'
                 if self.elb_name:
                     # openshift_public_hostname is only needed if we're dealing with masters, and an ELB is present.
                     _ihd['openshift_public_hostname'] = self.elb_name
-            elif 'glusterfs' in self.openshift_config_category:
-                _ihd.update({
-                     'glusterfs_devices': ["/dev/xvdc"]
-                })
+
             elif 'node' not in self.openshift_config_category:
                 # Nodes don't need openshift_public_hostname (#3), or openshift_schedulable (#5)
                 # etcd only needs hostname and node labes. doing the 'if not' above addresses both
                 # of these conditions at once, as the remainder are default values prev. defined.
-                if version == '3.9':
-                    del _ihd['openshift_node_labels']
-                else:
-                    del _ihd['openshift_node_group_name']
+                del _ihd['openshift_node_labels']
 
             hostdef = {node.PrivateDnsName: _ihd, 'ip_or_dns': node.PrivateDnsName}
             i += 1
@@ -734,12 +740,12 @@ class ClusterGroups(object):
     groups = []
 
     @classmethod
-    def setup(cls, version='3.9'):
-        for group in cls._determine_cluster_groups(version):
+    def setup(cls):
+        for group in cls._determine_cluster_groups():
             cls.groups.append(group)
 
     @classmethod
-    def _determine_cluster_groups(cls, version):
+    def _determine_cluster_groups(cls):
         """
         Generator that determines what ASGs are within the cluster.
         """
@@ -747,7 +753,7 @@ class ClusterGroups(object):
         all_groups = asg.describe_auto_scaling_groups()['AutoScalingGroups']
         i = 0
         while i < len(all_groups):
-            _g = LocalASG(all_groups[i], version)
+            _g = LocalASG(all_groups[i])
             i += 1
             if _g.in_openshift_cluster:
                 yield _g
