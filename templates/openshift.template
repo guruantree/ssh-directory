@@ -472,9 +472,14 @@ Conditions:
   EnableAWSServiceBroker: !Equals
     - !Ref 'AWSServiceBroker'
     - Enabled
-  EnableGlusterFS: !Equals
-    - !Ref 'GlusterFS'
-    - Enabled
+  EnableGlusterFS: !And
+    - !Equals
+      - !Ref 'GlusterFS'
+      - Enabled
+    - !Not
+      - !Equals
+        - !Ref 'OpenshiftContainerPlatformVersion'
+        - '3.9'
   Isio1: !Equals
     - !Ref 'GlusterStorageType'
     - io1
