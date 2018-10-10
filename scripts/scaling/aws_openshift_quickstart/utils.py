@@ -292,7 +292,7 @@ class InventoryScaling(object):
                 if category == 'combined':
                     continue
                 # cls.nodes_to_remove[category] is a list of instance IDs.
-		cls.unsubscribe_nodes(cls.nodes_to_remove[category], category)
+                cls.unsubscribe_nodes(cls.nodes_to_remove[category], category)
                 cls.remove_node_from_section(cls.nodes_to_remove[category], category)
         else:
             cls.log.info("No nodes were found to remove from the inventory.")
