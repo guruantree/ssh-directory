@@ -25,3 +25,8 @@ subscription-manager repos --enable="rhel-7-server-rpms" \
     --enable="rhel-7-fast-datapath-rpms" \
     --enable="rhel-7-server-ansible-2.4-rpms" \
     --enable="rh-gluster-3-client-for-rhel-7-server-rpms"
+
+var=($(subscription-manager identity))
+UUID="${var[2]}"
+INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+aws ec2 create-tags --resources $INSTANCE_ID --tags Key=UUID,Value=$UUID --region eu-central-1

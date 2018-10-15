@@ -1719,6 +1719,7 @@ Resources:
                 Action:
                   - ec2:DescribeVolumes
                   - ec2:DeleteVolume
+                  - ec2:CreateTags
                 Resource:
                   - '*'
               - Effect: Allow
