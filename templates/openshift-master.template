@@ -481,6 +481,7 @@ Resources:
         DomainName: !Ref 'DomainName'
         SubDomainPrefix: !Ref 'SubDomainPrefix'
         HawkularMetrics: !Ref 'HawkularMetrics'
+        AnsibleFromGit: !Ref 'AnsibleFromGit'
         ClusterName: !Sub '${AWS::StackName}-${AWS::Region}'
         GlusterStorageEncrypted: !Ref GlusterStorageEncrypted
         GlusterStorageIops: !Ref GlusterStorageIops
