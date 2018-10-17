@@ -151,7 +151,7 @@ Metadata:
       GlusterStorageEncrypted:
         default: Gluster Storage Encrypted
       AutomationBroker:
-        default: OpenSift Automation Broker
+        default: OpenShift Automation Broker
 Parameters:
   AmiId:
     Description: >-
