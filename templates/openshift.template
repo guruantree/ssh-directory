@@ -963,7 +963,10 @@ Resources:
             Version: '2012-10-17'
             Statement:
               - Sid: "SsmForSecretBindings"
-                Action: "ssm:PutParameter"
+                Action:
+                - "ssm:PutParameter"
+                - "ssm:GetParameter"
+                - "ssm:GetParameters"
                 Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
                 Effect: "Allow"
               - Sid: "AllowCfnToGetTemplates"
