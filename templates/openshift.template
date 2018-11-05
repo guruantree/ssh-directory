@@ -967,7 +967,9 @@ Resources:
                 - "ssm:PutParameter"
                 - "ssm:GetParameter"
                 - "ssm:GetParameters"
-                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+                Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/Asb*"
                 Effect: "Allow"
               - Sid: "AllowCfnToGetTemplates"
                 Action: "s3:GetObject"
