@@ -39,21 +39,18 @@ class InventoryConfig(object):
         "master": ["masters", "new_masters"],
         "etcd": ["etcd", "new_etcd"],
         "node": ["nodes", "new_nodes"],
-        "glusterfs": ["glusterfs", "new_glusterfs"],
         "provision": ["provision_in_progress"]
     }
     inventory_node_skel = {
         "master": [],
         "etcd": [],
         "node": [],
-        "glusterfs": [],
         "provision": []
     }
     asg_node_skel = {
         "masters": [],
         "etcd": [],
         "nodes": [],
-        "glusterfs": [],
         "provision": []
     }
     ansible_full_cfg = {}
@@ -63,8 +60,7 @@ class InventoryConfig(object):
     logical_names = {
         "OpenShiftEtcdASG": "etcd",
         "OpenShiftMasterASG": "masters",
-        "OpenShiftNodeASG": "nodes",
-        "OpenShiftGlusterASG": "glusterfs"
+        "OpenShiftNodeASG": "nodes"
     }
     stack_id = None
     ec2 = None
@@ -275,7 +271,7 @@ class InventoryScaling(object):
                 yield all_instances[i]['Instances'][j]
                 j += 1
             i += 1
-
+			
     @classmethod
     def process_pipeline(cls):
         """
@@ -288,11 +284,11 @@ class InventoryScaling(object):
         if cls.nodes_to_remove['combined']:
             cls.log.info("We have the following nodes to remove from the inventory:")
             cls.log.info("{}".format(cls.nodes_to_remove['combined']))
+            cls.unsubscribe_nodes(cls.nodes_to_remove['combined'])
             for category in cls.nodes_to_remove.keys():
                 if category == 'combined':
                     continue
                 # cls.nodes_to_remove[category] is a list of instance IDs.
-                cls.unsubscribe_nodes(cls.nodes_to_remove[category], category)
                 cls.remove_node_from_section(cls.nodes_to_remove[category], category)
         else:
             cls.log.info("No nodes were found to remove from the inventory.")
@@ -312,29 +308,38 @@ class InventoryScaling(object):
 
     @classmethod
     def get_UUID(cls, nodeID):			
-        """
-        ClassMethod to get UUID Tags from the EC2 Instance nodeID
-        """
-        find_instance = ec2.Instance(nodeID)
+        cls.log.debug("UUID")
+        region = requests.get('http://169.254.169.254/latest/meta-data/placement/availability-zone')
+        region_name = region.text[:-1]
+        ec2 = boto3.resource('ec2', region_name)
+        ic = InventoryConfig
+        cls.log.debug("[{}] nodeID".format(nodeID))
+        ID = ic.ip_to_id_map[nodeID]
+        cls.log.debug("[{}] ID".format(ID))
+        local_instance = ec2.Instance(ID)
         i = 0
-        while i < len(find_instance.tags):
-            if 'UUID' in find_instance.tags[i]['Key']:
-                return find_instance.tags[i]['Value']
-            i=i+1
+        while i < len(local_instance.tags):
+            if 'UUID' in local_instance.tags[i]['Key']:
+                yield {'key':local_instance.tags[i]['Key'], 'value': local_instance.tags[i]['Value']}
+            i += 1
 			
     @classmethod
-    def unsubscribe_nodes(cls, node, category):
+    def unsubscribe_nodes(cls, node):
         """
         ClassMethod to unsubscribe nodes from RHEL subscription manager
         """
-	cls.log.debug("Unsubscribing Nodes")
+        cls.log.debug("Unsubscribing Nodes")
+        unsubscribe_url = "Empty_URL"
         for node_key in node:
-            unsubscribe_url = 'http://subscription.rhn.redhat.com/subscription/consumers/', cls.get_UUID(node_key)
-            cls.log.debug("URL : ", unsubscribe_url)
-            conn = httplib.HTTPConnection(unsubscribe_url)
-            conn.request("DELETE", "")
-            response = conn.getresponse()
-
+            cls.log.debug("[{}]".format(node_key))
+            tags = cls.get_UUID(node_key)
+            for tag in tags:
+                cls.log.debug("[{}] / Value [{}] - Tag".format(tag['key'], tag['value']))
+                unsubscribe_url = 'http://subscription.rhn.redhat.com/subscription/consumers/' + tag['value']
+        cls.log.debug(unsubscribe_url)
+        response = requests.delete(unsubscribe_url, verify='/etc/rhsm/ca/redhat-uep.pem')
+        cls.log.debug("[{}]".format(response.text))
+			
     @classmethod
     def add_nodes_to_section(cls, nodes, category, fluff=True, migrate=False):
         """
@@ -672,51 +677,42 @@ class LocalASG(object):
             if node.State['Code'] not in [0, 16]:
                 i += 1
                 continue
-            _ihd = {'instance_id': instance_id}
-            if version == '3.9':
-                _ihd.update({
-                    'openshift_node_labels': {
-                        'application_node': 'yes',
-                        'registry_node': 'yes',
-                        'router_node': 'yes',
-                        'region': 'infra',
-                        'zone': 'default'
-                    }
-                })
+            _ihd = {
+                'instance_id': instance_id,
+                'openshift_hostname': node.PrivateDnsName,
+                'openshift_node_labels': {
+                    'application_node': 'yes',
+                    'registry_node': 'yes',
+                    'router_node': 'yes',
+                    'region': 'infra',
+                    'zone': 'default'
+                }
+            }
 
             if version != '3.9':
-                if 'glusterfs' in self.openshift_config_category:
-                    _ihd.update({'openshift_node_group_name': 'node-config-glusterfs'})
+                if 'master' in self.openshift_config_category:
+                    _ihd.update({'openshift_node_group_name': 'node-config-master'})
                 else:
                     _ihd.update({'openshift_node_group_name': 'node-config-compute-infra'})
 
             if 'master' in self.openshift_config_category:
-                print("making schedulable")
-                _ihd.update({'openshift_schedulable': 'true'})
-                if version == '3.9':
-                    _ihd.update({
-                        'openshift_node_labels': {
-                            'region': 'primary',
-                            'zone': 'default'
-                        }
-                    })
-                else:
-                    print('setting node group')
-                    _ihd['openshift_node_group_name'] = 'node-config-master'
+                _ihd.update({
+                    'openshift_schedulable': 'true',
+                    'openshift_hostname': node.PrivateDnsName,
+                    'openshift_node_labels': {
+                        'region': 'primary',
+                        'zone': 'default'
+                    }
+                })
                 if self.elb_name:
                     # openshift_public_hostname is only needed if we're dealing with masters, and an ELB is present.
                     _ihd['openshift_public_hostname'] = self.elb_name
-            elif 'glusterfs' in self.openshift_config_category:
-                _ihd.update({
-                     'glusterfs_devices': ["/dev/xvdc"]
-                })
             elif 'node' not in self.openshift_config_category:
                 # Nodes don't need openshift_public_hostname (#3), or openshift_schedulable (#5)
                 # etcd only needs hostname and node labes. doing the 'if not' above addresses both
                 # of these conditions at once, as the remainder are default values prev. defined.
-                if version == '3.9':
-                    del _ihd['openshift_node_labels']
-                else:
+                del _ihd['openshift_node_labels']
+                if version != '3.9':
                     del _ihd['openshift_node_group_name']
 
             hostdef = {node.PrivateDnsName: _ihd, 'ip_or_dns': node.PrivateDnsName}
@@ -777,3 +773,4 @@ class ClusterGroups(object):
             i += 1
             if _g.in_openshift_cluster:
                 yield _g
+
