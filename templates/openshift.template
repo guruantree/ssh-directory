@@ -359,12 +359,12 @@ Parameters:
       - Enabled
       - Disabled
   AnsibleFromGit:
-    Default: False
+    Default: "False"
     Description: Get openshift installer playbooks from GitHub. By default, they come from RPM.
     Type: String
     AllowedValues:
-      - True
-      - False
+      - "True"
+      - "False"
   ClusterName:
     Default: ""
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
