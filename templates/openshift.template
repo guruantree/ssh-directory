@@ -2082,7 +2082,7 @@ Resources:
             export REGISTRY_BUCKET=${RegBucket}
             export SB_ROLE=${SbRole}
             export SB_TABLE=${SbTable}
-            export SB_VERSION=v1.0.0-beta.2
+            export SB_VERSION=v1.0.0-beta.3
             export SB_ACCOUNTID=${AWS::AccountId}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
