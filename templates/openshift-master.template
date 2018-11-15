@@ -363,7 +363,7 @@ Parameters:
     Type: String
     AllowedValues: [ Enabled, Disabled ]
   GlusterFS:
-    Default: Enabled
+    Default: Disabled
     Description: Enable GlusterFS storage cluster
     Type: String
     AllowedValues:

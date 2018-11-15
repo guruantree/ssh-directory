@@ -370,7 +370,7 @@ Parameters:
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
     Type: String
   GlusterFS:
-    Default: Enabled
+    Default: Disabled
     Description: Enable GlusterFS storage cluster
     Type: String
     AllowedValues:
