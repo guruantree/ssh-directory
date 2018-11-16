@@ -54,6 +54,7 @@ Metadata:
           - GlusterInstanceType
           - NumberOfGluster
           - AutomationBroker
+          - ClusterConsole
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -149,6 +150,8 @@ Metadata:
         default: Get Ansible from Git
       ClusterName:
         default: Cluster Name
+      ClusterConsole:
+        default: Enable the cluster console (Requires OpenShift 3.11)
 Parameters:
   AmiId:
     Description: >-
@@ -426,6 +429,11 @@ Parameters:
     Default: ""
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
     Type: String
+  ClusterConsole:
+    Default: Enabled
+    Description: Enable the Cluster Console
+    Type: String
+    AllowedValues: [ Enabled, Disabled ]
 Conditions:
   CustomClusterName: !Not
     - !Equals
@@ -500,6 +508,7 @@ Resources:
         GlusterFS: !Ref GlusterFS
         AutomationBroker: !Ref AutomationBroker
         AmiId: !Ref AmiId
+        ClusterConsole: !Ref ClusterConsole
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI

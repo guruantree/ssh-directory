@@ -154,7 +154,7 @@ Metadata:
       AutomationBroker:
         default: OpenShift Automation Broker
       ClusterConsole:
-        default: Enable the cluster console (needs OCP 3.11)
+        default: Enable the cluster console (requires OpenShift 3.11)
 Parameters:
   AmiId:
     Description: >-
@@ -467,18 +467,10 @@ Mappings:
   OpenshiftVersionMap:
     '3.11':
       AnsiblePlaybookGitRepoTag: 3.11.44-1
+      AnsibleVersion: 2.6.6
     '3.10':
       AnsiblePlaybookGitRepoTag: 3.10.76-1
       AnsibleVersion: 2.4.6.0
-      AnsiblePlaybookGitRepoTag: 3.9.45-1
-    '3.10':
-      AnsibleVersion: 2.4.6.0
-      AnsiblePlaybookGitRepoTag: 3.10.51-1
-      AnsiblePlaybookYumVersion: 3.10.47
-    '3.11':
-      AnsibleVersion: 2.6.6
-      AnsiblePlaybookGitRepoTag: 3.11.16-1
-      AnsiblePlaybookYumVersion: 3.11.16
 Conditions:
   GovCloudCondition: !Equals
     - !Ref 'AWS::Region'
