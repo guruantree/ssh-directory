@@ -13,9 +13,12 @@ qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSI
 chmod 755 ~/redhat_ose-register.sh
 qs_retry_command 20 ~/redhat_ose-register.sh ${RH_USER} ${RH_PASS} ${RH_POOLID}
 
-qs_retry_command 10 yum -y install ansible-2.4.6.0 yum-versionlock
-sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg
+qs_retry_command 10 yum -y install yum-versionlock
+
+qs_retry_command 10 yum -y install ansible-${ANSIBLE_VERSION}
+
 yum versionlock add ansible
+sed -i 's/#host_key_checking = False/host_key_checking = False/g' /etc/ansible/ansible.cfg
 yum repolist -v | grep OpenShift
 
 qs_retry_command 10 pip install boto3 &> /var/log/userdata.boto3_install.log
@@ -27,11 +30,9 @@ qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/aws_openshift_quickstar
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/aws_openshift_quickstart/utils.py /root/ose_scaling/aws_openshift_quickstart/utils.py
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/bin/aws-ose-qs-scale /root/ose_scaling/bin/aws-ose-qs-scale
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/setup.py /root/ose_scaling/setup.py
-if [ "${OCP_VERSION}" == "3.9" ] ; then
-    qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/predefined_openshift_vars.txt /tmp/openshift_inventory_predefined_vars
-else
-    qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/predefined_openshift_vars_3.10.txt /tmp/openshift_inventory_predefined_vars
-fi
+
+qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/predefined_openshift_vars_${OCP_VERSION}.txt /tmp/openshift_inventory_predefined_vars
+
 pip install /root/ose_scaling
 
 qs_retry_command 10 cfn-init -v --stack ${AWS_STACKNAME} --resource AnsibleConfigServer --configsets cfg_node_keys --region ${AWS_REGION}
@@ -58,10 +59,12 @@ if [ "${ENABLE_AUTOMATIONBROKER}" == "Disabled" ] ; then
     echo ansible_service_broker_install=false >> /tmp/openshift_inventory_userdata_vars
 fi
 
-if [ "${OCP_VERSION}" != "3.9" ] ; then
-    echo openshift_hosted_registry_storage_s3_bucket=${REGISTRY_BUCKET} >> /tmp/openshift_inventory_userdata_vars
-    echo openshift_hosted_registry_storage_s3_region=${AWS_REGION} >> /tmp/openshift_inventory_userdata_vars
+if [ "${ENABLE_CLUSTERCONSOLE}" == "Disabled" ] && [ "${OCP_VERSION}" == "3.11" ] ; then
+    echo openshift_console_install=false >> /tmp/openshift_inventory_userdata_vars
 fi
+
+echo openshift_hosted_registry_storage_s3_bucket=${REGISTRY_BUCKET} >> /tmp/openshift_inventory_userdata_vars
+echo openshift_hosted_registry_storage_s3_region=${AWS_REGION} >> /tmp/openshift_inventory_userdata_vars
 
 echo openshift_master_api_port=443 >> /tmp/openshift_inventory_userdata_vars
 echo openshift_master_console_port=443 >> /tmp/openshift_inventory_userdata_vars
@@ -71,9 +74,6 @@ qs_retry_command 10 yum -y install wget git net-tools bind-utils iptables-servic
 pip uninstall -y urllib3
 qs_retry_command 10 yum -y update
 qs_retry_command 10 pip install urllib3
-if [ "${OCP_VERSION}" == "3.9" ] ; then
-    qs_retry_command 10 yum -y install atomic-openshift-utils
-fi
 qs_retry_command 10 yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
 
 cd /tmp
@@ -107,7 +107,7 @@ qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/playbooks/pre_scaledown.yml /us
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/playbooks/remove_node_from_etcd_cluster.yml /usr/share/ansible/openshift-ansible/
 
 ASG_COUNT=3
-if [ "${ENABLE_GLUSTERFS}" == "Enabled" ] && [ "${OCP_VERSION}" != "3.9" ] ; then
+if [ "${ENABLE_GLUSTERFS}" == "Enabled" ] ; then
     ASG_COUNT=4
 fi
 while [ $(aws cloudformation describe-stack-events --stack-name ${AWS_STACKNAME} --region ${AWS_REGION} --query 'StackEvents[?ResourceStatus == `CREATE_COMPLETE` && ResourceType == `AWS::AutoScaling::AutoScalingGroup`].LogicalResourceId' --output json | grep -c 'OpenShift') -lt ${ASG_COUNT} ] ; do
@@ -133,13 +133,17 @@ ansible-playbook /usr/share/ansible/openshift-ansible/bootstrap_wrapper.yml > /v
 ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml >> /var/log/bootstrap.log
 ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml >> /var/log/bootstrap.log
 
-ansible masters -a "htpasswd -b /etc/origin/master/htpasswd admin ${OCP_PASS}"
 aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG} --scaling-processes HealthCheck --region ${AWS_REGION}
 
 qs_retry_command 10 yum install -y atomic-openshift-clients
 AWSSB_SETUP_HOST=$(head -n 1 /tmp/openshift_initial_masters)
+
+ansible masters -a "htpasswd -b /etc/origin/master/htpasswd admin ${OCP_PASS}"
+oc login --insecure-skip-tls-verify -u admin -p "${OCP_PASS}" https://${AWSSB_SETUP_HOST}
+
+rm -rf ~/.kube
 mkdir -p ~/.kube/
-scp $AWSSB_SETUP_HOST:~/.kube/config ~/.kube/config
+scp $AWSSB_SETUP_HOST:/etc/origin/master/admin.kubeconfig ~/.kube/config
 
 if [ "${ENABLE_AWSSB}" == "Enabled" ]; then
     mkdir -p ~/aws_broker_install
