@@ -469,7 +469,7 @@ Mappings:
       AnsiblePlaybookGitRepoTag: 3.11.44-1
       AnsibleVersion: 2.6.6
     '3.10':
-      AnsiblePlaybookGitRepoTag: 3.10.76-1
+      AnsiblePlaybookGitRepoTag: 3.10.79-1
       AnsibleVersion: 2.4.6.0
 Conditions:
   GovCloudCondition: !Equals
