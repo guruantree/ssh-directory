@@ -275,7 +275,7 @@ class InventoryScaling(object):
                 yield all_instances[i]['Instances'][j]
                 j += 1
             i += 1
-			
+
     @classmethod
     def process_pipeline(cls):
         """
@@ -326,7 +326,7 @@ class InventoryScaling(object):
             if 'UUID' in local_instance.tags[i]['Key']:
                 yield {'key':local_instance.tags[i]['Key'], 'value': local_instance.tags[i]['Value']}
             i += 1
-			
+
     @classmethod
     def unsubscribe_nodes(cls, node):
         """
@@ -343,7 +343,7 @@ class InventoryScaling(object):
         cls.log.debug(unsubscribe_url)
         response = requests.delete(unsubscribe_url, verify='/etc/rhsm/ca/redhat-uep.pem')
         cls.log.debug("[{}]".format(response.text))
-			
+
     @classmethod
     def add_nodes_to_section(cls, nodes, category, fluff=True, migrate=False):
         """
