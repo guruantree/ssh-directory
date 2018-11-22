@@ -1,11 +1,13 @@
+#!/bin/bash
 #Attach to Subscription pool
-REDHAT_USERNAME=$1
-REDHAT_PASSWORD=$2
-REDHAT_POOLID=$3
 
 yum clean all
 rm -rf /var/cache/yum
 
+CREDS=$(aws secretsmanager get-secret-value --secret-id ${1} --region ${AWS_REGION} --query SecretString --output text)
+REDHAT_USERNAME=$(echo ${CREDS} | jq -r .user)
+REDHAT_PASSWORD=$(echo ${CREDS} | jq -r .password)
+REDHAT_POOLID=$(echo ${CREDS} | jq -r .poolid)
 
 subscription-manager register --username=${REDHAT_USERNAME} --password=${REDHAT_PASSWORD} --force
 if [ $? -ne 0 ]; then
@@ -28,5 +30,4 @@ subscription-manager repos --enable="rhel-7-server-rpms" \
 
 var=($(subscription-manager identity))
 UUID="${var[2]}"
-INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
 aws ec2 create-tags --resources $INSTANCE_ID --tags Key=UUID,Value=$UUID --region ${AWS_REGION}

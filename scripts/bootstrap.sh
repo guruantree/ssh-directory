@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
 source ${P}
-INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
 qs_cloudwatch_install
 systemctl stop awslogs
 cat << EOF > /var/awslogs/etc/awslogs.conf
@@ -26,9 +26,10 @@ fi
 
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || true
 
+qs_retry_command 10 yum -y install jq
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
 chmod 755 ~/redhat_ose-register.sh
-qs_retry_command 25 ~/redhat_ose-register.sh ${RH_USER} ${RH_PASS} ${RH_POOLID}
+qs_retry_command 25 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
 
 mkdir -p /etc/aws/
 printf "[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n" > /etc/aws/aws.conf

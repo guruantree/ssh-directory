@@ -548,6 +548,14 @@ Conditions:
       - !Ref ClusterName
       - ""
 Resources:
+  OpenShiftPasswordSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      SecretString: !Ref OpenShiftAdminPassword
+  RedhatSubscriptionSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      SecretString: !Sub '{"user":"${RedhatSubscriptionUserName}","password":"${RedhatSubscriptionPassword}","poolid":"${RedhatSubscriptionPoolID}"}'
   RegistryBucket:
     Type: "AWS::S3::Bucket"
   Route53HostedSubdomainZone:
@@ -1240,6 +1248,12 @@ Resources:
                 Resource:
                   - !Sub '${RegistryBucket.Arn}'
                   - !Sub '${RegistryBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                - 'secretsmanager:GetSecretValue'
+                Resource:
+                - !Ref RedhatSubscriptionSecret
+                - !Ref OpenShiftPasswordSecret
   SetupRoleProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -1451,7 +1465,7 @@ Resources:
             export AWS_STACKNAME=${AWS::StackName}
             export RH_POOLID=${RedhatSubscriptionPoolID}
             export RH_USER=${RedhatSubscriptionUserName}
-            export RH_PASS='${RedhatSubscriptionPassword}'
+            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftGlusterLaunchConfig
             export LOG_GROUP=${OpenshiftLogGroup}
@@ -1530,7 +1544,7 @@ Resources:
             export AWS_STACKNAME=${AWS::StackName}
             export RH_POOLID=${RedhatSubscriptionPoolID}
             export RH_USER=${RedhatSubscriptionUserName}
-            export RH_PASS='${RedhatSubscriptionPassword}'
+            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftEtcdLaunchConfig
             export LOG_GROUP=${OpenshiftLogGroup}
@@ -1613,7 +1627,7 @@ Resources:
             export AWS_STACKNAME=${AWS::StackName}
             export RH_POOLID=${RedhatSubscriptionPoolID}
             export RH_USER=${RedhatSubscriptionUserName}
-            export RH_PASS='${RedhatSubscriptionPassword}'
+            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftNodesLaunchConfig
             export LOG_GROUP=${OpenshiftLogGroup}
@@ -1696,7 +1710,7 @@ Resources:
             export AWS_STACKNAME=${AWS::StackName}
             export RH_POOLID=${RedhatSubscriptionPoolID}
             export RH_USER=${RedhatSubscriptionUserName}
-            export RH_PASS='${RedhatSubscriptionPassword}'
+            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftMasterASLaunchConfig
             export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
@@ -2085,11 +2099,11 @@ Resources:
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export ANSIBLE_VERSION=${AnsibleVersion}
             export RH_USER=${RedhatSubscriptionUserName}
-            export RH_PASS='${RedhatSubscriptionPassword}'
+            export RH_CREDS_ARN='${RedhatSubscriptionSecret}'
             export RH_POOLID=${RedhatSubscriptionPoolID}
             export AWS_STACKNAME=${AWS::StackName}
             export QS_S3URI=s3://${QSS3BucketName}/${QSS3KeyPrefix}
-            export OCP_PASS='${OpenShiftAdminPassword}'
+            export OCP_PASS_ARN='${OpenShiftPasswordSecret}'
             export AWS_STACKID=${AWS::StackId}
             export ENABLE_AWSSB=${AWSServiceBroker}
             export VPCID=${VPCID}

@@ -2,7 +2,7 @@
 
 source ${P}
 
-INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
 qs_cloudwatch_install
 systemctl stop awslogs
 cat << EOF > /var/awslogs/etc/awslogs.conf
@@ -42,9 +42,10 @@ fi
 
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log
 
+qs_retry_command 10 yum -y install jq
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
 chmod 755 ~/redhat_ose-register.sh
-qs_retry_command 20 ~/redhat_ose-register.sh ${RH_USER} ${RH_PASS} ${RH_POOLID}
+qs_retry_command 20 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
 
 qs_retry_command 10 yum -y install yum-versionlock
 
@@ -171,8 +172,11 @@ aws autoscaling resume-processes --auto-scaling-group-name ${OPENSHIFTMASTERASG}
 qs_retry_command 10 yum install -y atomic-openshift-clients
 AWSSB_SETUP_HOST=$(head -n 1 /tmp/openshift_initial_masters)
 
+set +x
+OCP_PASS=$(aws secretsmanager get-secret-value --secret-id  ${OCP_PASS_ARN} --region ${AWS_REGION} --query SecretString --output text)
 ansible masters -a "htpasswd -b /etc/origin/master/htpasswd admin ${OCP_PASS}"
 oc login --insecure-skip-tls-verify -u admin -p "${OCP_PASS}" https://${AWSSB_SETUP_HOST}
+set -x
 
 rm -rf ~/.kube
 mkdir -p ~/.kube/
