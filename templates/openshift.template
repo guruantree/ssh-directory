@@ -1453,6 +1453,7 @@ Resources:
             export RH_PASS='${RedhatSubscriptionPassword}'
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftGlusterLaunchConfig
+            export LOG_GROUP=${OpenshiftLogGroup}
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
@@ -1531,6 +1532,7 @@ Resources:
             export RH_PASS='${RedhatSubscriptionPassword}'
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftEtcdLaunchConfig
+            export LOG_GROUP=${OpenshiftLogGroup}
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
@@ -1613,6 +1615,7 @@ Resources:
             export RH_PASS='${RedhatSubscriptionPassword}'
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftNodesLaunchConfig
+            export LOG_GROUP=${OpenshiftLogGroup}
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
@@ -1696,6 +1699,7 @@ Resources:
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export LAUNCH_CONFIG=OpenShiftMasterASLaunchConfig
             export INTERNAL_MASTER_ELBDNSNAME=${OpenShiftMasterInternalELB.DNSName}
+            export LOG_GROUP=${OpenshiftLogGroup}
             aws s3 cp ${!QS_S3URI}scripts/bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
             ./bootstrap.sh || qs_err " bootstrapping failed, see logs for details "
@@ -2096,6 +2100,7 @@ Resources:
             export SB_TABLE=${SbTable}
             export SB_VERSION=v1.0.0-beta.3
             export SB_ACCOUNTID=${AWS::AccountId}
+            export LOG_GROUP=${OpenshiftLogGroup}
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source

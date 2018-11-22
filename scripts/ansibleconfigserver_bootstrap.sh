@@ -2,6 +2,39 @@
 
 source ${P}
 
+INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+qs_cloudwatch_install
+systemctl stop awslogs
+cat << EOF > /var/awslogs/etc/awslogs.conf
+[general]
+state_file = /var/awslogs/state/agent-state
+
+[/var/log/messages]
+buffer_duration = 5000
+log_group_name = ${LOG_GROUP}
+file = /var/log/messages
+log_stream_name = ${INSTANCE_ID}/var/log/messages
+initial_position = start_of_file
+datetime_format = %b %d %H:%M:%S
+
+[/var/log/ansible.log]
+buffer_duration = 5000
+log_group_name = ${LOG_GROUP}
+file = /var/log/ansible.log
+log_stream_name = ${INSTANCE_ID}/var/log/ansible.log
+initial_position = start_of_file
+datetime_format = %b %d %H:%M:%S
+
+[/var/log/openshift-quickstart-scaling.log]
+buffer_duration = 5000
+log_group_name = ${LOG_GROUP}
+file = /var/log/openshift-quickstart-scaling.log
+log_stream_name = ${INSTANCE_ID}/var/log/openshift-quickstart-scaling.log
+initial_position = start_of_file
+datetime_format = %b %d %H:%M:%S
+EOF
+systemctl start awslogs
+
 if [ -f /quickstart/pre-install.sh ]
 then
   /quickstart/pre-install.sh
