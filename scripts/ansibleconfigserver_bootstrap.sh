@@ -4,7 +4,7 @@ source ${P}
 
 export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
 qs_cloudwatch_install
-systemctl stop awslogs
+systemctl stop awslogs || true
 cat << EOF > /var/awslogs/etc/awslogs.conf
 [general]
 state_file = /var/awslogs/state/agent-state
@@ -33,7 +33,7 @@ log_stream_name = ${INSTANCE_ID}/var/log/openshift-quickstart-scaling.log
 initial_position = start_of_file
 datetime_format = %b %d %H:%M:%S
 EOF
-systemctl start awslogs
+systemctl start awslogs || true
 
 if [ -f /quickstart/pre-install.sh ]
 then
