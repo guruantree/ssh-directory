@@ -1248,6 +1248,7 @@ Resources:
         - !Ref 'SetupRole'
   OpenshiftLogGroup:
     Type: 'AWS::Logs::LogGroup'
+    DeletionPolicy: Retain
     Properties:
       RetentionInDays: 7
   OpenShiftMasterASG:
