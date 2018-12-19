@@ -87,6 +87,7 @@ if [ "${ENABLE_HAWKULAR}" == "True" ] ; then
     echo openshift_metrics_install_metrics=true >> /tmp/openshift_inventory_userdata_vars
     echo openshift_metrics_start_cluster=true >> /tmp/openshift_inventory_userdata_vars
     echo openshift_metrics_cassandra_storage_type=dynamic >> /tmp/openshift_inventory_userdata_vars
+    qs_retry_command 10 yum install -y httpd-tools java-1.8.0-openjdk-headless
 fi
 
 if [ "${ENABLE_AUTOMATIONBROKER}" == "Disabled" ] ; then

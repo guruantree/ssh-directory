@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/bin/bash -e
+
+source ${P}
+
 #Attach to Subscription pool
 
 yum clean all
@@ -9,19 +12,10 @@ REDHAT_USERNAME=$(echo ${CREDS} | jq -r .user)
 REDHAT_PASSWORD=$(echo ${CREDS} | jq -r .password)
 REDHAT_POOLID=$(echo ${CREDS} | jq -r .poolid)
 
-subscription-manager register --username=${REDHAT_USERNAME} --password=${REDHAT_PASSWORD} --force
-if [ $? -ne 0 ]; then
-	subscription-manager clean
-	subscription-manager register --username=${REDHAT_USERNAME} --password=${REDHAT_PASSWORD} --force
-fi
-
-subscription-manager status
-if [ $? -eq 0 ]; then
-	exit 1
-fi
-
-subscription-manager attach --pool=${REDHAT_POOLID}
-subscription-manager repos --enable="rhel-7-server-rpms" \
+qs_retry_command 20 subscription-manager register --username=${REDHAT_USERNAME} --password=${REDHAT_PASSWORD} --force
+qs_retry_command 20 subscription-manager attach --pool=${REDHAT_POOLID}
+qs_retry_command 20 subscription-manager status
+qs_retry_command 20 subscription-manager repos --enable="rhel-7-server-rpms" \
     --enable="rhel-7-server-extras-rpms" \
     --enable="rhel-7-server-ose-3.10-rpms" \
     --enable="rhel-7-fast-datapath-rpms" \
@@ -30,4 +24,4 @@ subscription-manager repos --enable="rhel-7-server-rpms" \
 
 var=($(subscription-manager identity))
 UUID="${var[2]}"
-aws ec2 create-tags --resources $INSTANCE_ID --tags Key=UUID,Value=$UUID --region ${AWS_REGION}
+aws ec2 create-tags --resources ${INSTANCE_ID} --tags Key=UUID,Value=$UUID --region ${AWS_REGION}

@@ -37,7 +37,7 @@ printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGIO
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
 if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
-    yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
+    qs_retry_command 10 yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     systemctl enable docker.service
     qs_retry_command 20 'systemctl start docker.service'
     echo "CONTAINER_THINPOOL=docker-pool" >> /etc/sysconfig/docker-storage-setup
@@ -47,7 +47,7 @@ if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
     systemctl stop docker
     rm -rf /var/lib/docker
     docker-storage-setup
-    systemctl start docker
+    qs_retry_command 10 systemctl start docker
 fi
 
 qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${LAUNCH_CONFIG} --configsets quickstart --region ${AWS_REGION}
