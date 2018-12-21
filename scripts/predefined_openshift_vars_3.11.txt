@@ -1,5 +1,5 @@
 ---
-oreg_url: registry.redhat.io/openshift3/ose-${component}:${version}
+oreg_url: registry.access.redhat.com/openshift3/ose-${component}:${version}
 openshift_examples_modify_imagestreams: 'true'
 ansible_ssh_user: root
 openshift_deployment_type: openshift-enterprise
@@ -10,10 +10,10 @@ openshift_router_selector: 'router_node=true'
 openshift_registry_selector: 'registry_node=true'
 openshift_clusterid: owned
 openshift_cloudprovider_kind: aws
-openshift_cockpit_deployer_image: 'registry.redhat.io/openshift3/registry-console:v3.11'
-openshift_storage_glusterfs_image: registry.redhat.io/rhgs3/rhgs-server-rhel7:v3.11
-openshift_storage_glusterfs_block_image: registry.redhat.io/rhgs3/rhgs-gluster-block-prov-rhel7:v3.11
-openshift_storage_glusterfs_heketi_image: registry.redhat.io/rhgs3/rhgs-volmanager-rhel7:v3.11
+openshift_cockpit_deployer_image: 'registry.access.redhat.com/openshift3/registry-console:v3.11'
+openshift_storage_glusterfs_image: registry.access.redhat.com/rhgs3/rhgs-server-rhel7:v3.11
+openshift_storage_glusterfs_block_image: registry.access.redhat.com/rhgs3/rhgs-gluster-block-prov-rhel7:v3.11
+openshift_storage_glusterfs_heketi_image: registry.access.redhat.com/rhgs3/rhgs-volmanager-rhel7:v3.11
 openshift_storage_glusterfs_s3_deploy: 'false'
 openshift_hosted_registry_storage_kind: object
 openshift_hosted_registry_storage_provider: s3
