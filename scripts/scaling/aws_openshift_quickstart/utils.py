@@ -459,9 +459,9 @@ class InventoryScaling(object):
             cls.nodes_to_add[category] = []
         # Pruning down to category only.
         cat_results = {
-            'succeeded': [x for x in succeeded if x in cls.nodes_to_add[category]],
-            'failed': [x for x in failed if x in cls.nodes_to_add[category]],
-            'unreachable': [x for x in unreachable if x in cls.nodes_to_add[category]]
+            'succeeded': [x.encode('ascii', 'ignore') for x in succeeded if x in cls.nodes_to_add[category]],
+            'failed': [x.encode('ascii', 'ignore') for x in failed if x in cls.nodes_to_add[category]],
+            'unreachable': [x.encode('ascii', 'ignore') for x in unreachable if x in cls.nodes_to_add[category]]
         }
         cls.ansible_results[category] = cat_results
         cls.log.info("- [{}] playbook run results: {}".format(category, cat_results))
