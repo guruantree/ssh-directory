@@ -333,15 +333,11 @@ class InventoryScaling(object):
         cls.log.debug("Secret")
         region = requests.get('http://169.254.169.254/latest/meta-data/placement/availability-zone')
         region_name = region.text[:-1]
+        cf = boto3.client('cloudformation', region_name)
+        secret_id = cf.describe_stack_resource(StackName=InventoryConfig.stack_id, LogicalResourceId='RedhatSubscriptionSecret')['StackResourceDetail']['PhysicalResourceId']
         secrets = boto3.client('secretsmanager', region_name)
-        for secret in secrets.list_secrets()['SecretList']:
-            for tag in secret['Tags']:
-                if tag['Key']=='aws:cloudformation:stack-id' and tag['Value']==InventoryConfig.stack_id:
-                    for tag in secret['Tags']:
-                        if tag['Key']=='aws:cloudformation:logical-id' and tag['Value']=='RedhatSubscriptionSecret':
-                            secret_name = secret['Name']
-                            secret_value = secrets.get_secret_value(SecretId=secret_name)['SecretString']
-                            return {'user': ast.literal_eval(secret_value)['user'], 'password': ast.literal_eval(secret_value)['password']}
+        secret_value = secrets.get_secret_value(SecretId=secret_id)['SecretString']
+        return {'user': ast.literal_eval(secret_value)['user'], 'password': ast.literal_eval(secret_value)['password']}
     
     @classmethod
     def unsubscribe_nodes(cls, node):
