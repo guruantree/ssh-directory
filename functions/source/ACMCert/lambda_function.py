@@ -55,7 +55,7 @@ def handler(event, context):
             try:
                 r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
             except Exception as e:
-                if not str(e).endswith('but it already exists'):
+                if 'but it already exists' not in str(e):
                     raise
             while 'PENDING_VALIDATION' in [v['ValidationStatus'] for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:
                 print('waiting for validation to complete')
