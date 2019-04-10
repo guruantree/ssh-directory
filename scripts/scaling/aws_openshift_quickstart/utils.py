@@ -8,6 +8,7 @@ import json
 import os
 import operator
 import yaml
+import ast
 from aws_openshift_quickstart.logger import LogUtil
 
 
@@ -326,7 +327,19 @@ class InventoryScaling(object):
             if 'UUID' in local_instance.tags[i]['Key']:
                 yield {'key':local_instance.tags[i]['Key'], 'value': local_instance.tags[i]['Value']}
             i += 1
-
+    
+    @classmethod
+    def get_secret(cls):
+        cls.log.debug("Secret")
+        identity = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/document').text
+        region = json.loads(identity)['region']
+        region_name = region.text[:-1]
+        cf = boto3.client('cloudformation', region_name)
+        secret_id = cf.describe_stack_resource(StackName=InventoryConfig.stack_id, LogicalResourceId='RedhatSubscriptionSecret')['StackResourceDetail']['PhysicalResourceId']
+        secrets = boto3.client('secretsmanager', region_name)
+        secret_value = secrets.get_secret_value(SecretId=secret_id)['SecretString']
+        return {'user': ast.literal_eval(secret_value)['user'], 'password': ast.literal_eval(secret_value)['password']}
+    
     @classmethod
     def unsubscribe_nodes(cls, node):
         """
@@ -339,9 +352,10 @@ class InventoryScaling(object):
             tags = cls.get_UUID(node_key)
             for tag in tags:
                 cls.log.debug("[{}] / Value [{}] - Tag".format(tag['key'], tag['value']))
-                unsubscribe_url = 'http://subscription.rhn.redhat.com/subscription/consumers/' + tag['value']
+                unsubscribe_url = 'https://subscription.rhn.redhat.com/subscription/consumers/' + tag['value']
         cls.log.debug(unsubscribe_url)
-        response = requests.delete(unsubscribe_url, verify='/etc/rhsm/ca/redhat-uep.pem')
+        auth = cls.get_secret()
+        response = requests.delete(unsubscribe_url, verify='/etc/rhsm/ca/redhat-uep.pem', auth=(auth['user'],auth['password']))
         cls.log.debug("[{}]".format(response.text))
 
     @classmethod
