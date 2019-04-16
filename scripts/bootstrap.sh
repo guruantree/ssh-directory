@@ -1,6 +1,23 @@
 #!/bin/bash -xe
 
 source ${P}
+export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
+qs_cloudwatch_install
+systemctl stop awslogs || true
+cat << EOF > /var/awslogs/etc/awslogs.conf
+[general]
+state_file = /var/awslogs/state/agent-state
+
+[/var/log/messages]
+buffer_duration = 5000
+log_group_name = ${LOG_GROUP}
+file = /var/log/messages
+log_stream_name = ${INSTANCE_ID}/var/log/messages
+initial_position = start_of_file
+datetime_format = %b %d %H:%M:%S
+
+EOF
+systemctl start awslogs || true
 
 if [ -f /quickstart/pre-install.sh ]
 then
@@ -9,9 +26,10 @@ fi
 
 qs_enable_epel &> /var/log/userdata.qs_enable_epel.log || true
 
+qs_retry_command 10 yum -y install jq
 qs_retry_command 25 aws s3 cp ${QS_S3URI}scripts/redhat_ose-register-${OCP_VERSION}.sh ~/redhat_ose-register.sh
 chmod 755 ~/redhat_ose-register.sh
-qs_retry_command 25 ~/redhat_ose-register.sh ${RH_USER} ${RH_PASS} ${RH_POOLID}
+qs_retry_command 25 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
 
 mkdir -p /etc/aws/
 printf "[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n" > /etc/aws/aws.conf
@@ -19,11 +37,7 @@ printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGIO
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
 if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
-    if [ "${OCP_VERSION}" != "3.9" ] ; then
-        yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
-    else
-        yum install docker-client-1.12.6 docker-common-1.12.6 docker-rhel-push-plugin-1.12.6 docker-1.12.6 -y
-    fi
+    qs_retry_command 10 yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     systemctl enable docker.service
     qs_retry_command 20 'systemctl start docker.service'
     echo "CONTAINER_THINPOOL=docker-pool" >> /etc/sysconfig/docker-storage-setup
@@ -33,7 +47,7 @@ if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
     systemctl stop docker
     rm -rf /var/lib/docker
     docker-storage-setup
-    systemctl start docker
+    qs_retry_command 10 systemctl start docker
 fi
 
 qs_retry_command 10 cfn-init -v  --stack ${AWS_STACKNAME} --resource ${LAUNCH_CONFIG} --configsets quickstart --region ${AWS_REGION}

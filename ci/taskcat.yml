@@ -19,17 +19,17 @@ global:
     - us-west-2
   reporting: true
 tests:
-  openshift310:
+  openshift311:
     parameter_input: openshift-taskcat.json
     regions:
       - us-west-2
     template_file: openshift-master.template
-  openshift39:
-    parameter_input: openshift-taskcat39.json
+  openshift310:
+    parameter_input: openshift-taskcat310.json
     regions:
       - us-east-2
     template_file: openshift-master.template
-  openshift-nodomain:
+  openshift-nodomain-gluster:
     parameter_input: openshift-taskcat-nodomain.json
     regions:
       - us-east-1

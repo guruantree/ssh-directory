@@ -8,6 +8,7 @@ import json
 import os
 import operator
 import yaml
+import ast
 from aws_openshift_quickstart.logger import LogUtil
 
 
@@ -288,11 +289,11 @@ class InventoryScaling(object):
         if cls.nodes_to_remove['combined']:
             cls.log.info("We have the following nodes to remove from the inventory:")
             cls.log.info("{}".format(cls.nodes_to_remove['combined']))
+            cls.unsubscribe_nodes(cls.nodes_to_remove['combined'])
             for category in cls.nodes_to_remove.keys():
                 if category == 'combined':
                     continue
                 # cls.nodes_to_remove[category] is a list of instance IDs.
-                cls.unsubscribe_nodes(cls.nodes_to_remove[category], category)
                 cls.remove_node_from_section(cls.nodes_to_remove[category], category)
         else:
             cls.log.info("No nodes were found to remove from the inventory.")
@@ -312,28 +313,50 @@ class InventoryScaling(object):
 
     @classmethod
     def get_UUID(cls, nodeID):			
-        """
-        ClassMethod to get UUID Tags from the EC2 Instance nodeID
-        """
-        find_instance = ec2.Instance(nodeID)
+        cls.log.debug("UUID")
+        region = requests.get('http://169.254.169.254/latest/meta-data/placement/availability-zone')
+        region_name = region.text[:-1]
+        ec2 = boto3.resource('ec2', region_name)
+        ic = InventoryConfig
+        cls.log.debug("[{}] nodeID".format(nodeID))
+        ID = ic.ip_to_id_map[nodeID]
+        cls.log.debug("[{}] ID".format(ID))
+        local_instance = ec2.Instance(ID)
         i = 0
-        while i < len(find_instance.tags):
-            if 'UUID' in find_instance.tags[i]['Key']:
-                return find_instance.tags[i]['Value']
-            i=i+1
-			
+        while i < len(local_instance.tags):
+            if 'UUID' in local_instance.tags[i]['Key']:
+                yield {'key':local_instance.tags[i]['Key'], 'value': local_instance.tags[i]['Value']}
+            i += 1
+    
     @classmethod
-    def unsubscribe_nodes(cls, node, category):
+    def get_secret(cls):
+        cls.log.debug("Secret")
+        identity = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/document').text
+        region = json.loads(identity)['region']
+        region_name = region.text[:-1]
+        cf = boto3.client('cloudformation', region_name)
+        secret_id = cf.describe_stack_resource(StackName=InventoryConfig.stack_id, LogicalResourceId='RedhatSubscriptionSecret')['StackResourceDetail']['PhysicalResourceId']
+        secrets = boto3.client('secretsmanager', region_name)
+        secret_value = secrets.get_secret_value(SecretId=secret_id)['SecretString']
+        return {'user': ast.literal_eval(secret_value)['user'], 'password': ast.literal_eval(secret_value)['password']}
+    
+    @classmethod
+    def unsubscribe_nodes(cls, node):
         """
         ClassMethod to unsubscribe nodes from RHEL subscription manager
         """
-	cls.log.debug("Unsubscribing Nodes")
+        cls.log.debug("Unsubscribing Nodes")
+        unsubscribe_url = "Empty_URL"
         for node_key in node:
-            unsubscribe_url = 'http://subscription.rhn.redhat.com/subscription/consumers/', cls.get_UUID(node_key)
-            cls.log.debug("URL : ", unsubscribe_url)
-            conn = httplib.HTTPConnection(unsubscribe_url)
-            conn.request("DELETE", "")
-            response = conn.getresponse()
+            cls.log.debug("[{}]".format(node_key))
+            tags = cls.get_UUID(node_key)
+            for tag in tags:
+                cls.log.debug("[{}] / Value [{}] - Tag".format(tag['key'], tag['value']))
+                unsubscribe_url = 'https://subscription.rhn.redhat.com/subscription/consumers/' + tag['value']
+        cls.log.debug(unsubscribe_url)
+        auth = cls.get_secret()
+        response = requests.delete(unsubscribe_url, verify='/etc/rhsm/ca/redhat-uep.pem', auth=(auth['user'],auth['password']))
+        cls.log.debug("[{}]".format(response.text))
 
     @classmethod
     def add_nodes_to_section(cls, nodes, category, fluff=True, migrate=False):
@@ -450,9 +473,9 @@ class InventoryScaling(object):
             cls.nodes_to_add[category] = []
         # Pruning down to category only.
         cat_results = {
-            'succeeded': [x for x in succeeded if x in cls.nodes_to_add[category]],
-            'failed': [x for x in failed if x in cls.nodes_to_add[category]],
-            'unreachable': [x for x in unreachable if x in cls.nodes_to_add[category]]
+            'succeeded': [x.encode('ascii', 'ignore') for x in succeeded if x in cls.nodes_to_add[category]],
+            'failed': [x.encode('ascii', 'ignore') for x in failed if x in cls.nodes_to_add[category]],
+            'unreachable': [x.encode('ascii', 'ignore') for x in unreachable if x in cls.nodes_to_add[category]]
         }
         cls.ansible_results[category] = cat_results
         cls.log.info("- [{}] playbook run results: {}".format(category, cat_results))

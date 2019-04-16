@@ -297,7 +297,7 @@ def scale_inventory_groups(ocp_version='3.7'):
     for category in InventoryConfig.inventory_node_skel.keys():
         if category is 'provision':
             continue
-        if category is 'etcd':
+        if category in ['etcd', 'glusterfs']:
             _is_cat_name = category
         else:
             _is_cat_name = "{}{}".format(category, 's')

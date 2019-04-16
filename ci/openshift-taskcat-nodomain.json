@@ -49,8 +49,10 @@
     },
     {
         "ParameterKey": "GlusterFS",
-        "ParameterValue": "Disabled"
+        "ParameterValue": "Enabled"
+    },
+    {
+        "ParameterKey": "AnsibleFromGit",
+        "ParameterValue": "True"
     }
-
-
 ]
