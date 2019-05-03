@@ -38,6 +38,8 @@ def handler(event, context):
     try:
         if event['RequestType'] == 'Create':
             data['PEM'], data['PUB'] = generate_pem(2048)
+        elif event['RequestType'] == 'Update':
+            data = event['OldResourceProperties']
     except:
         status = 'FAILED'
         traceback.print_exc()
