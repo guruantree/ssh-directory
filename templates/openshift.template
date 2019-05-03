@@ -2,6 +2,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: '(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not remove)
   April, 6, 2018'
 Metadata:
+  AWSAMIRegionMap:
+    Filters:
+      RHEL76HVM:
+        name: RHEL-7.6_HVM_GA-20??????-x86_64-0-Hourly2-GP2
+        owner-id: "309956199498"
+        architecture: x86_64
+        virtualization-type: hvm
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -441,37 +448,32 @@ Rules:
         AssertDescription: All subnets must in the VPC
 Mappings:
   AWSAMIRegionMap:
-    AMI:
-      RHEL75HVM: RHEL-7.5_HVM_GA
     eu-central-1:
-      RHEL75HVM: ami-c86c3f23
+      RHEL76HVM: ami-09de4a4c670389e4b
     ap-southeast-2:
-      RHEL75HVM: ami-67589505
+      RHEL76HVM: ami-036b423b657376f5b
     eu-west-1:
-      RHEL75HVM: ami-7c491f05
+      RHEL76HVM: ami-0202869bdd0fc8c75
     us-east-1:
-      RHEL75HVM: ami-6871a115
+      RHEL76HVM: ami-000db10762d0c4c05
     us-east-2:
-      RHEL75HVM: ami-03291866
+      RHEL76HVM: ami-094720ddca649952f
     us-west-2:
-      RHEL75HVM: ami-28e07e50
+      RHEL76HVM: ami-0a7e1ebfee7a4570e
     ap-northeast-1:
-      RHEL75HVM: ami-6b0d5f0d
+      RHEL76HVM: ami-00b95502a4d51a07e
     eu-west-2:
-      RHEL75HVM: ami-7c1bfd1b
+      RHEL76HVM: ami-0188c0c5eddd2d032
     eu-west-3:
-      RHEL75HVM: ami-5026902d
+      RHEL76HVM: ami-0c4224e392ec4e440
     ap-southeast-1:
-      RHEL75HVM: ami-76144b0a
-  LinuxAMINameMap:
-    Redhat-Enterprise-Linux-7:
-      Code: RHEL75HVM
+      RHEL76HVM: ami-055c55112e25b1f1f
   OpenshiftVersionMap:
     '3.11':
-      AnsiblePlaybookGitRepoTag: 3.11.44-1
+      AnsiblePlaybookGitRepoTag: 3.11.112-1
       AnsibleVersion: 2.6.6
     '3.10':
-      AnsiblePlaybookGitRepoTag: 3.10.79-1
+      AnsiblePlaybookGitRepoTag: 3.10.143-1
       AnsibleVersion: 2.4.6.0
 Conditions:
   GovCloudCondition: !Equals
@@ -1431,7 +1433,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL75HVM
+          - RHEL76HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -1519,7 +1521,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL75HVM
+          - RHEL76HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -1598,7 +1600,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL75HVM
+          - RHEL76HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -1681,7 +1683,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL75HVM
+          - RHEL76HVM
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -2072,7 +2074,7 @@ Resources:
         - !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - RHEL75HVM
+          - RHEL76HVM
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       Tags:
         - Key: Name
