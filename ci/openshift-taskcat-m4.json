@@ -36,7 +36,7 @@
         "ParameterValue": "override"
     },
     {
-        "ParameterValue": "3.10",
+        "ParameterValue": "3.11",
         "ParameterKey": "OpenshiftContainerPlatformVersion"
     },
     {
@@ -58,5 +58,17 @@
     {
         "ParameterKey": "QSS3BucketName",
         "ParameterValue": "$[taskcat_autobucket]"
+    },
+    {
+        "ParameterKey": "MasterInstanceType",
+        "ParameterValue": "m4.xlarge"
+    },
+    {
+        "ParameterKey": "EtcdInstanceType",
+        "ParameterValue": "m4.xlarge"
+    },
+    {
+        "ParameterKey": "NodesInstanceType",
+        "ParameterValue": "m4.xlarge"
     }
 ]
