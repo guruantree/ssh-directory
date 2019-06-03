@@ -36,12 +36,18 @@ printf "[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/place
 printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGION}'\n" >> /etc/aws/aws.conf
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
+DOCKER_DEV=/dev/xvdb
+INSTANCE_TYPE=$(curl http://169.254.169.254/latest/meta-data/instance-type)
+if [[ $(echo ${INSTANCE_TYPE} | grep -c '^m5\|^c5\|^t3') -gt 0 ]] ; then
+    DOCKER_DEV=/dev/nvme1n1p1
+fi
+
 if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
     qs_retry_command 10 yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     systemctl enable docker.service
     qs_retry_command 20 'systemctl start docker.service'
     echo "CONTAINER_THINPOOL=docker-pool" >> /etc/sysconfig/docker-storage-setup
-    echo "DEVS=/dev/xvdb" >> /etc/sysconfig/docker-storage-setup
+    echo "DEVS=${DOCKER_DEV}" >> /etc/sysconfig/docker-storage-setup
     echo "VG=docker-vg" >>/etc/sysconfig/docker-storage-setup
     echo "STORAGE_DRIVER=devicemapper" >> /etc/sysconfig/docker-storage-setup
     systemctl stop docker
