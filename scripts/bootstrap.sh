@@ -50,6 +50,9 @@ if [[ $(echo ${INSTANCE_TYPE} | grep -c '^m5\|^c5\|^t3') -gt 0 ]] ; then
     DOCKER_DEV=/dev/nvme1n1p1
 fi
 
+# log disk layput
+fdisk -l
+
 if [ "${LAUNCH_CONFIG}" != "OpenShiftEtcdLaunchConfig" ]; then
     qs_retry_command 10 yum install docker-client-1.13.1 docker-common-1.13.1 docker-rhel-push-plugin-1.13.1 docker-1.13.1 -y
     systemctl enable docker.service
