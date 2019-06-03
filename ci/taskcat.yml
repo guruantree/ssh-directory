@@ -21,9 +21,9 @@ global:
 tests:
   openshift311:
     parameter_input: openshift-taskcat.json
-    regions:
-      - us-west-2
     template_file: openshift-master.template
   openshift-nodomain-gluster:
     parameter_input: openshift-taskcat-nodomain.json
     template_file: openshift-master.template
+    regions:
+      - us-west-2
