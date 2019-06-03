@@ -468,6 +468,14 @@ Mappings:
       RHEL76HVM: ami-0c4224e392ec4e440
     ap-southeast-1:
       RHEL76HVM: ami-055c55112e25b1f1f
+    eu-north-1:
+      RHEL76HVM: ami-66f67f18
+    ap-south-1:
+      RHEL76HVM: ami-66f67f18
+    ap-northeast-2:
+      RHEL76HVM: ami-66f67f18
+    sa-east-1:
+      RHEL76HVM: ami-66f67f18
   OpenshiftVersionMap:
     '3.11':
       AnsiblePlaybookGitRepoTag: 3.11.112-1
