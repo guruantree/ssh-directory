@@ -265,8 +265,19 @@ Parameters:
     Description: ID of your existing VPC for deployment
     Type: AWS::EC2::VPC::Id
   MasterInstanceType:
-    Default: m4.xlarge
+    Default: m5.xlarge
     AllowedValues:
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
       - t2.xlarge
       - m4.xlarge
       - m4.2xlarge
@@ -281,8 +292,19 @@ Parameters:
     Description: Type of EC2 instance for the Master instances
     Type: String
   EtcdInstanceType:
-    Default: m4.xlarge
+    Default: m5.xlarge
     AllowedValues:
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
       - t2.large
       - t2.xlarge
       - m4.xlarge
@@ -298,8 +320,19 @@ Parameters:
     Description: Type of EC2 instance for the Etcd instances
     Type: String
   NodesInstanceType:
-    Default: m4.xlarge
+    Default: m5.xlarge
     AllowedValues:
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
       - t2.large
       - t2.xlarge
       - m4.xlarge
