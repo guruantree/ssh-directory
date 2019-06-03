@@ -19,6 +19,13 @@ datetime_format = %b %d %H:%M:%S
 EOF
 systemctl start awslogs || true
 
+cd /tmp
+qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
+qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
+systemctl start amazon-ssm-agent
+systemctl enable amazon-ssm-agent
+rm ./amazon-ssm-agent.rpm
+
 if [ -f /quickstart/pre-install.sh ]
 then
   /quickstart/pre-install.sh
@@ -67,13 +74,6 @@ systemctl restart dnsmasq
 qs_retry_command 25 ls /var/run/dbus/system_bus_socket
 systemctl restart NetworkManager
 systemctl restart systemd-logind
-
-cd /tmp
-qs_retry_command 10 wget https://s3-us-west-1.amazonaws.com/amazon-ssm-us-west-1/latest/linux_amd64/amazon-ssm-agent.rpm
-qs_retry_command 10 yum install -y ./amazon-ssm-agent.rpm
-systemctl start amazon-ssm-agent
-systemctl enable amazon-ssm-agent
-rm ./amazon-ssm-agent.rpm
 
 if [ -f /quickstart/post-install.sh ]
 then
