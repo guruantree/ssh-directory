@@ -47,7 +47,7 @@ printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 DOCKER_DEV=/dev/xvdb
 INSTANCE_TYPE=$(curl http://169.254.169.254/latest/meta-data/instance-type)
 if [[ $(echo ${INSTANCE_TYPE} | grep -c '^m5\|^c5\|^t3') -gt 0 ]] ; then
-    DOCKER_DEV=/dev/nvme1n1p1
+    DOCKER_DEV=/dev/nvme1n1
 fi
 
 # log disk layput
