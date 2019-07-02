@@ -332,8 +332,7 @@ class InventoryScaling(object):
     def get_secret(cls):
         cls.log.debug("Secret")
         identity = requests.get('http://169.254.169.254/latest/dynamic/instance-identity/document').text
-        region = json.loads(identity)['region']
-        region_name = region.text[:-1]
+        region_name = json.loads(identity)['region']
         cf = boto3.client('cloudformation', region_name)
         secret_id = cf.describe_stack_resource(StackName=InventoryConfig.stack_id, LogicalResourceId='RedhatSubscriptionSecret')['StackResourceDetail']['PhysicalResourceId']
         secrets = boto3.client('secretsmanager', region_name)
