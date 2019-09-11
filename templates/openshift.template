@@ -2294,10 +2294,6 @@ Outputs:
     Description: OpenShiftNodeASG
     Value: !Ref 'OpenShiftNodeASG'
 
-  ContainerAccessELB: 
-    Description: ContainerAccessELB
-    Value: !Ref ContainerAccessELB
-
   OpenShiftMasterInternalELBTargetGroup:
     Description: OpenShiftMasterInternalELBTargetGroup
     Value: !Ref OpenShiftMasterInternalELBTargetGroup  

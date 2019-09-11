@@ -544,8 +544,7 @@ Resources:
         AutomationBroker: !Ref AutomationBroker
         AmiId: !Ref AmiId
         ClusterConsole: !Ref ClusterConsole
-        AnsibleAdditionalEnvironmentVariables: ''
-        AnsiblePostInstallScript: ''
+
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI
