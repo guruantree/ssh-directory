@@ -317,11 +317,11 @@ def scale_inventory_groups(ocp_version='3.7'):
         log.info("We will run the following ansible command:")
         log.info(_ansible_cmd)
         ansible_commands[_is_cat_name] = _ansible_cmd
-
-    run_ansible_playbook(prepared_commands=ansible_commands)
-    InventoryConfig.write_ansible_inventory_file()
-    _is.summarize_playbook_results()
-    InventoryConfig.write_ansible_inventory_file()
+    if ansible_commands:
+        run_ansible_playbook(prepared_commands=ansible_commands)
+        InventoryConfig.write_ansible_inventory_file()
+        _is.summarize_playbook_results()
+        InventoryConfig.write_ansible_inventory_file()
 
     if scaleup_needed:
         log.info("Performing post-scaleup tasks.")

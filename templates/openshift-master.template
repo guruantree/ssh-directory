@@ -497,12 +497,14 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift.template'
       Parameters:
+        NumberOfAZs: '3'
         MasterInstanceType: !Ref 'MasterInstanceType'
         NodesInstanceType: !Ref 'NodesInstanceType'
         EtcdInstanceType: !Ref 'EtcdInstanceType'
         NumberOfMaster: !Ref 'NumberOfMaster'
         NumberOfEtcd: !Ref 'NumberOfEtcd'
         NumberOfNodes: !Ref 'NumberOfNodes'
+        AnsibleStorageSize: '10'
         KeyPairName: !Ref 'KeyPairName'
         PrivateSubnet1ID: !GetAtt 'VPCStack.Outputs.PrivateSubnet1AID'
         PrivateSubnet2ID: !GetAtt 'VPCStack.Outputs.PrivateSubnet2AID'
@@ -542,6 +544,8 @@ Resources:
         AutomationBroker: !Ref AutomationBroker
         AmiId: !Ref AmiId
         ClusterConsole: !Ref ClusterConsole
+        AnsibleAdditionalEnvironmentVariables: ''
+        AnsiblePostInstallScript: ''
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI
