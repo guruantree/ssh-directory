@@ -2198,6 +2198,7 @@ Resources:
             export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
             export AWS_REGION=${AWS::Region}
             export CONTAINERACCESSELB=${ContainerAccessELB}
+            export CONTAINERACCESSELB_DNS=${ContainerAccessELB.DNSName}
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export ANSIBLE_VERSION=${AnsibleVersion}
             export RH_USER=${RedhatSubscriptionUserName}
