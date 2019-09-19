@@ -765,6 +765,21 @@ Resources:
         - functions/packages/DeleteBucketContents/lambda.zip
         - functions/packages/ACMCert/lambda.zip
         - functions/packages/CleanupPV/lambda.zip
+        - functions/packages/UnSubscribe/lambda.zip
+
+  UnSubscribeLambda:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt 'UnSubscribeRole.Arn'
+      Runtime: python2.7
+      Timeout: 300
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/UnSubscribe/lambda.zip'
+
   DeleteBucketContentsLambda:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
@@ -1813,6 +1828,36 @@ Resources:
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftMasterASG --region ${AWS::Region}
           -
             S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
+  
+  UnSubscribeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+      Policies:
+        - PolicyName: lambda-unsubscribe
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - logs:FilterLogEvents
+                Resource:
+                  - '*'
+
   CleanupPVRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1856,6 +1901,14 @@ Resources:
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/CleanupPV/lambda.zip'
+  
+  UnSubscribe:
+    Type: Custom::UnSubscribe
+    Properties:
+      ServiceToken: !GetAtt 'UnSubscribeLambda.Arn'
+      AnsibleConfigServer: !Ref 'AnsibleConfigServer'
+      StackName: !Sub '${AWS::StackName}'
+
   CleanupPV:
     Type: Custom::CleanupPV
     Properties:
@@ -2291,6 +2344,14 @@ Outputs:
     Description: Required to update additional ports
     Value: !Ref 'ContainerAccessELB'
 
+  ContainerAccessELBHostedZoneNameID:
+    Description: Container ELB Hosted Zone ID
+    Value: !GetAtt ContainerAccessELB.CanonicalHostedZoneNameID  
+
+  OpenShiftNodeSecurityGroup:
+    Description: OpenShiftNodeSecurityGroup ID
+    Value: !Ref OpenShiftNodeSecurityGroup
+  
   OpenShiftMasterASG:
     Description: OpenShiftMasterASG
     Value: !Ref 'OpenShiftMasterASG'
