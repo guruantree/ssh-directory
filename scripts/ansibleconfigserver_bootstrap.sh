@@ -66,6 +66,7 @@ qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/bin/aws-ose-qs-scale /r
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/setup.py /root/ose_scaling/setup.py
 
 qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/predefined_openshift_vars_${OCP_VERSION}.txt /tmp/openshift_inventory_predefined_vars
+qs_retry_command 10 aws s3 cp ${QS_S3URI}scripts/scaling/aws_openshift_quickstart/unsubscribe.py /root/unsubscribe.py
 
 pip install /root/ose_scaling
 

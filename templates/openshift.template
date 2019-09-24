@@ -39,6 +39,7 @@ Metadata:
       - Label:
           default: OpenShift Hosts Configuration
         Parameters:
+          - NumberOfAZs
           - NumberOfMaster
           - NumberOfEtcd
           - NumberOfNodes
@@ -46,6 +47,7 @@ Metadata:
           - EtcdInstanceType
           - NodesInstanceType
           - OpenShiftAdminPassword
+          - AnsibleStorageSize
       - Label:
           default: OpenShift Configuration
         Parameters:
@@ -63,6 +65,8 @@ Metadata:
           - NumberOfGluster
           - AutomationBroker
           - ClusterConsole
+          - AnsiblePostInstallScript
+          - AnsibleAdditionalEnvironmentVariables
       - Label:
           default: Red Hat Subscription Information
         Parameters:
@@ -114,6 +118,8 @@ Metadata:
         default: Red Hat Pool ID
       OpenshiftContainerPlatformVersion:
         default: Openshift Container Platform Version
+      NumberOfAZs: 
+        default: Number of Availability zones  
       MasterInstanceType:
         default: Master Instance Type
       EtcdInstanceType:
@@ -126,6 +132,8 @@ Metadata:
         default: Number of Etcds
       NumberOfNodes:
         default: Number of Nodes
+      AnsibleStorageSize:
+        default: Disk storage size of ansible controller server  
       OutputBucketName:
         default: Output S3 Bucket Name
       AWSServiceBroker:
@@ -162,6 +170,10 @@ Metadata:
         default: OpenShift Automation Broker
       ClusterConsole:
         default: Enable the cluster console (requires OpenShift 3.11)
+      AnsiblePostInstallScript:
+        default: Ansible post-install script
+      AnsibleAdditionalEnvironmentVariables:
+        default: Additional ansible environment variables  
 Parameters:
   AmiId:
     Description: >-
@@ -179,27 +191,27 @@ Parameters:
   PrivateSubnet1ID:
     Description: ID of private subnet 1 in Availability Zone 1 for the Workload (e.g.,
       subnet-a0246dcd)
-    Type: AWS::EC2::Subnet::Id
+    Type: String
   PrivateSubnet2ID:
     Description: ID of private subnet 2 in Availability Zone 2 for the Workload (e.g.,
       subnet-b1f432cd)
-    Type: AWS::EC2::Subnet::Id
+    Type: String
   PrivateSubnet3ID:
     Description: ID of private subnet 3 in Availability Zone 3 for the Workload (e.g.,
       subnet-b1f4a2cd)
-    Type: AWS::EC2::Subnet::Id
+    Type: String
   PublicSubnet1ID:
     Description: ID of public subnet 1 in Availability Zone 1 for the ELB load balancer
       (e.g., subnet-9bc642ac)
-    Type: AWS::EC2::Subnet::Id
+    Type: String
   PublicSubnet2ID:
     Description: ID of public subnet 2 in Availability Zone 2 for the ELB load balancer
       (e.g., subnet-e3246d8e)
-    Type: AWS::EC2::Subnet::Id
+    Type: String
   PublicSubnet3ID:
     Description: ID of public subnet 3 in Availability Zone 3 for the ELB load balancer
       (e.g., subnet-e324ad8e)
-    Type: AWS::EC2::Subnet::Id
+    Type: String
   QSS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
     ConstraintDescription: Quick Start bucket name can include numbers, lowercase
@@ -347,16 +359,27 @@ Parameters:
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Node instances
     Type: String
+  NumberOfAZs:  
+    Default: 3
+    Description: The number of Availability Zones to be used for the deployment. 3 Availability Zones are needed to avoid a single point of failure when using 3 or more master nodes or etcd nodes.  With less than 3 Availability Zones.
+    Type: Number
+    AllowedValues:
+    - 1
+    - 3
+  AnsibleStorageSize:
+    Default: 100
+    Description: Ansible Controller Server disk size
+    Type: Number  
   NumberOfMaster:
     Default: '3'
     Description: This Deployment requires 3 OpenShift Master instances
     Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
+    AllowedPattern: '^[13579]$|(^[1-9]+[13579]$)'
   NumberOfEtcd:
     Default: '3'
     Description: This Deployment requires 3 OpenShift Etcd instances
     Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
+    AllowedPattern: '^[13579]$|(^[1-9]+[13579]$)'
   NumberOfNodes:
     Default: '3'
     Description: The desired capacity for the OpenShift node instances
@@ -469,6 +492,17 @@ Parameters:
     Description: Enable the Cluster Console
     Type: String
     AllowedValues: [ Enabled, Disabled ]
+  AnsiblePostInstallScript:
+    AllowedPattern: ^s3://.*|^$
+    ConstraintDescription: S3 URI must begin with s3://
+    Description: 'OPTIONAL: Specify an S3 URI to a post install script to run on the Ansible config server'
+    Default: ''
+    Type: String
+  AnsibleAdditionalEnvironmentVariables:
+    Description: 'OPTIONAL: Specify a comma-separated list of environment variables exported in the Ansible user data.
+      Variables must be in the format KEY=VALUE. These are intended to be used by the Ansible post-install script.'
+    Default: ''
+    Type: String  
 Rules:
   SubnetsInVPC:
     Assertions:
@@ -591,6 +625,9 @@ Conditions:
     - !Equals
       - !Ref ClusterName
       - ""
+
+  3AZCondition: !Equals [!Ref NumberOfAZs, 3]   
+
 Resources:
   OpenShiftPasswordSecret:
     Type: "AWS::SecretsManager::Secret"
@@ -728,6 +765,21 @@ Resources:
         - functions/packages/DeleteBucketContents/lambda.zip
         - functions/packages/ACMCert/lambda.zip
         - functions/packages/CleanupPV/lambda.zip
+        - functions/packages/UnSubscribe/lambda.zip
+
+  UnSubscribeLambda:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt 'UnSubscribeRole.Arn'
+      Runtime: python2.7
+      Timeout: 300
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/UnSubscribe/lambda.zip'
+
   DeleteBucketContentsLambda:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
@@ -1071,6 +1123,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
         - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       Policies:
         - PolicyName: aws-quick-start-s3-policy
           PolicyDocument:
@@ -1320,7 +1373,7 @@ Resources:
         - !Ref 'OpenShiftMasterELB'
       DesiredCapacity: !Ref 'NumberOfMaster'
       MaxSize: !Ref 'NumberOfMaster'
-      MinSize: '2'
+      MinSize: '1'
       HealthCheckType: ELB
       HealthCheckGracePeriod: 2400
       LaunchConfigurationName: !Ref 'OpenShiftMasterASLaunchConfig'
@@ -1336,10 +1389,12 @@ Resources:
             - !Sub '${AWS::StackName}-${AWS::Region}'
           PropagateAtLaunch: true
           Value: owned
-      VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
+      VPCZoneIdentifier: !If
+        - 3AZCondition
+        - -  !Ref 'PrivateSubnet1ID'
+          -  !Ref 'PrivateSubnet2ID'
+          -  !Ref 'PrivateSubnet3ID'
+        - -  !Ref 'PrivateSubnet1ID'         
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfMaster'
@@ -1352,16 +1407,18 @@ Resources:
     Properties:
       DesiredCapacity: !Ref 'NumberOfEtcd'
       MaxSize: !Ref 'NumberOfEtcd'
-      MinSize: '2'
+      MinSize: '1'
       LaunchConfigurationName: !Ref 'OpenShiftEtcdLaunchConfig'
       Tags:
         - Key: Name
           PropagateAtLaunch: true
           Value: openshift-etcd
-      VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
+      VPCZoneIdentifier: !If
+        - 3AZCondition
+        - -  !Ref 'PrivateSubnet1ID'
+          -  !Ref 'PrivateSubnet2ID'
+          -  !Ref 'PrivateSubnet3ID'
+        - -  !Ref 'PrivateSubnet1ID' 
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfEtcd'
@@ -1375,7 +1432,7 @@ Resources:
       LoadBalancerNames:
         - !Ref 'ContainerAccessELB'
       DesiredCapacity: !Ref 'NumberOfNodes'
-      MaxSize: !Ref 'NumberOfNodes'
+      MaxSize: '20'
       MinSize: '1'
       HealthCheckType: ELB
       HealthCheckGracePeriod: 1200
@@ -1392,10 +1449,12 @@ Resources:
             - !Sub '${AWS::StackName}-${AWS::Region}'
           PropagateAtLaunch: true
           Value: owned
-      VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
+      VPCZoneIdentifier: !If
+        - 3AZCondition
+        - -  !Ref 'PrivateSubnet1ID'
+          -  !Ref 'PrivateSubnet2ID'
+          -  !Ref 'PrivateSubnet3ID'
+        - -  !Ref 'PrivateSubnet1ID' 
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfNodes'
@@ -1409,7 +1468,7 @@ Resources:
     Properties:
       DesiredCapacity: !Ref 'NumberOfGluster'
       MaxSize: !Ref 'NumberOfGluster'
-      MinSize: '2'
+      MinSize: '3'
       LaunchConfigurationName: !Ref 'OpenShiftGlusterLaunchConfig'
       Tags:
         - Key: Name
@@ -1423,10 +1482,12 @@ Resources:
             - !Sub '${AWS::StackName}-${AWS::Region}'
           PropagateAtLaunch: true
           Value: owned
-      VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
+      VPCZoneIdentifier: !If
+        - 3AZCondition
+        - -  !Ref 'PrivateSubnet1ID'
+          -  !Ref 'PrivateSubnet2ID'
+          -  !Ref 'PrivateSubnet3ID'
+        - -  !Ref 'PrivateSubnet1ID' 
     CreationPolicy:
       ResourceSignal:
         Count: !Ref 'NumberOfGluster'
@@ -1767,6 +1828,36 @@ Resources:
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource OpenShiftMasterASG --region ${AWS::Region}
           -
             S3Region: !If [ GovCloudCondition, s3-us-gov-west-1, s3 ]
+  
+  UnSubscribeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+      Policies:
+        - PolicyName: lambda-unsubscribe
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - logs:FilterLogEvents
+                Resource:
+                  - '*'
+
   CleanupPVRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1810,6 +1901,14 @@ Resources:
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/CleanupPV/lambda.zip'
+  
+  UnSubscribe:
+    Type: Custom::UnSubscribe
+    Properties:
+      ServiceToken: !GetAtt 'UnSubscribeLambda.Arn'
+      AnsibleConfigServer: !Ref 'AnsibleConfigServer'
+      StackName: !Sub '${AWS::StackName}'
+
   CleanupPV:
     Type: Custom::CleanupPV
     Properties:
@@ -1933,10 +2032,12 @@ Resources:
       ConnectionSettings:
         IdleTimeout: 300
       CrossZone: true
-      Subnets:
-        - !Ref 'PublicSubnet1ID'
-        - !Ref 'PublicSubnet2ID'
-        - !Ref 'PublicSubnet3ID'
+      Subnets: !If
+        - 3AZCondition
+        - -  !Ref 'PublicSubnet1ID'
+          -  !Ref 'PublicSubnet2ID'
+          -  !Ref 'PublicSubnet3ID'
+        - -  !Ref 'PublicSubnet1ID' 
       SecurityGroups:
         - !Ref 'OpenShiftSecurityGroup'
       Listeners:
@@ -1972,10 +2073,12 @@ Resources:
       ConnectionSettings:
         IdleTimeout: 300
       CrossZone: true
-      Subnets:
-        - !Ref 'PublicSubnet1ID'
-        - !Ref 'PublicSubnet2ID'
-        - !Ref 'PublicSubnet3ID'
+      Subnets: !If
+        - 3AZCondition
+        - -  !Ref 'PublicSubnet1ID'
+          -  !Ref 'PublicSubnet2ID'
+          -  !Ref 'PublicSubnet3ID'
+        - -  !Ref 'PublicSubnet1ID'
       SecurityGroups:
         - !Ref 'OpenShiftNodeSecurityGroup'
       Listeners:
@@ -2021,10 +2124,12 @@ Resources:
     Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
     Properties:
       Scheme: internal
-      Subnets:
-        - !Ref 'PrivateSubnet1ID'
-        - !Ref 'PrivateSubnet2ID'
-        - !Ref 'PrivateSubnet3ID'
+      Subnets: !If
+        - 3AZCondition
+        - -  !Ref 'PrivateSubnet1ID'
+          -  !Ref 'PrivateSubnet2ID'
+          -  !Ref 'PrivateSubnet3ID'
+        - -  !Ref 'PrivateSubnet1ID' 
       Type: network
       Tags:
         - Key: !Sub
@@ -2115,6 +2220,11 @@ Resources:
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
           - RHEL76HVM
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: !Ref 'AnsibleStorageSize'
+            VolumeType: gp2    
       IamInstanceProfile: !Ref 'SetupRoleProfile'
       Tags:
         - Key: Name
@@ -2141,6 +2251,7 @@ Resources:
             export OPENSHIFTMASTERINTERNALTGARN=${OpenShiftMasterInternalELBTargetGroup}
             export AWS_REGION=${AWS::Region}
             export CONTAINERACCESSELB=${ContainerAccessELB}
+            export CONTAINERACCESSELB_DNS=${ContainerAccessELB.DNSName}
             export OCP_VERSION=${OpenshiftContainerPlatformVersion}
             export ANSIBLE_VERSION=${AnsibleVersion}
             export RH_USER=${RedhatSubscriptionUserName}
@@ -2161,6 +2272,7 @@ Resources:
             export SB_VERSION=v1.0.1
             export SB_ACCOUNTID=${AWS::AccountId}
             export LOG_GROUP=${OpenshiftLogGroup}
+            for e in $(echo "${AnsibleAdditionalEnvironmentVariables}" | tr ',' ' '); do export $e; done
             yum install -y git
             git clone https://github.com/aws-quickstart/quickstart-linux-utilities.git
             export P=/quickstart-linux-utilities/quickstart-cfn-tools.source
@@ -2170,6 +2282,11 @@ Resources:
             pip install awscli  &> /var/log/userdata.awscli_install.log || qs_err " awscli install failed "
             aws s3 cp ${!QS_S3URI}scripts/ansibleconfigserver_bootstrap.sh ./bootstrap.sh
             chmod +x bootstrap.sh
+            if [[ -n "${AnsiblePostInstallScript}" ]]; then
+            mkdir -p /quickstart
+            aws s3 cp ${AnsiblePostInstallScript} /quickstart/post-install.sh
+            chmod +x /quickstart/post-install.sh
+            fi
             ./bootstrap.sh || qs_err " Openshift installation failed, see logs for details "
             cfn-signal -e $(qs_status) --stack ${AWS::StackName} --resource AnsibleConfigServer --region ${AWS::Region}
           -
@@ -2222,3 +2339,32 @@ Outputs:
   ContainerAccessELBName:
     Description: Use this ELB to expose ports to the internet
     Value: !Sub "http://${ContainerAccessELB.DNSName}"
+
+  ContainerAccessELB:
+    Description: Required to update additional ports
+    Value: !Ref 'ContainerAccessELB'
+
+  ContainerAccessELBHostedZoneNameID:
+    Description: Container ELB Hosted Zone ID
+    Value: !GetAtt ContainerAccessELB.CanonicalHostedZoneNameID  
+
+  OpenShiftNodeSecurityGroup:
+    Description: OpenShiftNodeSecurityGroup ID
+    Value: !Ref OpenShiftNodeSecurityGroup
+  
+  OpenShiftMasterASG:
+    Description: OpenShiftMasterASG
+    Value: !Ref 'OpenShiftMasterASG'
+
+  OpenShiftNodeASG:
+    Description: OpenShiftNodeASG
+    Value: !Ref 'OpenShiftNodeASG'
+
+  OpenShiftMasterInternalELBTargetGroup:
+    Description: OpenShiftMasterInternalELBTargetGroup
+    Value: !Ref OpenShiftMasterInternalELBTargetGroup  
+    
+  OpenShiftMasterInternalELB:
+    Description: OpenShiftMasterInternalELB
+    Value: !Ref 'OpenShiftMasterInternalELB'          
+
