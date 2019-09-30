@@ -2338,7 +2338,7 @@ Outputs:
         - !If [ UseCustomDomain, !If [ UseSubdomain, !Sub "${SubDomainPrefix}.${DomainName}", !Ref "DomainName" ], !GetAtt OpenShiftMasterELB.DNSName ]
   ContainerAccessELBName:
     Description: Use this ELB to expose ports to the internet
-    Value: !Sub "http://${ContainerAccessELB.DNSName}"
+    Value: !GetAtt ContainerAccessELB.DNSName
 
   ContainerAccessELB:
     Description: Required to update additional ports
