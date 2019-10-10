@@ -81,5 +81,5 @@ systemctl restart systemd-logind
 
 if [ -f /quickstart/post-install.sh ]
 then
-  /quickstart/post-install.sh
+  /quickstart/post-install.sh &> /var/log/post-install.log
 fi
