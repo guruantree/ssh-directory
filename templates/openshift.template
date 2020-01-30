@@ -804,13 +804,13 @@ Resources:
     Version: '1.0'
     Properties:
       ServiceToken: !GetAtt 'DeleteBucketContentsLambda.Arn'
-      OutputBucket: !Ref 'RegistryBucket'
+      Bucket: !Ref 'RegistryBucket'
   DeleteTempBucketContents:
     Type: Custom::DeleteBucketContents
     Version: '1.0'
     Properties:
       ServiceToken: !GetAtt 'DeleteBucketContentsLambda.Arn'
-      OutputBucket: !Ref 'OutputBucket'
+      Bucket: !Ref 'OutputBucket'
   DeleteBucketContentsRole:
     Type: AWS::IAM::Role
     Properties:
