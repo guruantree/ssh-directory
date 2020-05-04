@@ -712,7 +712,7 @@ class LocalASG(object):
                 if 'glusterfs' in self.openshift_config_category:
                     _ihd.update({'openshift_node_group_name': 'node-config-glusterfs'})
                 else:
-                    _ihd.update({'openshift_node_group_name': 'node-config-compute-infra'})
+                    _ihd.update({'openshift_node_group_name': 'node-config-compute-infra-crio'})
 
             if 'master' in self.openshift_config_category:
                 print("making schedulable")
