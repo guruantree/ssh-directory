@@ -1,0 +1,798 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: '(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not remove)
+  April, 6, 2018'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - VPCID
+          - VPCCIDR
+          - PrivateSubnet1ID
+          - PrivateSubnet2ID
+          - PrivateSubnet3ID
+          - PublicSubnet1ID
+          - PublicSubnet2ID
+          - PublicSubnet3ID
+          - SSLCertificateId
+      - Label:
+          default: Amazon EC2 Configuration
+        Parameters:
+          - AmiId
+      - Label:
+          default: OpenShift Hosts Configuration
+        Parameters:
+          - MasterInstanceType
+          - NodesInstanceType
+      - Label:
+          default: OpenShift Configuration
+        Parameters:
+          - OpenshiftContainerPlatformVersion
+          - EnableBootstrap
+          - ClusterName
+          - OpenShiftMirrorURL
+          - OpenShiftClientBinary
+          - OpenShiftVersion
+          - OpenShiftInstallBinary
+          - PullSecret
+          - SSHKey
+      - Label:
+          default: CloudFormation Meta
+        Parameters:
+          - QSS3BucketName
+          - QSS3KeyPrefix
+      - Label:
+          default: Custom Resource Functions
+        Parameters:
+          - CopyZipsFunctionArn
+          - LambdaZipsBucket
+
+    ParameterLabels:
+      SSLCertificateId:
+        default: SSL Certificate ID
+      CopyZipsFunctionArn:
+        default: Copy Zips Function ARN
+      LambdaZipsBucket:
+        default: Lambda ZIPs Bucket
+      PullSecret:
+        default: Redhat Pull Secret
+      OpenShiftMirrorURL:
+        default: OpenShift Mirror URL
+      OpenShiftClientBinary:
+        default: OpenShift Client Binary
+      OpenShiftVersion:
+        default: OpenShift Version
+      OpenShiftInstallBinary:
+        default: OpenShfit Install Binary
+      AmiId:
+        default: AMI ID
+      QSS3BucketName:
+        default: Quick Start S3 Bucket Name
+      QSS3KeyPrefix:
+        default: Quick Start S3 Key Prefix
+      VPCID:
+        default: VPC ID
+      MasterInstanceType:
+        default: Master Instance Type
+      NodesInstanceType:
+        default: Nodes Instance Type
+      OpenshiftContainerPlatformVersion:
+        default: Openshift Container Platform Version
+      ClusterName:
+        default: Cluster Name
+      PrivateSubnet3ID:
+        default: Private Subnet 3 ID
+      PrivateSubnet2ID:
+        default: Private Subnet 2 ID
+      PrivateSubnet1ID:
+        default: Private Subnet 1 ID
+      PublicSubnet1ID:
+        default: Public Subnet 1 ID
+      PublicSubnet2ID:
+        default: Public Subnet 2 ID
+      PublicSubnet3ID:
+        default: Public Subnet 3 ID
+Parameters:
+
+  HostedZoneName:
+    Description: The managed Route53 Zone name
+    Type: String
+
+  VPCCIDR:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Description: CIDR block for the VPC
+    Type: String
+
+  PrivateSubnet1ID:
+    Description: ID of private subnet 1 in Availability Zone 1 for the Workload (e.g.,
+      subnet-a0246dcd)
+    Type: String
+  PrivateSubnet2ID:
+    Description: ID of private subnet 2 in Availability Zone 2 for the Workload (e.g.,
+      subnet-b1f432cd)
+    Type: String
+  PrivateSubnet3ID:
+    Description: ID of private subnet 3 in Availability Zone 3 for the Workload (e.g.,
+      subnet-b1f4a2cd)
+    Type: String
+
+  PublicSubnet1ID:
+    Description: ID of private subnet 1 in Availability Zone 1 for the Workload (e.g.,
+      subnet-a0246dcd)
+    Type: String
+  PublicSubnet2ID:
+    Description: ID of private subnet 2 in Availability Zone 2 for the Workload (e.g.,
+      subnet-b1f432cd)
+    Type: String
+  PublicSubnet3ID:
+    Description: ID of private subnet 3 in Availability Zone 3 for the Workload (e.g.,
+      subnet-b1f4a2cd)
+    Type: String
+
+  NumberOfMaster:
+    Default: '3'
+    Description: This Deployment requires at least 3 OpenShift Master instances
+    Type: String
+    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
+
+  NumberOfNodes:
+    Default: '3'
+    Description: The desired capacity for the OpenShift node instances
+    Type: Number
+
+  AmiId:
+    Description: >-
+      OPTIONAL: bring your own AMI. In Enterprise environment, you might
+      need to bring your own AMI (with proxy, softwares, ...).
+      If the AMI is encrypted, keep in mind that the key policy should allow use of
+      the key from AWSServiceRoleForAutoScaling.
+      If left blank, we'll use the base RHEL image from your region.
+    Type: String
+    Default: ""
+
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
+      (-).
+    Default: aws-quickstart
+    Description: S3 bucket name for the Quick Start assets. This string can include
+      numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
+      or end with a hyphen (-).
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/).
+    Default: quickstart-redhat-openshift/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+
+  OpenshiftContainerPlatformVersion:
+    Description: OpenShift version to deploy
+    Default: '4.3'
+    Type: String
+    AllowedValues:
+      - '4.3'
+  VPCID:
+    Description: ID of your existing VPC for deployment
+    Type: AWS::EC2::VPC::Id
+
+  PullSecret:
+    Description: 'The OCP Pull Secret JSON'
+    Type: String
+
+  EnableBootstrap:
+    Type: String
+    Description: Allows users to use CloudFormation to clean up the Bootstrap server. When the cluster is first created,
+      this should be set to "yes" (Default). After the cluster is created and healthy, you can set this to "no" and
+      update the Stack.
+    AllowedValues:
+      - 'yes'
+      - 'no'
+    Default: 'yes'
+
+  MasterInstanceType:
+    Default: m5.xlarge
+    AllowedValues:
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.12xlarge
+      - c5.18xlarge
+      - c5.24xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.16xlarge
+    ConstraintDescription: Must contain valid instance type
+    Description: Type of EC2 instance for the Master instances
+    Type: String
+  NodesInstanceType:
+    Default: m5.xlarge
+    AllowedValues:
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.12xlarge
+      - c5.18xlarge
+      - c5.24xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.16xlarge
+    ConstraintDescription: Must contain valid instance type
+    Description: Type of EC2 instance for the Node instances
+    Type: String
+
+  ClusterName:
+    Default: ""
+    Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
+    Type: String
+
+  AvailabilityZones:
+    Description: Comma-delimited list of Availability Zones to use
+    Type: String
+
+  RemoteAccessCIDR:
+    Description: CIDR range for remote access to public cluster resources i.e. the Bootstrap instance
+    Type: String
+
+  HostedZoneID:
+    Type: String
+
+  SSLCertificateId:
+    Type: String
+    Description: (Optional) The AWS ACM SSL Certificate ARN to use for LoadBalancer configuration
+    Default: ''
+
+  CopyZipsFunctionArn:
+    Type: String
+    Description: CopyZips Lambda ARN used for moving Lambda deployments to the correct bucket
+
+  LambdaZipsBucket:
+    Type: String
+    Description: The Bucket name for the Lambda zip archives to be stored
+
+  LogLevel:
+    Description: 'Log Level to use for the OpenShift4 Installer'
+    Default: DEBUG
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - ERROR
+      - WARNING
+    Type: String
+  OpenShiftMirrorURL:
+    Description: The Mirror to fetch the OpenShift installation program
+    Type: String
+  OpenShiftClientBinary:
+    Description: Name of the OpenShiftClient Binary
+    Default: oc
+    Type: String
+  OpenShiftVersion:
+    Description: The full version of the OpenShift cluster to install
+    Type: String
+  OpenShiftInstallBinary:
+    Default: openshift-install
+    Description: Name of the OpenShift Installation binary
+    Type: String
+  SSHKey:
+    Description: The public key to be added to the CoreOS boxes for ssh access.
+    Default: ""
+    Type: String
+
+Resources:
+
+  # Store the Kube Admin password in Secrets Manager
+  OpenShiftPasswordSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      SecretString: !GetAtt 'OpenShift4Setup.KubeAdminPassword'
+
+  #
+  # Create an S3 Bucket for storing Cluster startup files (bootstrap.ign, master.ign, worker.ign)
+  #
+  IgnitionBucket:
+    Type: AWS::S3::Bucket
+
+  #
+  # OpenShift4 requires valid AWS Access Keys at installation time.
+  #
+  # assuming an IAM Role _will not work_ because OpenShift4 will store these keys in the cluster and continue using
+  # them for administrative tasks (e.g. autoscaling, ingress management, etc.)
+  #
+  OpenShift4ClusterManagerAccessKeys:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref OpenShift4ClusterManagerUser
+
+  OpenShift4ClusterManagerUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+
+        - PolicyName: ClusterManagementPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - ec2:*
+                  - s3:*
+                  - elasticloadbalancing:*
+                  - iam:AddRoleToInstanceProfile
+                  - iam:CreateInstanceProfile
+                  - iam:CreateRole
+                  - iam:DeleteInstanceProfile
+                  - iam:DeleteRole
+                  - iam:DeleteRolePolicy
+                  - iam:Get*
+                  - iam:List*
+                  - iam:PassRole
+                  - iam:PutRolePolicy
+                  - iam:SimulatePrincipalPolicy
+                  - iam:TagRole
+                  - iam:RemoveRoleFromInstanceProfile
+                  - route53:ListTagsForResource
+                  - route53:UpdateHostedZoneComment
+                  - route53:ChangeResourceRecordSets
+                  - route53:ChangeTagsForResource
+                  - route53:CreateHostedZone
+                  - route53:DeleteHostedZone
+                  - route53:GetChange
+                  - route53:GetHostedZone
+                  - route53:ListHostedZones
+                  - route53:ListHostedZonesByName
+                  - route53:ListResourceRecordSets
+                  - autoscaling:DescribeAutoScalingGroups
+                  - tag:GetResources
+                  - iam:CreateAccessKey
+                  - iam:CreateUser
+                  - iam:DeleteAccessKey
+                  - iam:DeleteUser
+                  - iam:DeleteUserPolicy
+                  - iam:GetUserPolicy
+                  - iam:ListAccessKeys
+                  - iam:PutUserPolicy
+                  - iam:TagUser
+                  - iam:GetUserPolicy
+                  - iam:ListAccessKeys
+
+  #
+  # Generates OpenShift4 installation configuration and uploads them to the IgnitionBucket
+  #
+  # During cluster Bootstrap, the initial cluster nodes fetch the installation files from the IgnitionBucket and use
+  # these configurations to install OpenShift and install K8s manifests
+  #
+  OpenShift4Setup:
+    Type: Custom::LambdaDeployCF
+    Properties:
+      Function: DeployCF
+      ServiceToken: !GetAtt OpenShift4InstallationLambda.Arn
+      Region: !Ref AWS::Region
+      AwsAccessKeyId: !Ref OpenShift4ClusterManagerAccessKeys
+      AwsSecretAccessKey: !GetAtt OpenShift4ClusterManagerAccessKeys.SecretAccessKey
+      AvailabilityZones: !Split
+        - ","
+        - !Ref AvailabilityZones
+      Subnets:
+        - !Ref PublicSubnet1ID
+        - !Ref PublicSubnet2ID
+        - !Ref PublicSubnet3ID
+        - !Ref PrivateSubnet1ID
+        - !Ref PrivateSubnet2ID
+        - !Ref PrivateSubnet3ID
+
+  CopyZips:
+    Type: Custom::CopyZips
+    Properties:
+      ServiceToken: !Ref 'CopyZipsFunctionArn'
+      DestBucket: !Ref 'LambdaZipsBucket'
+      SourceBucket: !Ref 'QSS3BucketName'
+      Prefix: !Ref 'QSS3KeyPrefix'
+      Objects:
+        - functions/packages/OpenShift4Installation/lambda.zip
+
+  OpenShift4InstallationLambda:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: A Lambda to install, configure, and manage OS4 clusters
+      Handler: lambda_handler.handler
+      MemorySize: 512
+      Role: !GetAtt OpenShift4InstallationRole.Arn
+      Runtime: python3.7
+      Timeout: 900
+      Environment:
+        Variables:
+          LogLevel: !Ref LogLevel
+          AuthBucket: !Ref IgnitionBucket
+          ClusterName: !Ref ClusterName
+          HostedZoneName: !Ref HostedZoneName
+          OpenShiftMirrorURL: !Ref OpenShiftMirrorURL
+          OpenShiftVersion: !Ref OpenShiftVersion
+          OpenShiftClientBinary: !Ref OpenShiftClientBinary
+          OpenShiftInstallBinary: !Ref OpenShiftInstallBinary
+          PullSecret: !Ref PullSecret
+          QSS3BucketName: !Ref QSS3BucketName
+          QSS3KeyPrefix: !Ref QSS3KeyPrefix
+          SSHKey: !Ref SSHKey
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/OpenShift4Installation/lambda.zip'
+
+
+  OpenShift4InstallationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: stackdirector
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:*
+                Resource:
+                  - !Sub 'arn:aws:s3:::${IgnitionBucket}/*'
+                  - !Sub 'arn:aws:s3:::${IgnitionBucket}'
+        - PolicyName: CFValidation
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - iam:GetUser
+                  - iam:CreateUser
+                  - iam:DeleteUser
+                  - iam:AttachUserPolicy
+                  - iam:DetachUserPolicy
+                  - iam:ListAccessKeys
+                  - iam:CreateLoginProfile
+                  - iam:DeleteLoginProfile
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:PassRole
+                  - iam:CreateInstanceProfile
+                  - iam:DeleteInstanceProfile
+                  - iam:AddRoleToInstanceProfile
+                  - iam:RemoveRoleFromInstanceProfile
+                  - iam:CreateServiceLinkedRole
+                  - lambda:CreateFunction
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:DeleteFunction
+                  - lambda:InvokeFunction
+                  - cloudformation:Create*
+                  - cloudformation:ListStacks*
+                  - cloudformation:Delete*
+                  - cloudformation:Describe*
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeImages
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeRouteTables
+                  - ec2:DescribeVolumes
+                  - ec2:DescribeVpcAttribute
+                  - ec2:DescribeVpcClassicLink
+                  - ec2:DescribeVpcClassicLinkDnsSupport
+                  - ec2:DescribeVpcEndpoints
+                  - ec2:DescribeInternetGateways
+                  - ec2:DescribeAccountAttributes
+                  - ec2:DescribeTags
+                  - ec2:CreateSecurityGroup
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                  - ec2:DeleteSecurityGroup
+                  - ec2:RunInstances
+                  - ec2:TerminateInstances
+                  - ec2:DescribeInstances
+                  - ec2:createTags
+                  - ec2:DeleteTags
+                  - elasticloadbalancing:DescribeTargetGroups
+                  - elasticloadbalancing:DescribeLoadBalancers
+                  - elasticloadbalancing:DescribeListeners
+                  - elasticloadbalancing:DeleteTargetGroup
+                  - elasticloadbalancing:CreateTargetGroup
+                  - elasticloadbalancing:DeleteLoadBalancer
+                  - elasticloadbalancing:CreateLoadBalancer
+                  - elasticloadbalancing:DeleteListener
+                  - elasticloadbalancing:CreateListener
+                  - elasticloadbalancing:ModifyTargetGroupAttributes
+                  - route53:ChangeResourceRecordSets
+                  - route53:ChangeTagsForResource
+                  - route53:ListResourceRecordSets
+                  - route53:GetHostedZone
+                  - route53:ListHostedZones
+                  - route53:CreateHostedZone
+                  - route53:DeleteHostedZone
+                  - route53:ListQueryLoggingConfigs
+                  - route53:GetChange
+                Resource: "*"
+
+  #
+  # Sets up Networking
+  # - Load Balancers for EXTernal and INTernal API endpoints
+  # - Private DNS Zone for ${CLUSTER_NAME}.${DOMAINNAME} e.g. mycluster.example.com
+  #
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-network.template'
+      Parameters:
+        ClusterName: !Ref ClusterName
+        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        VpcId: !Ref VPCID
+        HostedZoneName: !Ref HostedZoneName
+        HostedZoneId: !Ref HostedZoneID
+        PublicSubnets: !Join
+          - ","
+          - [!Ref PublicSubnet1ID, !Ref PublicSubnet2ID, !Ref PublicSubnet3ID]
+        PrivateSubnets: !Join
+          - ","
+          - [!Ref PrivateSubnet1ID, !Ref PrivateSubnet2ID, !Ref PrivateSubnet3ID]
+
+
+  #
+  # Generates VPC Security Groups and Cluster IAM Roles
+  #
+  # Resources **must** be named with the cluster's unique InfrastructureName that is generated by `OpenShift4Setup`
+  #
+  SecurityStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-security'
+      Parameters:
+        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        VpcCidr: !Ref VPCCIDR
+        VpcId: !Ref VPCID
+
+  #
+  # OpenShift 4 requires an initial 'bootstrap' server to start the cluster. After the cluster starts up, you can safely
+  # terminate this instance.
+  #
+  # TODO: Move this stack to a Custom Resource so we can terminate it after the cluster initializes
+  #
+  BootStrapStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: IsBootstrapEnabled
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-bootstrap'
+      Parameters:
+        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        RhcosAmi: !If
+          - NoRhcosAmiParameter
+          - !FindInMap
+            - RhcosAmiMap
+            - !Ref AWS::Region
+            - !FindInMap
+              - NoDotVersion
+              - !Ref OpenshiftContainerPlatformVersion
+              - Value
+          - !Ref AmiId
+
+        AllowedBootstrapSshCidr: !Ref RemoteAccessCIDR
+        PublicSubnet: !Ref PublicSubnet1ID
+        BootstrapIgnitionLocation: !Sub s3://${IgnitionBucket}/${ClusterName}/bootstrap.ign
+        VpcId: !Ref VPCID
+        MasterSecurityGroupId: !GetAtt 'SecurityStack.Outputs.MasterSecurityGroupId'
+        RegisterNlbIpTargetsLambdaArn: !GetAtt 'NetworkStack.Outputs.RegisterNlbIpTargetsLambda'
+        ExternalApiTargetGroupArn: !GetAtt 'NetworkStack.Outputs.ExternalApiTargetGroupArn'
+        InternalApiTargetGroupArn: !GetAtt 'NetworkStack.Outputs.InternalApiTargetGroupArn'
+        InternalServiceTargetGroupArn: !GetAtt 'NetworkStack.Outputs.InternalServiceTargetGroupArn'
+
+  #
+  # Set up the Control Plane (master nodes)
+  #
+  # Each master node is placed in a separate AZ and connected to the API EXTernal and INTernal loadbalancers.
+  #
+  # Master nodes also contain the ETCD cluster and DNS records **must** be set up to point the control plane private IPs
+  #
+  ControlPlaneStack:
+    DependsOn: BootStrapStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-controlplane'
+      Parameters:
+        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        MasterInstanceType: !Ref MasterInstanceType
+        RhcosAmi: !If
+          - NoRhcosAmiParameter
+          - !FindInMap
+            - RhcosAmiMap
+            - !Ref AWS::Region
+            - !FindInMap
+              - NoDotVersion
+              - !Ref OpenshiftContainerPlatformVersion
+              - Value
+          - !Ref AmiId
+        IgnitionLocation: !Sub s3://${IgnitionBucket}/${ClusterName}/master.ign
+        MasterSecurityGroupId: !GetAtt 'SecurityStack.Outputs.MasterSecurityGroupId'
+        RegisterNlbIpTargetsLambdaArn: !GetAtt 'NetworkStack.Outputs.RegisterNlbIpTargetsLambda'
+        ExternalApiTargetGroupArn: !GetAtt 'NetworkStack.Outputs.ExternalApiTargetGroupArn'
+        InternalApiTargetGroupArn: !GetAtt 'NetworkStack.Outputs.InternalApiTargetGroupArn'
+        InternalServiceTargetGroupArn: !GetAtt 'NetworkStack.Outputs.InternalServiceTargetGroupArn'
+        PrivateHostedZoneId: !GetAtt 'NetworkStack.Outputs.PrivateHostedZoneId'
+        PrivateHostedZoneName: !Join [".", [!Ref ClusterName, !Ref HostedZoneName]]
+        Master0Subnet: !Ref PrivateSubnet1ID
+        Master1Subnet: !Ref PrivateSubnet2ID
+        Master2Subnet: !Ref PrivateSubnet3ID
+        MasterInstanceProfileName: !GetAtt 'SecurityStack.Outputs.MasterInstanceProfile'
+
+  #
+  # We will need to set up at least 1 worker in order to start up the cluster because certain OpenShift Operators
+  # must start up on worker nodes
+  #
+  # After the cluster initializes, it will create the remaining workers
+  WorkerStack:
+    DependsOn: BootStrapStack
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-worker.template'
+      Parameters:
+        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        WorkerInstanceType: !Ref NodesInstanceType
+        RhcosAmi: !If
+          - NoRhcosAmiParameter
+          - !FindInMap
+            - RhcosAmiMap
+            - !Ref AWS::Region
+            - !FindInMap
+              - NoDotVersion
+              - !Ref OpenshiftContainerPlatformVersion
+              - Value
+          - !Ref AmiId
+        Subnet: !Ref PrivateSubnet1ID
+        WorkerInstanceProfileName: !GetAtt 'SecurityStack.Outputs.WorkerInstanceProfile'
+        WorkerSecurityGroupId: !GetAtt 'SecurityStack.Outputs.MasterSecurityGroupId'
+
+Conditions:
+    NoRhcosAmiParameter:
+      Fn::Equals:
+        - !Ref AmiId
+        - ""
+    IsBootstrapEnabled: !Equals
+      - !Ref EnableBootstrap
+      - 'yes'
+
+Mappings:
+  NoDotVersion:
+    '4.2':
+      Value: '42'
+    '4.3':
+      Value: '43'
+  RhcosAmiMap:
+    # 4.2  - rhcos-42.80.20191002.0-hvm
+    # 4.3  - rhcos-43.81.202001142154.0-hvm
+    'us-east-1':
+      "42": ami-01e7fdcb66157b224
+      "43": ami-06f85a7940faa3217
+    us-east-2:
+      "42": ami-0bc59aaa7363b805d
+      "43": ami-04a79d8d7cfa540cc
+    us-west-1:
+      "42": ami-0ba912f53c1fdcdf0
+      "43": ami-0633b392e8eff25e7
+    us-west-2:
+      "42": ami-08e10b201e19fd5e7
+      "43": ami-0d231993dddc5cd2e
+    sa-east-1:
+      "42": ami-03f6b71e93e630dab
+      "43": ami-0c80d785b30eef121
+    eu-west-3:
+      "42": ami-058ad17da14ff4d0d9
+      "43": ami-0049e16104f360df6
+    eu-west-2:
+      "42": ami-00c74e593125e0096
+      "43": ami-0eef98c447b85ffcd
+    eu-west-1:
+      "42": ami-04370efd78434697b
+      "43": ami-0e95125b57fa63b0d
+    eu-north-1:
+      "42": ami-0175e9c9d258cc11d
+      "43": ami-06b7087b2768f644a
+    eu-central-1:
+      "42": ami-092b69120ecf915ed
+      "43": ami-0ceea534b63224411
+    ca-central-1:
+      "42": ami-04419691da69850cf
+      "43": ami-0f6d943a1fa9172fd
+    ap-southeast-2:
+      "42": ami-0391e92574fb09e08
+      "43": ami-08929f33bfab49b83
+    ap-southeast-1:
+      "42": ami-0d76ac0ebaac29e404
+      "43": ami-086b93722336bd1d9
+    ap-south-1:
+      "42": ami-0bd772ba746948d9a
+      "43": ami-0bf62e963a473068e
+    ap-northeast-2:
+      "42": ami-014514ae47679721b
+      "43": ami-0ba4f9a0358bcb44a
+    ap-northeast-1:
+      "42": ami-0426ca3481a088c7b
+      "43": ami-023d0452866845125
+    me-south-1:
+      "43": ami-0b03ea038629fd02e
+      # No AMI for RHCOS 4.2 in me-south-1
+      "42": ''
+
+Outputs:
+
+  OpenShiftUI:
+    Description: The URL OpenShiftUI
+    Value: !Join
+      - ''
+      - - https://
+        - !GetAtt NetworkStack.Outputs.ExtApiServerDnsName
+        - ':6443'
+
+
+  KubeAdminPassword:
+    Value: !Ref OpenShiftPasswordSecret
+    Description: Location in AWS Secrets Manager for the Open Shift Admin password

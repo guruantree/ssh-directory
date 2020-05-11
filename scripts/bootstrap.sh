@@ -41,7 +41,7 @@ qs_retry_command 25 ~/redhat_ose-register.sh ${RH_CREDS_ARN}
 
 mkdir -p /etc/aws/
 printf "[Global]\nZone = $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n" > /etc/aws/aws.conf
-printf "KubernetesClusterTag='kubernetes.io/cluster/${AWS_STACKNAME}-${AWS_REGION}'\n" >> /etc/aws/aws.conf
+printf "KubernetesClusterTag='kubernetes.io/cluster/${CLUSTER_NAME}'\n" >> /etc/aws/aws.conf
 printf "KubernetesClusterID=owned\n" >> /etc/aws/aws.conf
 
 DOCKER_DEV=/dev/xvdb

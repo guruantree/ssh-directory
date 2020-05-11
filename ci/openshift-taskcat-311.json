@@ -4,12 +4,16 @@
         "ParameterValue": "$[taskcat_genaz_3]"
     },
     {
-        "ParameterKey": "SSHKey",
+        "ParameterKey": "KeyPairName",
         "ParameterValue": "override"
     },
     {
         "ParameterKey": "NumberOfNodes",
         "ParameterValue": "3"
+    },
+    {
+        "ParameterKey": "OpenShiftAdminPassword",
+        "ParameterValue": "$[taskcat_genpass_16]"
     },
     {
         "ParameterKey": "DomainName",
@@ -20,11 +24,19 @@
         "ParameterValue": "override"
     },
     {
-        "ParameterKey": "PullSecret",
+        "ParameterKey": "RedhatSubscriptionPassword",
         "ParameterValue": "override"
     },
     {
-        "ParameterValue": "4.3",
+        "ParameterKey": "RedhatSubscriptionUserName",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterKey": "RedhatSubscriptionPoolID",
+        "ParameterValue": "override"
+    },
+    {
+        "ParameterValue": "3.11",
         "ParameterKey": "OpenshiftContainerPlatformVersion"
     },
     {
@@ -46,13 +58,6 @@
     {
         "ParameterKey": "QSS3BucketName",
         "ParameterValue": "$[taskcat_autobucket]"
-    },
-    {
-        "ParameterKey": "MasterInstanceType",
-        "ParameterValue": "m4.xlarge"
-    },
-    {
-        "ParameterKey": "NodesInstanceType",
-        "ParameterValue": "m4.xlarge"
     }
+
 ]

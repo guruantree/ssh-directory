@@ -1,0 +1,7 @@
+{
+  "RequestType": "Create",
+  "ResourceProperties": {
+    "Function": "GenerateIgnition",
+    "OpenShiftInstallBinary": "openshift-install"
+  }
+}

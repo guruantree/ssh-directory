@@ -72,8 +72,9 @@ def handler(event, context):
                     logging.error(reason)
             data['Arn'] = arn
             # delay as long as possible to give the cert a chance to propogate
-            while context.get_remaining_time_in_millis() / 1000.00 > 10.0:
-                time.sleep(5)
+            # TODO: Remove this commented out code
+#            while context.get_remaining_time_in_millis() / 1000.00 > 10.0:
+#                time.sleep(5)
         elif event['RequestType'] == 'Update':
             reason = 'Exception: Stack updates are not supported'
             logging.error(reason)
