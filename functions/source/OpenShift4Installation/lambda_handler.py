@@ -32,6 +32,7 @@ Currently not implemented but will need to set this up for AWS Certificate Manag
 4. Update DNS records for *.app.<CLUSTER_DOMAIN> to point to new loadbalancer
 
 """
+import glob
 import urllib.request
 import urllib.error
 from ruamel import yaml
@@ -88,6 +89,7 @@ def handler(event, context):
     availability_zones = event["ResourceProperties"]["AvailabilityZones"]
     openshift_user_access_key = event["ResourceProperties"]["AwsAccessKeyId"]
     openshift_user_secret_access_key = event["ResourceProperties"]["AwsSecretAccessKey"]
+    openshift_worker_iam_profile = event["ResourceProperties"].get("WorkerInstanceProfileName", None)
 
     s3_bucket = os.getenv('AuthBucket')
     cluster_name = os.getenv('ClusterName')
@@ -150,7 +152,7 @@ def handler(event, context):
                         openshift_install_binary, download_path,
                         cluster_name, ssh_key, pull_secret,
                         hosted_zone_name, subnets, availability_zones,
-                        openshift_user_access_key, openshift_user_secret_access_key
+                        openshift_user_access_key, openshift_user_secret_access_key, openshift_worker_iam_profile
                     )
                     upload_ignition_files_to_s3(local_folder, s3_bucket)
                     save_cfparams_json(cf_params=cf_params,
@@ -386,7 +388,8 @@ def verify_sha256sum(filename, sha256sum):
 
 
 def generate_ignition_files(openshift_install_binary, download_path, cluster_name, ssh_key, pull_secret,
-                            hosted_zone_name, subnets, availability_zones, aws_access_key_id, aws_secret_access_key):
+                            hosted_zone_name, subnets, availability_zones, aws_access_key_id, aws_secret_access_key,
+                            worker_instance_profile=None):
     """
     Produces a set of Ignition files and K8S/OpenShift manifests that are used to orchestrate the majority of the
     OpenShift v4 installation process.
@@ -409,6 +412,7 @@ def generate_ignition_files(openshift_install_binary, download_path, cluster_nam
     :param availability_zones:
     :param aws_access_key_id:
     :param aws_secret_access_key:
+    :param worker_instance_profile:
     :return:
     """
     assets_directory = download_path + cluster_name
@@ -447,12 +451,26 @@ def generate_ignition_files(openshift_install_binary, download_path, cluster_nam
         cmd = download_path + openshift_install_binary + " create manifests --dir {}".format(assets_directory)
         run_process(cmd)
         log.info('Deleting Master Machinesets from Manifests')
-        import glob
         control_plane_manifests = glob.glob(
             os.path.join(assets_directory, 'openshift', '99_openshift-cluster-api_master-machines-*.yaml')
         )
         for manifest in control_plane_manifests:
             os.remove(manifest)
+        if worker_instance_profile:
+            log.info('Customizing Worker IAM Instance Profile')
+            worker_manifests = glob.glob(
+                os.path.join(assets_directory, 'openshift', '99_openshift-cluster-api_worker-machineset-*.yaml')
+            )
+            for manifest in worker_manifests:
+                with open(manifest, 'r') as f:
+                    worker_machine_manifest = yaml.safe_load(f)
+                worker_machine_manifest['spec']['template']['spec']['providerSpec']['value']['iamInstanceProfile']['id'] = worker_instance_profile
+                with open(manifest, 'w') as f:
+                    yaml.dump(worker_machine_manifest, f, explicit_start=True, default_style='\"', width=4096)
+            log.info('Finished customizing Worker Machinesets')
+        else:
+            log.info('No Worker Machineset customizations found. Skipping customization phase...')
+
         log.info("Generating ignition files for {}...".format(cluster_name))
         cmd = download_path + openshift_install_binary + " create ignition-configs --dir {}".format(assets_directory)
         run_process(cmd)

@@ -37,6 +37,8 @@ Metadata:
           - OpenShiftInstallBinary
           - PullSecret
           - SSHKey
+          - MasterInstanceProfileName
+          - WorkerInstanceProfileName
       - Label:
           default: CloudFormation Meta
         Parameters:
@@ -49,6 +51,10 @@ Metadata:
           - LambdaZipsBucket
 
     ParameterLabels:
+      MasterInstanceProfileName:
+        default: Master IAM Instance Profile Name
+      WorkerInstanceProfileName:
+        default: Worker IAM Instance Profile Name
       SSLCertificateId:
         default: SSL Certificate ID
       CopyZipsFunctionArn:
@@ -94,6 +100,14 @@ Metadata:
       PublicSubnet3ID:
         default: Public Subnet 3 ID
 Parameters:
+  MasterInstanceProfileName:
+    Description: (Optional) Provide an IAM Instance profile name to use for control plane nodes
+    Type: String
+    Default: ''
+  WorkerInstanceProfileName:
+    Description: (Optional) Provide an IAM Instance profile name to use for worker nodes
+    Type: String
+    Default: ''
 
   HostedZoneName:
     Description: The managed Route53 Zone name
@@ -424,6 +438,7 @@ Resources:
       Region: !Ref AWS::Region
       AwsAccessKeyId: !Ref OpenShift4ClusterManagerAccessKeys
       AwsSecretAccessKey: !GetAtt OpenShift4ClusterManagerAccessKeys.SecretAccessKey
+      WorkerInstanceProfileName: !Ref WorkerInstanceProfileName
       AvailabilityZones: !Split
         - ","
         - !Ref AvailabilityZones
@@ -611,6 +626,8 @@ Resources:
         InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
         VpcCidr: !Ref VPCCIDR
         VpcId: !Ref VPCID
+        MasterInstanceProfileName: !Ref MasterInstanceProfileName
+        WorkerInstanceProfileName: !Ref WorkerInstanceProfileName
 
   #
   # OpenShift 4 requires an initial 'bootstrap' server to start the cluster. After the cluster starts up, you can safely

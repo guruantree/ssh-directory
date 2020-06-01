@@ -37,13 +37,14 @@
 
 ## BYO IAM Profiles / Roles
 
-still **TODO** 
+**DONE** 
 
-common pattern similar to the BYO VPC pattern:
 
-- [ ] Add parameters for iam roles and profiles
-- [ ] Set up conditionals
-- [ ] Use ARNs if exist, otherwise generate
+- [x] Add parameters for iam roles and profiles
+- [x] Set up conditionals
+- [x] Use ARNs if exist, otherwise generate
+
+Tested 06-01
 
 ## Multiple AZ Deployment
 
@@ -88,11 +89,9 @@ This process was tested 05-27
 
 - [ ] Allow users to select number of Master nodes at install
 - [ ] Allow users to select number of Worker nodes at install
-- [ ] Allow users to set allowable CIDr blocks for ingress (i.e. set corporate range for ingress security group)
-- [ ] AWS Service Broker install
 - [ ] Custom resource provider for OPenshift4 installer
 - [ ] Test some Helm Custom resources
 - [ ] Known Bug: the first time we request a certificate for a new subdomain /
-  clustername, the `*.apps` wildcard validation CNAME DNS record  doesn't get
-  created. works every time after that
-- [ ] Be more efficient with Custom Lambdas Stack -- not all the functions need to be created for OS4
+  clustername, the `*.apps` wildcard validation CNAME DNS record doesn't get created. no errors?
+- [x] Be more efficient with Custom Lambdas Stack -- not all the functions need to be created for OS4
+- [ ] Delete Openshift resources on delete events: IntDNS records, Security Groups, Loadbalancers -- all findable by Tags

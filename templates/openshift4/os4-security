@@ -19,6 +19,15 @@ Parameters:
     Description: The VPC-scoped resources will belong to this VPC.
     Type: AWS::EC2::VPC::Id
 
+  MasterInstanceProfileName:
+    Description: (Optional) Provide an IAM Instance profile name to use for control plane nodes
+    Type: String
+    Default: ''
+  WorkerInstanceProfileName:
+    Description: (Optional) Provide an IAM Instance profile name to use for worker nodes
+    Type: String
+    Default: ''
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -31,9 +40,18 @@ Metadata:
         Parameters:
           - VpcId
           - VpcCidr
+      - Label:
+          default: "IAM Configuration"
+        Parameters:
+          - MasterInstanceProfileName
+          - WorkerInstanceProfileName
     ParameterLabels:
       InfrastructureName:
         default: "Infrastructure Name"
+      MasterInstanceProfileName:
+        default: Master IAM Instance Profile Name
+      WorkerInstanceProfileName:
+        default: Worker IAM Instance Profile Name
       VpcId:
         default: "VPC ID"
       VpcCidr:
@@ -257,6 +275,7 @@ Resources:
 
   MasterIamRole:
     Type: AWS::IAM::Role
+    Condition: CreateMasterInstanceProfile
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -287,6 +306,7 @@ Resources:
 
   MasterInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
+    Condition: CreateMasterInstanceProfile
     Properties:
       InstanceProfileName: !Join ["-", [!Ref InfrastructureName, "master", "profile"]]
       Roles:
@@ -294,6 +314,7 @@ Resources:
 
   WorkerIamRole:
     Type: AWS::IAM::Role
+    Condition: CreateWorkerInstanceProfile
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -315,10 +336,18 @@ Resources:
 
   WorkerInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
+    Condition: CreateWorkerInstanceProfile
     Properties:
       InstanceProfileName: !Join ["-", [!Ref InfrastructureName, "worker", "profile"]]
       Roles:
         - Ref: "WorkerIamRole"
+Conditions:
+  CreateWorkerInstanceProfile: !Equals
+    - !Ref WorkerInstanceProfileName
+    - ""
+  CreateMasterInstanceProfile: !Equals
+    - !Ref WorkerInstanceProfileName
+    - ""
 
 Outputs:
   MasterSecurityGroupId:
@@ -331,8 +360,14 @@ Outputs:
 
   MasterInstanceProfile:
     Description: Master IAM Instance Profile
-    Value: !Ref MasterInstanceProfile
+    Value: !If
+      - CreateMasterInstanceProfile
+      - !Ref MasterInstanceProfile
+      - !Ref MasterInstanceProfileName
 
   WorkerInstanceProfile:
     Description: Worker IAM Instance Profile
-    Value: !Ref WorkerInstanceProfile
+    Value: !If
+      - CreateWorkerInstanceProfile
+      - !Ref WorkerInstanceProfile
+      - !Ref WorkerInstanceProfileName

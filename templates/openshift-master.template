@@ -60,6 +60,8 @@ Metadata:
           default: OpenShift v4 Configuration
         Parameters:
           - PullSecret
+          - MasterInstanceProfileName
+          - WorkerInstanceProfileName
       - Label:
           default: OpenShift v3 Configuration
         Parameters:
@@ -88,6 +90,10 @@ Metadata:
           - QSS3BucketName
           - QSS3KeyPrefix
     ParameterLabels:
+      MasterInstanceProfileName:
+        default: Master IAM Instance Profile Name
+      WorkerInstanceProfileName:
+        default: Worker IAM Instance Profile Name
       AmiId:
         default: AMI ID
       KeyPairName:
@@ -191,6 +197,14 @@ Metadata:
       NumberOfAZs:
         default: Number of Availability Zones
 Parameters:
+  MasterInstanceProfileName:
+    Description: (Optional) Provide an IAM Instance profile name to use for control plane nodes. If unprovided, OpenShift will configure a new IAM Instance Profile for you
+    Type: String
+    Default: ''
+  WorkerInstanceProfileName:
+    Description: (Optional) Provide an IAM Instance profile name to use for worker nodes. If unprovided, OpenShift will configure a new IAM Instance Profile for you
+    Type: String
+    Default: ''
   VPCID:
     Description: ID of your existing VPC for deployment
     Type: String
@@ -739,6 +753,9 @@ Resources:
           -  OpenShiftInstallBinary
         SSHKey: !Ref SSHKey
         PullSecret: !Ref PullSecret
+
+        MasterInstanceProfileName: !Ref MasterInstanceProfileName
+        WorkerInstanceProfileName: !Ref WorkerInstanceProfileName
 
         # TODO: these do not get set on the actual installation
         NumberOfMaster: !Ref NumberOfMaster

@@ -33,6 +33,21 @@ tests:
       - eu-north-1
       - ap-south-1
       - ap-northeast-2
+  openshift-iam-param:
+    parameter_input: openshift-taskcat-iam.json
+    template_file: openshift-master.template
+    regions:
+      - eu-central-1
+      - eu-west-1
+      - us-east-1
+      - us-east-2
+      - ap-northeast-1
+      - eu-west-2
+      - eu-west-3
+      - ap-southeast-1
+      - eu-north-1
+      - ap-south-1
+      - ap-northeast-2
   openshift311:
     parameter_input: openshift-taskcat-311.json
     template_file: openshift-master.template
@@ -48,12 +63,12 @@ tests:
       - eu-north-1
       - ap-south-1
       - ap-northeast-2
-  openshift311-m4:
+  openshift-m4:
     parameter_input: openshift-taskcat-m4.json
     template_file: openshift-master.template
     regions:
       - ap-southeast-2
-  openshift311-nodomain-gluster:
+  openshift-nodomain-gluster:
     parameter_input: openshift-taskcat-nodomain.json
     template_file: openshift-master.template
     regions:
