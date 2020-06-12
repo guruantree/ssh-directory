@@ -1,0 +1,21 @@
+{
+    "StackName": "simple-resource-provider-test",
+    "TemplateBody": "file://simple_ignition_gen.yaml",
+    "Parameters": [
+    ],
+    "RollbackConfiguration": {
+    },
+    "NotificationARNs": [
+    ],
+    "Capabilities": [
+        "CAPABILITY_AUTO_EXPAND",
+        "CAPABILITY_IAM",
+        "CAPABILITY_NAMED_IAM"
+    ],
+    "ResourceTypes": [
+    ],
+    "OnFailure": "DO_NOTHING",
+    "Tags": [
+    ],
+    "EnableTerminationProtection": false
+}

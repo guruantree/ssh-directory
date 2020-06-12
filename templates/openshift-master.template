@@ -35,6 +35,7 @@ Metadata:
           - HostedZoneID
           - SubDomainPrefix
           - CertificateArn
+          - SSLPrivateKeySecretName
       - Label:
           default: Amazon EC2 Configuration
         Parameters:
@@ -196,7 +197,13 @@ Metadata:
         default: Enable the cluster console (Requires OpenShift 3.11)
       NumberOfAZs:
         default: Number of Availability Zones
+      SSLPrivateKeySecretName:
+        default: SSL Private Key Secret Name
 Parameters:
+  SSLPrivateKeySecretName:
+    Description: AWS Secrets Manager name for the SSL Private Key for the certificate in ACM. If provided, Quickstart will load your Certificate and Key into the OpenShift cluster.
+    Type: String
+    Default: ''
   MasterInstanceProfileName:
     Description: (Optional) Provide an IAM Instance profile name to use for control plane nodes. If unprovided, OpenShift will configure a new IAM Instance Profile for you
     Type: String
@@ -753,12 +760,11 @@ Resources:
           -  OpenShiftInstallBinary
         SSHKey: !Ref SSHKey
         PullSecret: !Ref PullSecret
+        SSLPrivateKeySecretName: !Ref SSLPrivateKeySecretName
 
         MasterInstanceProfileName: !Ref MasterInstanceProfileName
         WorkerInstanceProfileName: !Ref WorkerInstanceProfileName
 
-        # TODO: these do not get set on the actual installation
-        NumberOfMaster: !Ref NumberOfMaster
         NumberOfNodes: !Ref NumberOfNodes
 
         MasterInstanceType: !Ref 'MasterInstanceType'
@@ -826,10 +832,6 @@ Resources:
         AvailabilityZones: !Join
           - ","
           - !Ref AvailabilityZones
-
-        # Custom Resources
-        CopyZipsFunctionArn: !GetAtt CustomLambdaStack.Outputs.CopyZipsArn
-        LambdaZipsBucket: !GetAtt CustomLambdaStack.Outputs.LambdaZipsBucket
 
 
   OpenShift3:

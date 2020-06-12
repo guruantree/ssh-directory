@@ -145,12 +145,6 @@ Parameters:
       subnet-b1f4a2cd)
     Type: String
 
-  NumberOfMaster:
-    Default: '3'
-    Description: This Deployment requires at least 3 OpenShift Master instances
-    Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
-
   NumberOfNodes:
     Default: '3'
     Description: The desired capacity for the OpenShift node instances
@@ -310,14 +304,6 @@ Parameters:
     Description: (Optional) The AWS ACM SSL Certificate ARN to use for LoadBalancer configuration
     Default: ''
 
-  CopyZipsFunctionArn:
-    Type: String
-    Description: CopyZips Lambda ARN used for moving Lambda deployments to the correct bucket
-
-  LambdaZipsBucket:
-    Type: String
-    Description: The Bucket name for the Lambda zip archives to be stored
-
   LogLevel:
     Description: 'Log Level to use for the OpenShift4 Installer'
     Default: DEBUG
@@ -347,12 +333,6 @@ Parameters:
     Type: String
 
 Resources:
-
-  # Store the Kube Admin password in Secrets Manager
-  OpenShiftPasswordSecret:
-    Type: "AWS::SecretsManager::Secret"
-    Properties:
-      SecretString: !GetAtt 'OpenShift4Setup.KubeAdminPassword'
 
   #
   # Create an S3 Bucket for storing Cluster startup files (bootstrap.ign, master.ign, worker.ign)
@@ -430,15 +410,16 @@ Resources:
   # During cluster Bootstrap, the initial cluster nodes fetch the installation files from the IgnitionBucket and use
   # these configurations to install OpenShift and install K8s manifests
   #
-  OpenShift4Setup:
-    Type: Custom::LambdaDeployCF
+  OpenShiftGenerateIgnition:
+    Type: "AWSQS::OpenShift::Manager"
     Properties:
-      Function: DeployCF
-      ServiceToken: !GetAtt OpenShift4InstallationLambda.Arn
-      Region: !Ref AWS::Region
-      AwsAccessKeyId: !Ref OpenShift4ClusterManagerAccessKeys
-      AwsSecretAccessKey: !GetAtt OpenShift4ClusterManagerAccessKeys.SecretAccessKey
-      WorkerInstanceProfileName: !Ref WorkerInstanceProfileName
+      Action: "GENERATE_IGNITION"
+      ClusterName: !Ref ClusterName
+      LogLevel: !Ref LogLevel
+      IgnitionBucket: !Ref IgnitionBucket
+      HostedZoneName: !Ref HostedZoneName
+      SSHKey: !Ref SSHKey
+      WorkerNodeSize: !Ref NumberOfNodes
       AvailabilityZones: !Split
         - ","
         - !Ref AvailabilityZones
@@ -449,146 +430,25 @@ Resources:
         - !Ref PrivateSubnet1ID
         - !Ref PrivateSubnet2ID
         - !Ref PrivateSubnet3ID
+      AwsAccessKeyId: !Ref OpenShift4ClusterManagerAccessKeys
+      AwsSecretAccessKey: !GetAtt OpenShift4ClusterManagerAccessKeys.SecretAccessKey
+      WorkerInstanceProfileName: !Ref WorkerInstanceProfileName
+      CertificateArn: !Ref SSLCertificateId
+      PullSecret: !Ref PullSecret
+      OpenShiftMirrorURL: !Ref OpenShiftMirrorURL
+      OpenShiftClientBinary: !Ref OpenShiftClientBinary
+      OpenShiftInstallBinary: !Ref OpenShiftInstallBinary
+      OpenShiftVersion: !Ref OpenShiftVersion
 
-  CopyZips:
-    Type: Custom::CopyZips
+  OpenShiftBootstrap:
+    DependsOn: OpenShiftGenerateIgnition
+    Type: "AWSQS::OpenShift::Manager"
     Properties:
-      ServiceToken: !Ref 'CopyZipsFunctionArn'
-      DestBucket: !Ref 'LambdaZipsBucket'
-      SourceBucket: !Ref 'QSS3BucketName'
-      Prefix: !Ref 'QSS3KeyPrefix'
-      Objects:
-        - functions/packages/OpenShift4Installation/lambda.zip
-
-  OpenShift4InstallationLambda:
-    DependsOn: CopyZips
-    Type: AWS::Lambda::Function
-    Properties:
-      Description: A Lambda to install, configure, and manage OS4 clusters
-      Handler: lambda_handler.handler
-      MemorySize: 512
-      Role: !GetAtt OpenShift4InstallationRole.Arn
-      Runtime: python3.7
-      Timeout: 900
-      Environment:
-        Variables:
-          LogLevel: !Ref LogLevel
-          AuthBucket: !Ref IgnitionBucket
-          ClusterName: !Ref ClusterName
-          HostedZoneName: !Ref HostedZoneName
-          OpenShiftMirrorURL: !Ref OpenShiftMirrorURL
-          OpenShiftVersion: !Ref OpenShiftVersion
-          OpenShiftClientBinary: !Ref OpenShiftClientBinary
-          OpenShiftInstallBinary: !Ref OpenShiftInstallBinary
-          PullSecret: !Ref PullSecret
-          QSS3BucketName: !Ref QSS3BucketName
-          QSS3KeyPrefix: !Ref QSS3KeyPrefix
-          SSHKey: !Ref SSHKey
-      Code:
-        S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/OpenShift4Installation/lambda.zip'
-
-
-  OpenShift4InstallationRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: stackdirector
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: s3:*
-                Resource:
-                  - !Sub 'arn:aws:s3:::${IgnitionBucket}/*'
-                  - !Sub 'arn:aws:s3:::${IgnitionBucket}'
-        - PolicyName: CFValidation
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - iam:GetUser
-                  - iam:CreateUser
-                  - iam:DeleteUser
-                  - iam:AttachUserPolicy
-                  - iam:DetachUserPolicy
-                  - iam:ListAccessKeys
-                  - iam:CreateLoginProfile
-                  - iam:DeleteLoginProfile
-                  - iam:GetRole
-                  - iam:CreateRole
-                  - iam:DeleteRole
-                  - iam:GetRolePolicy
-                  - iam:DeleteRolePolicy
-                  - iam:PutRolePolicy
-                  - iam:PassRole
-                  - iam:CreateInstanceProfile
-                  - iam:DeleteInstanceProfile
-                  - iam:AddRoleToInstanceProfile
-                  - iam:RemoveRoleFromInstanceProfile
-                  - iam:CreateServiceLinkedRole
-                  - lambda:CreateFunction
-                  - lambda:GetFunction
-                  - lambda:GetFunctionConfiguration
-                  - lambda:DeleteFunction
-                  - lambda:InvokeFunction
-                  - cloudformation:Create*
-                  - cloudformation:ListStacks*
-                  - cloudformation:Delete*
-                  - cloudformation:Describe*
-                  - ec2:DescribeVpcs
-                  - ec2:DescribeImages
-                  - ec2:DescribeSubnets
-                  - ec2:DescribeSecurityGroups
-                  - ec2:DescribeRouteTables
-                  - ec2:DescribeVolumes
-                  - ec2:DescribeVpcAttribute
-                  - ec2:DescribeVpcClassicLink
-                  - ec2:DescribeVpcClassicLinkDnsSupport
-                  - ec2:DescribeVpcEndpoints
-                  - ec2:DescribeInternetGateways
-                  - ec2:DescribeAccountAttributes
-                  - ec2:DescribeTags
-                  - ec2:CreateSecurityGroup
-                  - ec2:AuthorizeSecurityGroupIngress
-                  - ec2:RevokeSecurityGroupIngress
-                  - ec2:DeleteSecurityGroup
-                  - ec2:RunInstances
-                  - ec2:TerminateInstances
-                  - ec2:DescribeInstances
-                  - ec2:createTags
-                  - ec2:DeleteTags
-                  - elasticloadbalancing:DescribeTargetGroups
-                  - elasticloadbalancing:DescribeLoadBalancers
-                  - elasticloadbalancing:DescribeListeners
-                  - elasticloadbalancing:DeleteTargetGroup
-                  - elasticloadbalancing:CreateTargetGroup
-                  - elasticloadbalancing:DeleteLoadBalancer
-                  - elasticloadbalancing:CreateLoadBalancer
-                  - elasticloadbalancing:DeleteListener
-                  - elasticloadbalancing:CreateListener
-                  - elasticloadbalancing:ModifyTargetGroupAttributes
-                  - route53:ChangeResourceRecordSets
-                  - route53:ChangeTagsForResource
-                  - route53:ListResourceRecordSets
-                  - route53:GetHostedZone
-                  - route53:ListHostedZones
-                  - route53:CreateHostedZone
-                  - route53:DeleteHostedZone
-                  - route53:ListQueryLoggingConfigs
-                  - route53:GetChange
-                Resource: "*"
+      Action: "BOOTSTRAP"
+      ClusterName: !Ref ClusterName
+      HostedZoneName: !Ref HostedZoneName
+      LogLevel: !Ref LogLevel
+      CertificateArn: !Ref SSLCertificateId
 
   #
   # Sets up Networking
@@ -601,7 +461,7 @@ Resources:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-network.template'
       Parameters:
         ClusterName: !Ref ClusterName
-        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         VpcId: !Ref VPCID
         HostedZoneName: !Ref HostedZoneName
         HostedZoneId: !Ref HostedZoneID
@@ -623,7 +483,7 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-security'
       Parameters:
-        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         VpcCidr: !Ref VPCCIDR
         VpcId: !Ref VPCID
         MasterInstanceProfileName: !Ref MasterInstanceProfileName
@@ -641,7 +501,7 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-bootstrap'
       Parameters:
-        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         RhcosAmi: !If
           - NoRhcosAmiParameter
           - !FindInMap
@@ -676,7 +536,7 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-controlplane'
       Parameters:
-        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         MasterInstanceType: !Ref MasterInstanceType
         RhcosAmi: !If
           - NoRhcosAmiParameter
@@ -712,7 +572,7 @@ Resources:
     Properties:
       TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-worker.template'
       Parameters:
-        InfrastructureName: !GetAtt 'OpenShift4Setup.InfrastructureName'
+        InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         WorkerInstanceType: !Ref NodesInstanceType
         RhcosAmi: !If
           - NoRhcosAmiParameter
@@ -728,6 +588,40 @@ Resources:
         WorkerInstanceProfileName: !GetAtt 'SecurityStack.Outputs.WorkerInstanceProfile'
         WorkerSecurityGroupId: !GetAtt 'SecurityStack.Outputs.MasterSecurityGroupId'
 
+  ExternalAppsServerRecord:
+    Condition: HasACMCertificate
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      Comment: Alias record for the Apps ingress
+      HostedZoneId: !Ref HostedZoneID
+      RecordSets:
+        - Name:
+            !Join [
+              ".",
+              ["*", "apps", !Ref ClusterName, !Join ["", [!Ref HostedZoneName, "."]]],
+            ]
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt OpenShiftBootstrap.IngressZoneId
+            DNSName: !GetAtt OpenShiftBootstrap.IngressDNS
+
+  InternalAppsServerRecord:
+    Condition: HasACMCertificate
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      Comment: Alias record for the Apps ingress
+      HostedZoneId: !GetAtt NetworkStack.Outputs.PrivateHostedZoneId
+      RecordSets:
+        - Name:
+            !Join [
+              ".",
+              ["*", "apps", !Ref ClusterName, !Join ["", [!Ref HostedZoneName, "."]]],
+            ]
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt OpenShiftBootstrap.IngressZoneId
+            DNSName: !GetAtt OpenShiftBootstrap.IngressDNS
+
 Conditions:
     NoRhcosAmiParameter:
       Fn::Equals:
@@ -736,6 +630,11 @@ Conditions:
     IsBootstrapEnabled: !Equals
       - !Ref EnableBootstrap
       - 'yes'
+
+    HasACMCertificate: !Not
+      - !Equals
+        - !Ref SSLCertificateId
+        - ""
 
 Mappings:
   NoDotVersion:
@@ -811,5 +710,5 @@ Outputs:
 
 
   KubeAdminPassword:
-    Value: !Ref OpenShiftPasswordSecret
+    Value: !GetAtt OpenShiftGenerateIgnition.KubeAdminPasswordArn
     Description: Location in AWS Secrets Manager for the Open Shift Admin password

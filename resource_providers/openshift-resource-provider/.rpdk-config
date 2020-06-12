@@ -1,0 +1,10 @@
+{
+    "typeName": "AWSQS::OpenShift::Manager",
+    "language": "python37",
+    "runtime": "python3.7",
+    "entrypoint": "awsqs_openshift_manager.handlers.resource",
+    "testEntrypoint": "awsqs_openshift_manager.handlers.test_entrypoint",
+    "settings": {
+        "use_docker": true
+    }
+}

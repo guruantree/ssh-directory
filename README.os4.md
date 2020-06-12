@@ -5,6 +5,12 @@
 - Created sub-directories to organize common, os3, and os4 templates
 - More os3 resources broken up into nested child stacks
 - OS4 built with more child stacks
+- Custom Resource Provider manages the Cluster installation. Uses two instances of the provider. one to manage the
+  Ignition File generation and a second instance to monitor and manage the Cluster bootstrap.
+
+# Custom Resource Provider
+
+Installation instructions located in [README](resource_providers/openshift-resource-provider/README.md)
 
 # Differences between OS3 and OS4 Quickstarts
 
@@ -87,11 +93,11 @@ This process was tested 05-27
 
 # TODOs
 
-- [ ] Allow users to select number of Master nodes at install
-- [ ] Allow users to select number of Worker nodes at install
-- [ ] Custom resource provider for OPenshift4 installer
-- [ ] Test some Helm Custom resources
+- [x] Allow users to select number of Worker nodes at install
+- [x] Custom resource provider for OPenshift4 installer
+- [x] Create AWS Secret in Openshift4 installer. Fetches Kubeconfig
 - [ ] Known Bug: the first time we request a certificate for a new subdomain /
   clustername, the `*.apps` wildcard validation CNAME DNS record doesn't get created. no errors?
 - [x] Be more efficient with Custom Lambdas Stack -- not all the functions need to be created for OS4
-- [ ] Delete Openshift resources on delete events: IntDNS records, Security Groups, Loadbalancers -- all findable by Tags
+- [x] Test some Helm Custom resources
+- [x] Delete Openshift resources on delete events: IntDNS records, Security Groups, Loadbalancers -- all findable by Tags

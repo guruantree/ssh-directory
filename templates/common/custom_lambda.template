@@ -201,7 +201,6 @@ Resources:
       SourceBucket: !Ref 'QSS3BucketName'
       Prefix: !Ref 'QSS3KeyPrefix'
       Objects:
-        - functions/packages/OpenShift4Installation/lambda.zip
         - functions/packages/KeyGen/lambda.zip
         - functions/packages/DeleteBucketContents/lambda.zip
         - functions/packages/ACMCert/lambda.zip

@@ -1,0 +1,199 @@
+{
+    "typeName": "AWSQS::OpenShift::Manager",
+    "description": "Manages an OpenShift Cluster. Generates Ignition Configuation to help with installation or manages the bootstrap process",
+    "properties": {
+        "LogLevel": {
+            "description": "Set the log level for Lambda events to CloudWatch",
+            "type": "string",
+            "enum": [
+                "DEBUG",
+                "INFO"
+            ]
+        },
+        "Action": {
+            "description": "The Management action to take. Must be one of COMMAND, INSTALL, or WAIT",
+            "type": "string",
+            "enum": [
+                "BOOTSTRAP",
+                "GENERATE_IGNITION"
+            ]
+        },
+        "WorkerNodeSize": {
+            "description": "The size of the initial worker cluster. This can be resized later",
+            "type": "integer",
+            "minimum": 0
+        },
+        "ClusterName": {
+            "description": "The unique identifier for the OpenShift cluster",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "type": "string"
+        },
+        "OpenShiftMirrorURL": {
+            "description": "The mirror URL for OpenShift binaries",
+            "type": "string"
+        },
+        "OpenShiftVersion": {
+            "description": "The version of OpenShift to install",
+            "type": "string"
+        },
+        "OpenShiftClientBinary": {
+            "description": "The OpenShift client name",
+            "type": "string"
+        },
+        "OpenShiftInstallBinary": {
+            "description": "The OpenShift install program name",
+            "type": "string"
+        },
+        "IgnitionBucket": {
+            "description": "The S3 Bucket name to use for storing Ignition files",
+            "type": "string"
+        },
+        "PullSecret": {
+            "description": "The RedHat Pull Secret required to fetch OpenShift container images",
+            "type": "string"
+        },
+        "SSHKey": {
+            "description": "A public SSH key to add to the OpenShift. Required for administrative SSH access",
+            "type": "string"
+        },
+        "AwsAccessKeyId": {
+            "description": "An AWS Access Key ID for the cluster to use to manage AWS resources like Ingress ELBs",
+            "type": "string"
+        },
+        "AwsSecretAccessKey": {
+            "description": "An AWS Secret Access Key for the cluster to use to manage AWS resources like Ingress ELBs",
+            "type": "string"
+        },
+        "WorkerInstanceProfileName": {
+            "description": "An IAM instance profile to set on Worker nodes",
+            "type": "string"
+        },
+        "HostedZoneName": {
+            "description": "The DNS zone for this cluster",
+            "type": "string"
+        },
+        "AvailabilityZones": {
+            "description": "",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "Subnets": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "CertificateArn": {
+            "type": "string",
+            "description": "An ARN to the ACM certificate for user Applications"
+        },
+        "IngressDNS": {
+            "description": "The DNS hostname for the default ingress load balancer",
+            "type": "string"
+        },
+        "IngressZoneId": {
+            "description": "The Zone ID for the default ingress load balancer",
+            "type": "string"
+        },
+        "InfrastructureName": {
+            "description": "The unique identifier for the OpenShift cluster",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "type": "string"
+        },
+        "InfrastructureId": {
+            "description": "The unique identifier for the OpenShift cluster",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "type": "string"
+        },
+        "KubeConfig": {
+            "type": "string",
+            "description": "An ARN to the KubeConfig file stored in Secrets Manager"
+        },
+        "KubeConfigArn": {
+            "type": "string",
+            "description": "An ARN to the KubeConfig file stored in Secrets Manager"
+        },
+        "KubeAdminPasswordArn": {
+            "type": "string",
+            "description": "An ARN to the Kubernetes / OpenShift Admin password stored in Secrets Manager"
+        }
+    },
+    "required": [
+        "Action"
+    ],
+    "additionalIdentifiers": [
+        [
+            "/properties/ClusterName"
+        ]
+    ],
+    "readOnlyProperties": [
+        "/properties/KubeAdminPasswordArn",
+        "/properties/InfrastructureId",
+        "/properties/KubeConfigArn",
+        "/properties/IngressZoneId",
+        "/properties/IngressDNS"
+    ],
+    "primaryIdentifier": [
+        "/properties/Action",
+        "/properties/ClusterName"
+    ],
+    "additionalProperties": false,
+    "handlers": {
+        "create": {
+            "permissions": [
+                "s3:*",
+                "ssm:*",
+                "secretsmanager:CreateSecret",
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:PutSecretValue",
+                "secretsmanager:DescribeSecret"
+            ]
+        },
+        "read": {
+            "permissions": [
+                "secretsmanager:DescribeSecret",
+                "secretsmanager:TagResource",
+                "route53:ListResourceRecordSets",
+                "secretsmanager:ListSecrets",
+                "iam:ListAccessKeys"
+            ]
+        },
+        "delete": {
+            "permissions": [
+                "s3:*",
+                "elasticloadbalancing:*",
+                "tag:GetResources",
+                "route53:ListHostedZones",
+                "route53:ListResourceRecordSets",
+                "route53:ListQueryLoggingConfigs",
+                "route53:GetHostedZone",
+                "route53:ListHostedZonesByName",
+                "route53:GetChange",
+                "route53:ChangeResourceRecordSets",
+                "secretsmanager:DeleteSecret",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:GetUser",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeImages",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeRouteTables",
+                "ec2:DescribeVolumes",
+                "ec2:DescribeVpcAttribute",
+                "ec2:DescribeVpcClassicLink",
+                "ec2:DescribeVpcClassicLinkDnsSupport",
+                "ec2:DescribeVpcEndpoints",
+                "ec2:DescribeInternetGateways",
+                "ec2:DescribeAccountAttributes",
+                "ec2:DescribeTags",
+                "ec2:DescribeInstances",
+                "ec2:DeleteSecurityGroup",
+                "ec2:RevokeSecurityGroupIngress",
+                "ec2:TerminateInstances"
+            ]
+        }
+    }
+}
