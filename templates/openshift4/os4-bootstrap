@@ -159,6 +159,11 @@ Resources:
       ImageId: !Ref RhcosAmi
       IamInstanceProfile: !Ref BootstrapInstanceProfile
       InstanceType: "i3.large"
+      Tags:
+        - Key: !Sub 'kubernetes.io/cluster/${InfrastructureName}'
+          Value: "owned"
+        - Key: cluster-role
+          Value: bootstrap
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: "0"

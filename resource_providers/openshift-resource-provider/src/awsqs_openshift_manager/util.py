@@ -2,6 +2,7 @@
 Set of utility functions to use with this Resource Provider
 """
 import logging
+import tarfile
 from typing import Optional, Mapping
 
 import boto3
@@ -13,80 +14,11 @@ import subprocess
 
 from botocore.exceptions import ClientError
 
+from cloudformation_cli_python_lib import SessionProxy
+
 # Use this logger to forward log messages to CloudWatch Logs.
-from cloudformation_cli_python_lib import SessionProxy, OperationStatus
-
-from .models import ResourceModel
-from .openshift import fetch_ingress_info, fetch_openshift_binary
-
 LOG = logging.getLogger(__name__)
 log = LOG  # alias
-
-
-def fetch_resource(model: Optional[ResourceModel], session: Optional[SessionProxy]) -> Mapping:
-    """
-    Fetches resource information from AWS and adds them to our model.
-
-    We specifically grab the Infrastructure ID from Parameter store and any Kubernetes information from Secrets Manager
-
-    :param model: Resource model
-    :param session: Boto SessionProxy
-    :return Mapping: A Mapping of values that can be used as **kwargs to a ProgressEvent or used for something else
-    """
-    secrets = session.client('secretsmanager')
-    ssm = session.client('ssm')
-    LOG.info('Retrieving Cluster information from AWS Parameter Store and Secrets Manager')
-    try:
-        LOG.debug('Fetching Infrastructure ID')
-        model.InfrastructureId = ssm.get_parameter(
-            Name=f'/OpenShift/{model.ClusterName}/InfrastructureId'
-        )['Parameter']['Value']
-        LOG.debug('Fetching KubeConfig')
-        model.KubeConfigArn = model.KubeConfig = \
-            secrets.describe_secret(SecretId=f'{model.InfrastructureId}-kubeconfig')['ARN']
-
-    except ssm.exceptions.ParameterNotFound:
-        err_msg = f"ERROR - Parameter at /OpenShift/{model.ClusterName}/InfrastructureId not found"
-        LOG.error(err_msg)
-        return {
-            'status': OperationStatus.FAILED,
-            'message': err_msg,
-            'resourceModel': model
-        }
-    except secrets.exceptions.ResourceNotFoundException as e:
-        err_msg = f'ERROR - Required Secret values for Kubernetes connections could not be found: {e}'
-        LOG.error(err_msg)
-        return {
-            'status': OperationStatus.FAILED,
-            'message': err_msg,
-            'resourceModel': model
-        }
-    # Bootstrap Action does not need KubeAdminPassword
-    try:
-        LOG.debug('Fetching KubeAdminPassword')
-        model.KubeAdminPasswordArn = secrets.describe_secret(SecretId=f'{model.InfrastructureId}-kubeadmin')['ARN']
-    except secrets.exceptions.ResourceNotFoundException as e:
-        if model.Action == 'GENERATE_IGNITION':
-            err_msg = f'ERROR - Required Secret values for Kubernetes admin password could not be found: {e}',
-            LOG.error(err_msg)
-            return {
-                'status': OperationStatus.FAILED,
-                'message': err_msg,
-                'resourceModel': model
-            }
-        LOG.warning('WARNING - KubeAdminPassword not required for BOOTSTRAP action. Continuing...')
-
-    log.info('Reading Ingress information from Cluster')
-    openshift_client_binary = model.OpenShiftClientBinary
-    openshift_version = model.OpenShiftVersion
-    openshift_client_mirror_url = f'{model.OpenShiftMirrorURL}{openshift_version}/'
-    openshift_client_package = f'openshift-client-linux-{openshift_version}.tar.gz'
-    fetch_openshift_binary(openshift_client_mirror_url, openshift_client_package, openshift_client_binary, '/tmp/')
-    oc_bin = f'/tmp/{openshift_client_binary}'
-
-    kubeconfig_path = write_kubeconfig(session, model.KubeConfigArn)
-    model.IngressZoneId, model.IngressDNS = fetch_ingress_info(oc_bin, kubeconfig_path, session)
-    return {'status': OperationStatus.SUCCESS, 'resourceModel': model}
 
 
 def write_kubeconfig(session, kubeconfig_id, parent_dir='/tmp/'):
@@ -97,13 +29,39 @@ def write_kubeconfig(session, kubeconfig_id, parent_dir='/tmp/'):
     :param parent_dir: where to install kubeconfig file
     :return str: Path to kubeconfig
     """
-    LOG.debug('[CREATE] Fetching KubeConfig from Secrets Manager at %s', kubeconfig_id)
+    LOG.debug('Fetching KubeConfig from Secrets Manager at %s', kubeconfig_id)
     secrets = session.client('secretsmanager')
     kubeconfig_path = os.path.join('/tmp/', 'kubeconfig')
     kubeconfig = secrets.get_secret_value(SecretId=kubeconfig_id)
     with open(kubeconfig_path, 'w') as f:
         f.write(kubeconfig['SecretString'])
     return kubeconfig_path
+
+
+def fetch_cert_and_key(session: SessionProxy, certificate_arn, private_key_secret_name):
+    """
+    Fetches Certificate and Private Key material from Amazon Certificate Manager and Secrets Manager
+
+    :param session: Boto3 session
+    :param certificate_arn: Valid ACM ARN
+    :param private_key_secret_name: Valid Secrets Manager Name ID
+    :return: Certificate, Certificate Chain, Private Key
+    """
+    secrets = session.client('secretsmanager')
+    acm = session.client('acm')
+    log.info('Fetching custom Ingress Certificate from ACM ')
+    log.debug('ACM ARN: %s', certificate_arn)
+    cert_response = acm.get_certificate(CertificateArn=certificate_arn)
+    log.debug('Certificate Data: %s', cert_response)
+    cert = cert_response['Certificate']
+    cert_chain = cert_response['CertificateChain']
+
+    log.info('Fetching custom Ingress Private Key from Secrets Manager')
+    log.debug('Secret Name: %s', private_key_secret_name)
+    private_key = secrets.get_secret_value(SecretId=private_key_secret_name)['SecretString']
+    log.info('Secret fetched successfully')
+
+    return cert, cert_chain, private_key
 
 
 def verify_sha256sum(filename, sha256sum):
@@ -330,3 +288,77 @@ def check_file_s3(s3_bucket, key, session: SessionProxy):
     except Exception as e:
         log.debug("File not found at {} and key {}".format(s3_bucket, key))
         return False
+
+
+def fetch_openshift_binary(openshift_client_mirror_url, openshift_install_package, openshift_install_binary,
+                           download_path):
+    """
+    Fetch OpenShift binaries
+
+    :param openshift_client_mirror_url: The URL to the OpenShift repository mirror for fetching command binaries
+    :param openshift_install_package: The name of the `openshift_install` package
+    :param openshift_install_binary: The name of the `openshfit_install` binary
+    :param download_path: The path to download OpenShift binaries
+    :return str: Location of binaries
+    """
+    sha256sum_file = 'sha256sum.txt'
+    sha256sum_path = os.path.join(download_path, sha256sum_file)
+    retries = 1
+    url = openshift_client_mirror_url + sha256sum_file
+    log.info("Downloading sha256sum file for OpenShift install client...")
+    url_retreive(url, sha256sum_path)
+    log.debug("Getting SHA256 hash for file %s", sha256sum_path)
+    sha256sum_dict = parse_sha256sum_file(sha256sum_path)
+    sha256sum = sha256sum_dict[openshift_install_package]
+
+    # Download the openshift install binary only if it doesn't exist and retry download if the sha256sum doesn't match
+    i = 0
+    url = openshift_client_mirror_url + openshift_install_package
+    openshift_install_package_path = os.path.join(download_path, openshift_install_package)
+    while i <= retries:
+        i += 1
+        if os.path.exists(openshift_install_package_path):
+            # Verify SHA256 hash
+            if verify_sha256sum(openshift_install_package_path, sha256sum):
+                log.info("OpenShift install client already exists in %s", openshift_install_package_path)
+                break
+        log.info("Downloading OpenShift install client...")
+        url_retreive(url, openshift_install_package_path)
+        if verify_sha256sum(openshift_install_package_path, sha256sum):
+            log.info("Successfuly downloaded OpenShift install client...")
+            break
+    if not os.path.exists(os.path.join(download_path, openshift_install_binary)):
+        log.info("Extracting the OpenShift install client...")
+        tar = tarfile.open(openshift_install_package_path)
+        tar.extractall(path=download_path)
+        tar.close()
+    return openshift_install_package_path
+
+
+def terminate_bootstrap_instance(model, session):
+    """
+    Terminates the bootstrap instance. It is no longer needed after the initial Cluster bootstrap
+
+    :param model: CF Resource model
+    :param session: Boto3 session
+    """
+
+    client = session.client('ec2')
+    cluster_tag = f'tag:kubernetes.io/cluster/{model.InfrastructureId}'
+    response = client.describe_instances(Filters=[
+        {
+            'Name': cluster_tag,
+            'Values': ['owned']
+        },
+        {
+            'Name': 'tag:cluster-role',
+            'Values': ['bootstrap']
+        }
+    ])
+    if len(response['Reservations']) > 0:
+        LOG.info('[DELETE] Deleting Bootstrap nodes %s', response['Reservations'])
+        client.terminate_instances(
+            InstanceIds=[bootstrap_instance['Instances'][0]['InstanceId'] for bootstrap_instance in response['Reservations']]
+        )
+    else:
+        LOG.info('[DELETE] No Worker nodes to delete')

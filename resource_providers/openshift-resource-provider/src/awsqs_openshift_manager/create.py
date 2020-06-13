@@ -3,14 +3,16 @@ Handles CREATE actions for the Resource
 """
 import logging
 import time
-import os
 from typing import Optional, Mapping
 
 from cloudformation_cli_python_lib import OperationStatus, SessionProxy
 
-from .util import upload_ignition_files_to_s3, fetch_resource, write_kubeconfig
-from .openshift import fetch_ingress_info, cluster_api_available, wait_for_operators, bootstrap_post_process
-from .openshift import fetch_openshift_binary, generate_ignition_files
+from .util import upload_ignition_files_to_s3, write_kubeconfig, \
+    fetch_openshift_binary, terminate_bootstrap_instance, fetch_cert_and_key
+from .read import fetch_kube_parameters
+from .openshift import cluster_api_available, wait_for_operators, bootstrap_post_process, \
+    load_certificate_and_patch_ingress
+from .openshift import generate_ignition_files
 from .models import ResourceModel
 
 LOG = logging.getLogger(__name__)
@@ -115,25 +117,17 @@ def bootstrap_create(model: ResourceModel, stage: str, start_time: float, sessio
     else:
         LOG.info('[CREATE] Entering initial stage')
 
-    if not model.InfrastructureName or model.KubeConfig:
-        fetch_resource_status_obj = fetch_resource(model, session)
-        if fetch_resource_status_obj['status'] != OperationStatus.SUCCESS:
-            return fetch_resource_status_obj
-        else:
-            model = fetch_resource_status_obj['resourceModel']
+    fetch_kube_parameters_status_obj = fetch_kube_parameters(model, session)
+    if fetch_kube_parameters_status_obj['status'] != OperationStatus.SUCCESS:
+        return fetch_kube_parameters_status_obj
     else:
-        model.InfrastructureID = model.InfrastructureName
-        model.KubeConfigArn = model.KubeConfig
+        model = fetch_kube_parameters_status_obj['resourceModel']
 
     default_response = {
         "status": OperationStatus.IN_PROGRESS,
         "resourceModel": model,
         "message": "Cluster is still being setup. Waiting..."
     }
-
-    oc_bin = f'/tmp/{openshift_client_binary}'
-    kubeconfig_path = write_kubeconfig(session, model.KubeConfig)
-    fetch_openshift_binary(openshift_client_mirror_url, openshift_client_package, openshift_client_binary, '/tmp/')
 
     if stage is None:
         LOG.info('[CREATE] Returning IN_PROGRESS response. Next stage is WAIT_FOR_INIT')
@@ -143,8 +137,12 @@ def bootstrap_create(model: ResourceModel, stage: str, start_time: float, sessio
             },
             "callbackDelaySeconds": 300
         }}
+    else:
+        oc_bin = f'/tmp/{openshift_client_binary}'
+        kubeconfig_path = write_kubeconfig(session, model.KubeConfig)
+        fetch_openshift_binary(openshift_client_mirror_url, openshift_client_package, openshift_client_binary, '/tmp/')
 
-    elif stage == "WAIT_FOR_INIT":
+    if stage == "WAIT_FOR_INIT":
         if cluster_api_available(oc_bin, kubeconfig_path):
             LOG.info('[CREATE] Cluster API is available. Time Elapsed: %s', _readable_time_delta(time_elapsed))
             next_stage = 'WAIT_FOR_CLUSTER_OPERATORS'
@@ -160,24 +158,30 @@ def bootstrap_create(model: ResourceModel, stage: str, start_time: float, sessio
     elif stage == "WAIT_FOR_CLUSTER_OPERATORS":
         if wait_for_operators(oc_bin, kubeconfig_path):
             LOG.info('[CREATE] Cluster Operators are available. Time Elapsed: %s', _readable_time_delta(time_elapsed))
-            delay = 0
-            next_stage = 'POST_PROCESS'
+            bootstrap_post_process(oc_bin, kubeconfig_path,
+                                   remove_builtin_ingress=bool(model.CertificateArn),
+                                   domain=f'{model.ClusterName}.{model.HostedZoneName}')
+            if model.ClusterIngressCertificateArn and model.ClusterIngressPrivateKeySecretName:
+                cert, cert_chain, key = fetch_cert_and_key(session, model.ClusterIngressCertificateArn,
+                                                           model.ClusterIngressPrivateKeySecretName)
+                load_certificate_and_patch_ingress(oc_bin, kubeconfig_path, cert, key, cert_chain=cert_chain)
+            try:
+                terminate_bootstrap_instance(model, session)
+            except Exception as e:
+                LOG.warning(f"WARNING - error occurred while terminating Bootstrap instance: {e}")
+
+            return {
+                "status": OperationStatus.SUCCESS,
+                "resourceModel": model,
+                "message": "Cluster successfully bootstrapped and ready for operations",
+            }
         else:
             delay = 300
             next_stage = 'WAIT_FOR_CLUSTER_OPERATORS'
-
-        return {**default_response, **{
-            "callbackContext": {"stage": next_stage, "start_time": start_time},
-            "callbackDelaySeconds": delay
-        }}
-    elif stage == "POST_PROCESS":
-        model.IngressZoneId, model.IngressDNS = fetch_ingress_info(oc_bin, kubeconfig_path)
-        bootstrap_post_process(oc_bin, kubeconfig_path, model.CertificateArn)
-        return {
-            "status": OperationStatus.SUCCESS,
-            "resourceModel": model,
-            "message": "Cluster successfully bootstrapped and ready for operations",
-        }
+            return {**default_response, **{
+                "callbackContext": {"stage": next_stage, "start_time": start_time},
+                "callbackDelaySeconds": delay
+            }}
 
     raise AttributeError("Unknown Stage: %s", stage)
 

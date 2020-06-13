@@ -38,6 +38,7 @@ def handler(event, context):
             physical_resource_id = arn
             logging.info("certificate arn: %s" % arn)
             rs = {}
+            time.sleep(15)  # Give ACM time to generate CNAME records
             while True:
                 try:
                     for d in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']:

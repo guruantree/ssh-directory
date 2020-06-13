@@ -18,6 +18,16 @@ Parameters:
   VpcId:
     Description: The VPC-scoped resources will belong to this VPC.
     Type: AWS::EC2::VPC::Id
+  ApplicationElbSecurityGroupId:
+    Description: Group Id of Application Load Balancer
+    Type: String
+
+  ContainerAccessCIDR:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: The CIDR IP range that is permitted to access the instances We recommend
+      that you set this value to a trusted IP range.
+    Type: String
 
   MasterInstanceProfileName:
     Description: (Optional) Provide an IAM Instance profile name to use for control plane nodes
@@ -40,6 +50,8 @@ Metadata:
         Parameters:
           - VpcId
           - VpcCidr
+          - ApplicationElbSecurityGroupId
+          - ContainerAccessCIDR
       - Label:
           default: "IAM Configuration"
         Parameters:
@@ -56,6 +68,10 @@ Metadata:
         default: "VPC ID"
       VpcCidr:
         default: "VPC CIDR"
+      ApplicationElbSecurityGroupId:
+        default: "Application ELB Security Group ID"
+      ContainerAccessCIDR:
+        default: Allowed External Access CIDR (OCP Router)
 
 Resources:
   MasterSecurityGroup:
@@ -192,6 +208,70 @@ Resources:
       FromPort: 30000
       ToPort: 32767
       IpProtocol: tcp
+
+  WorkerIngressApplicationLoadBalancer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: CreateApplicationIngressRule
+    Properties:
+      Description: Allow all traffic from Load Balancer
+      GroupId: !GetAtt WorkerSecurityGroup.GroupId
+      SourceSecurityGroupId: !Ref ApplicationElbSecurityGroupId
+      IpProtocol: "-1"
+
+  WorkerIngressPassthroughTLSInternal:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: CreateApplicationIngressRule
+    Properties:
+      GroupId: !GetAtt WorkerSecurityGroup.GroupId
+      Description: Allow internal TLS:443
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: !Ref VpcCidr
+
+  WorkerIngressPassthroughTCPInternal:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: CreateApplicationIngressRule
+    Properties:
+      Description: Allow internal TCP:80
+      GroupId: !GetAtt WorkerSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: !Ref VpcCidr
+
+  WorkerIngressPassthroughTLSLoadBalancer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: CreateApplicationIngressRule
+    Properties:
+      Description: Allow external TLS:443
+      GroupId: !GetAtt WorkerSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: !Ref ContainerAccessCIDR
+
+  WorkerIngressPassthroughTCPLoadBalancer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: CreateApplicationIngressRule
+    Properties:
+      Description: Allow external TCP:80
+      GroupId: !GetAtt WorkerSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: !Ref ContainerAccessCIDR
+
+  WorkerIngressPassthroughHealthCheckLoadBalancer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: CreateApplicationIngressRule
+    Properties:
+      Description: Healthcheck
+      GroupId: !GetAtt WorkerSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 1936
+      ToPort: 1936
+      CidrIp: !Ref VpcCidr
 
   WorkerIngressVxlan:
     Type: AWS::EC2::SecurityGroupIngress
@@ -348,6 +428,10 @@ Conditions:
   CreateMasterInstanceProfile: !Equals
     - !Ref WorkerInstanceProfileName
     - ""
+  CreateApplicationIngressRule: !Not
+    - !Equals
+      - !Ref ApplicationElbSecurityGroupId
+      - ""
 
 Outputs:
   MasterSecurityGroupId:

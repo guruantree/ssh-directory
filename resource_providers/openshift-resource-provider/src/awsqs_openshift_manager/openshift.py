@@ -1,20 +1,17 @@
 import glob
 import re
-import time
 import subprocess
-import tarfile
 import json
 import logging
 import os
-from typing import Tuple
 
 from ruamel import yaml
 
 # Use this logger to forward log messages to CloudWatch Logs.
-from .util import run_process, url_retreive, parse_sha256sum_file, verify_sha256sum
+from .util import run_process
 
 LOG = logging.getLogger(__name__)
-log = LOG
+log = LOG  # alias
 
 # The minimum amount of healthy operators before the resource provider reports the cluster is healthy overall
 MINIMUM_HEALTHY_OPERATORS = 25
@@ -178,51 +175,6 @@ def collect_kube_info(metadata_path, auth_path):
     return infra_name, kubeadmin_password, kubeconfig
 
 
-def fetch_openshift_binary(openshift_client_mirror_url, openshift_install_package, openshift_install_binary,
-                           download_path):
-    """
-    Fetch OpenShift binaries
-
-    :param openshift_client_mirror_url: The URL to the OpenShift repository mirror for fetching command binaries
-    :param openshift_install_package: The name of the `openshift_install` package
-    :param openshift_install_binary: The name of the `openshfit_install` binary
-    :param download_path: The path to download OpenShift binaries
-    :return str: Location of binaries
-    """
-    sha256sum_file = 'sha256sum.txt'
-    sha256sum_path = os.path.join(download_path, sha256sum_file)
-    retries = 1
-    url = openshift_client_mirror_url + sha256sum_file
-    log.info("Downloading sha256sum file for OpenShift install client...")
-    url_retreive(url, sha256sum_path)
-    log.debug("Getting SHA256 hash for file %s", sha256sum_path)
-    sha256sum_dict = parse_sha256sum_file(sha256sum_path)
-    sha256sum = sha256sum_dict[openshift_install_package]
-
-    # Download the openshift install binary only if it doesn't exist and retry download if the sha256sum doesn't match
-    i = 0
-    url = openshift_client_mirror_url + openshift_install_package
-    openshift_install_package_path = os.path.join(download_path, openshift_install_package)
-    while i <= retries:
-        i += 1
-        if os.path.exists(openshift_install_package_path):
-            # Verify SHA256 hash
-            if verify_sha256sum(openshift_install_package_path, sha256sum):
-                log.info("OpenShift install client already exists in %s", openshift_install_package_path)
-                break
-        log.info("Downloading OpenShift install client...")
-        url_retreive(url, openshift_install_package_path)
-        if verify_sha256sum(openshift_install_package_path, sha256sum):
-            log.info("Successfuly downloaded OpenShift install client...")
-            break
-    if not os.path.exists(os.path.join(download_path, openshift_install_binary)):
-        log.info("Extracting the OpenShift install client...")
-        tar = tarfile.open(openshift_install_package_path)
-        tar.extractall(path=download_path)
-        tar.close()
-    return openshift_install_package_path
-
-
 def cluster_api_available(oc: str, kubeconfig_path: str) -> bool:
     """
     Checks to see if the Cluster's API endpoint is alive
@@ -254,7 +206,7 @@ def wait_for_operators(oc: str, kubeconfig_path: str) -> bool:
     try:
         p = run_process(f'{oc} --config {kubeconfig_path} get clusteroperators')
         operators = []
-        status = 'not ready'
+        cluster_ready = False
         for line in p.stdout.splitlines()[1:]:
             str_line = line.decode('utf-8')
             operator_match = operator_re.match(str_line)
@@ -266,98 +218,104 @@ def wait_for_operators(oc: str, kubeconfig_path: str) -> bool:
                 log.info('[Operator Check] Waiting for operator %s to boot up', operator['operator'])
             else:
                 log.info('[Operator Check] %s is ready', operator['operator'])
+                if operator['operator'] == 'ingress':
+                    log.info('[Operator Check] Ingress Operator is Ready. Post-processing tasks can begin')
+                    cluster_ready = True
+
         if len(operators) == 0:
             log.info('[Operator Check] No operators are ready yet')
-            return False
-        return all([True if operator['available'] == 'True' else False for operator in operators]) and \
+        return cluster_ready or all([True if operator['available'] == 'True' else False for operator in operators]) and \
                len(operators) >= MINIMUM_HEALTHY_OPERATORS
     except (subprocess.CalledProcessError, OSError):
         return False
 
 
-def fetch_ingress_info(oc, kubeconfig_path, session):
-    """
-    Fetches the Hosted Zone ID for the Ingress LoadBalancer
-
-    :param session: Boto3 session
-    :param oc: The OpenShift Client binary
-    :param kubeconfig_path: Path to a KubeConfig file for the cluster
-    :return bool: True if the cluster is healthy. False, otherwise
-    :param cert_arn: An ACM ARN for an *.apps certificate
-    :return bool:  True if post processing is successful. False, otherwise
-    """
-    ingress_service_re = re.compile(
-        r'^(?P<name>\S+)\s+(?P<typ>\S+)\s+(?P<cluster_ip>\S+)\s+(?P<external_ip>\S+)\s+(?P<ports>\S+)')
-    default_router_service = run_process(
-        f'{oc} --config {kubeconfig_path} -n openshift-ingress get service router-default').stdout.splitlines()[1]
-    elb = session.client('elbv2')
-
-    router_service_match = ingress_service_re.match(default_router_service)
-    if router_service_match is None:
-        log.error("ERROR - Could not find default ingress router service. Can not patch service to use Certificate")
-        raise RuntimeError("Could not find default ingress router service")
-    router_service = router_service_match.groupdict()
-    external_ip = router_service['external_ip']
-    log.debug('Default ingress route external ip: %s', external_ip)
-
-    for possible_lb in elb.describe_load_balancers(Names=external_ip.split('-')[0])['LoadBalancers']:
-        log.debug('Reading LoadBalancer information %s', possible_lb)
-        if possible_lb['DNSName'] == external_ip:
-            return possible_lb['CanonicalHostedZoneId']
-    log.error('Load Balancer zone not found')
-    raise RuntimeError('Load balancer canonical zone id could not be found')
-
-
-def bootstrap_post_process(oc, kubeconfig_path, certificate_arn):
+def bootstrap_post_process(oc, kubeconfig_path, remove_builtin_ingress=False, domain=None):
     """
     Performs any post-install steps on the cluster
 
     :param oc: Openshift client
     :param kubeconfig_path: KubeConfig path
-    :param certificate_arn: ACM Certificate ARN
+    :param remove_builtin_ingress: Set to True to remove the builtin Ingress / LoadBalancer manageent. Default is False
+    :param domain: The base domain of the cluster. Usually it's {ClusterName}.{BaseDomain}. Ex: my-cluster.example.com
     :return:
     """
     LOG.info('Starting Post-Process steps')
-    if not certificate_arn:
+    if not remove_builtin_ingress:
         LOG.debug('No Certificate ARN found. No post-boot processes necessary')
         return
-    patch_yaml = CERTIFICATE_PATCH_YAML.format(certificate_arn=certificate_arn)
-    run_process(
-        f'{oc} --config {kubeconfig_path} patch services -n openshift-ingress router-default --patch "{patch_yaml}"')
-
     LOG.info('Replacing default Ingress Controller')
     ingress_yaml_path = os.path.join('/tmp', 'ingress.yaml')
+    ingress_yaml = DEFAULT_INGRESS_REPLACEMENT.format(domain=f'apps.{domain}')
     with open(ingress_yaml_path, 'w') as f:
-        f.write(DEFAULT_INGRESS_REPLACEMENT)
+        f.write(ingress_yaml)
+    LOG.debug('Ingress YAML: %s', ingress_yaml)
     run_process(f'{oc} --config {kubeconfig_path} replace --force --wait -f {ingress_yaml_path}')
-    LOG.debug('Waiting to give LoadBalancer time to become available')
-    time.sleep(30)
     LOG.info('Finished Post-Process steps')
 
 
-#
-# Patch YAML for changing the Ingress when a Certificate ARN is requested.
-#
-CERTIFICATE_PATCH_YAML = '''---
-metadata:
-    annotations:
-        service.beta.kubernetes.io/aws-load-balancer-backend-protocol: ssl
-        service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
-        service.beta.kubernetes.io/aws-load-balancer-ssl-cert: {certificate_arn}
-        service.beta.kubernetes.io/aws-load-balancer-ssl-ports: '443'
-        service.beta.kubernetes.io/aws-load-balancer-type: nlb
-'''
+def load_certificate_and_patch_ingress(oc, kubeconfig_path, cert, private_key, cert_chain=''):
+    """
+    Takes a Private Key and Certificate and loads into the OpenShift cluster as the default ingress' TLS certificate
+
+    :param oc: OpenShift client cmd
+    :param kubeconfig_path: Path to kubeconfig file
+    :param cert: The Certificate to load into the cluster
+    :param private_key: The Private Key to load into the cluster
+    :param cert_chain:  A certificate chain. Default is empty string
+    :return: True if success. False, otherwise
+    """
+    log.info('Attempting to load a custom TLS certificate from the cert/key provided')
+    cert_path = os.path.join('/tmp', 'tls.crt')
+    key_path = os.path.join('/tmp', 'tls.key')
+    with open(cert_path, 'w') as f:
+        f.write('\n'.join([cert, cert_chain]))
+    with open(key_path, 'w') as f:
+        f.write(private_key)
+
+    try:
+        run_process(f'{oc} --config {kubeconfig_path} --namespace openshift-ingress create secret tls '
+                    f'custom-certs-default --cert={cert_path} --key={key_path}')
+        log.info('Successfully loaded cert/key into cluster as a Kube secret')
+        log.info('Patching default ingress to use our cert/key pair')
+        run_process(f'{oc} --config {kubeconfig_path} patch --type=merge --namespace openshift-ingress-operator '
+                    f'ingresscontrollers/default --patch '
+                    '\'{"spec": {"defaultCertificate": {"name": "custom-certs-default"}}}\'')
+
+        log.info('Validating that certificate was changed successfully')
+        validate = run_process(f'{oc} --config {kubeconfig_path} get --namespace openshift-ingress-operator '
+                               'ingresscontrollers/default --output jsonpath=\'{.spec.defaultCertificate}\'')
+
+        if 'map[name:custom-certs-default]' in validate.stdout.decode('utf-8'):
+            log.info('Successfully patched the default ingress. Routes will now use our imported cert/key pair')
+            return True
+        else:
+            log.warning('WARNING - Something went wrong. Our custom certificate is not being used. Check the logs and '
+                        'cluster for more info ')
+            return False
+    except (subprocess.CalledProcessError, OSError, TypeError):
+        log.warning('WARNING - Something went wrong while importing the custom cert/key pair. Check the logs for more '
+                    'info')
+        return False
+
 
 # Used when SSL certificate integration is requested
-DEFAULT_INGRESS_REPLACEMENT = '''apiVersion: v1
+DEFAULT_INGRESS_REPLACEMENT = '''apiVersion: operator.openshift.io/v1
 kind: IngressController
-metadata:
+items:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
     name: default
     namespace: openshift-ingress-operator
-spec:
+  spec:
     replicas: 3
+    domain: {domain}
     endpointPublishingStrategy:
-        type: HostNetwork
+      loadBalancer:
+        scope: External
+      type: HostNetwork
+    selector: ingresscontroller.operator.openshift.io/deployment-ingresscontroller=default
 '''
 #
 # Template for install-config.yaml

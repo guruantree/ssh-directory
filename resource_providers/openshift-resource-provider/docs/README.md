@@ -29,9 +29,8 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#hostedzonename" title="HostedZoneName">HostedZoneName</a>" : <i>String</i>,
         "<a href="#availabilityzones" title="AvailabilityZones">AvailabilityZones</a>" : <i>[ String, ... ]</i>,
         "<a href="#subnets" title="Subnets">Subnets</a>" : <i>[ String, ... ]</i>,
-        "<a href="#certificatearn" title="CertificateArn">CertificateArn</a>" : <i>String</i>,
+        "<a href="#clusteringressprivatekeysecretname" title="ClusterIngressPrivateKeySecretName">ClusterIngressPrivateKeySecretName</a>" : <i>String</i>,
         "<a href="#infrastructurename" title="InfrastructureName">InfrastructureName</a>" : <i>String</i>,
-        "<a href="#kubeconfig" title="KubeConfig">KubeConfig</a>" : <i>String</i>,
     }
 }
 </pre>
@@ -60,9 +59,8 @@ Properties:
       - String</i>
     <a href="#subnets" title="Subnets">Subnets</a>: <i>
       - String</i>
-    <a href="#certificatearn" title="CertificateArn">CertificateArn</a>: <i>String</i>
+    <a href="#clusteringressprivatekeysecretname" title="ClusterIngressPrivateKeySecretName">ClusterIngressPrivateKeySecretName</a>: <i>String</i>
     <a href="#infrastructurename" title="InfrastructureName">InfrastructureName</a>: <i>String</i>
-    <a href="#kubeconfig" title="KubeConfig">KubeConfig</a>: <i>String</i>
 </pre>
 
 ## Properties
@@ -225,6 +223,8 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 #### AvailabilityZones
 
+List of all availability zones. Must pick at least 3
+
 _Required_: No
 
 _Type_: List of String
@@ -233,15 +233,17 @@ _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormati
 
 #### Subnets
 
+List of all subnets for the cluster. Add both public and private subnets
+
 _Required_: No
 
 _Type_: List of String
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
-#### CertificateArn
+#### ClusterIngressPrivateKeySecretName
 
-An ARN to the ACM certificate for user Applications
+The AWS Secrets Manager name identifier for the private key used to sign ClusterIngressCertificateArn. The Secret String must be PEM encoded
 
 _Required_: No
 
@@ -261,16 +263,6 @@ _Pattern_: <code>^[a-zA-Z0-9_-]+$</code>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 
-#### KubeConfig
-
-An ARN to the KubeConfig file stored in Secrets Manager
-
-_Required_: No
-
-_Type_: String
-
-_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
-
 ## Return Values
 
 ### Fn::GetAtt
@@ -281,7 +273,7 @@ For more information about using the `Fn::GetAtt` intrinsic function, see [Fn::G
 
 #### KubeAdminPasswordArn
 
-An ARN to the Kubernetes / OpenShift Admin password stored in Secrets Manager
+Returns the <code>KubeAdminPasswordArn</code> value.
 
 #### InfrastructureId
 
@@ -289,13 +281,5 @@ The unique identifier for the OpenShift cluster
 
 #### KubeConfigArn
 
-An ARN to the KubeConfig file stored in Secrets Manager
-
-#### IngressZoneId
-
-The Zone ID for the default ingress load balancer
-
-#### IngressDNS
-
-The DNS hostname for the default ingress load balancer
+Returns the <code>KubeConfigArn</code> value.
 

@@ -90,16 +90,19 @@ def _cleanup_dns(model, session):
         DNSName=f'{model.ClusterName}.{model.HostedZoneName}.'
     )['HostedZones']
 
-    apps_record = f'\\052.apps.{model.ClusterName}.{model.HostedZoneName}.'
+    records_to_delete = [
+        f'\\052.apps.{model.ClusterName}.{model.HostedZoneName}.',
+        f'oauth.apps.{model.ClusterName}.{model.HostedZoneName}.'
+    ]
     if len(int_dns_zone_response) > 0:
         int_zone_id = int_dns_zone_response[0]['Id']
         int_cluster_records = dns.list_resource_record_sets(HostedZoneId=int_zone_id)['ResourceRecordSets']
-        log.debug('[DELETE] Found %s DNS records. Only %s will be deleted', len(int_cluster_records), apps_record)
+        log.debug('[DELETE] Found %s DNS records. Only %s will be deleted', len(int_cluster_records), records_to_delete)
         log.debug('[DELETE] %s', int_cluster_records)
         delete_reqs = []
         for rec in \
                 [r for r in int_cluster_records
-                 if r['Type'] == 'A' and str(r['Name']) == apps_record]:
+                 if r['Type'] == 'A' and str(r['Name']) in records_to_delete]:
             delete_reqs.append({
                 'Action': 'DELETE',
                 'ResourceRecordSet': rec
@@ -243,6 +246,7 @@ def _cleanup_ec2(model, session):
                     client.delete_security_group(
                         GroupId=sg['GroupId']
                     )
+                    log.info('[DELETE] Security Group %s deleted', sg['GroupId'])
                     sg_deleted = True
                 except ClientError as e:  # Assume this is DependencyViolation
                     log.debug("[DELETE] Security Group delete failed with %s", e)

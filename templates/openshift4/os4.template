@@ -16,6 +16,11 @@ Metadata:
           - PublicSubnet2ID
           - PublicSubnet3ID
           - SSLCertificateId
+          - ClusterIngressPrivateKeySecretName
+          - ClusterIngressCertificateArn
+          - ContainerAccessCIDR
+          - RemoteAccessCIDR
+          - HostedZoneID
       - Label:
           default: Amazon EC2 Configuration
         Parameters:
@@ -44,23 +49,18 @@ Metadata:
         Parameters:
           - QSS3BucketName
           - QSS3KeyPrefix
-      - Label:
-          default: Custom Resource Functions
-        Parameters:
-          - CopyZipsFunctionArn
-          - LambdaZipsBucket
 
     ParameterLabels:
+      RemoteAccessCIDR:
+        default: Allowed External Access CIDR (OCP UI)
+      ContainerAccessCIDR:
+        default: Allowed External Access CIDR (OCP Router)
       MasterInstanceProfileName:
         default: Master IAM Instance Profile Name
       WorkerInstanceProfileName:
         default: Worker IAM Instance Profile Name
       SSLCertificateId:
         default: SSL Certificate ID
-      CopyZipsFunctionArn:
-        default: Copy Zips Function ARN
-      LambdaZipsBucket:
-        default: Lambda ZIPs Bucket
       PullSecret:
         default: Redhat Pull Secret
       OpenShiftMirrorURL:
@@ -99,6 +99,12 @@ Metadata:
         default: Public Subnet 2 ID
       PublicSubnet3ID:
         default: Public Subnet 3 ID
+      ClusterIngressPrivateKeySecretName:
+        default: Cluster Ingress Private Key Secret Name
+      ClusterIngressCertificateArn:
+        default: Cluster Ingress Certificate ARN
+      HostedZoneID:
+        default: Route 53 Hosted Zone ID
 Parameters:
   MasterInstanceProfileName:
     Description: (Optional) Provide an IAM Instance profile name to use for control plane nodes
@@ -193,6 +199,7 @@ Parameters:
   PullSecret:
     Description: 'The OCP Pull Secret JSON'
     Type: String
+    NoEcho: 'true'
 
   EnableBootstrap:
     Type: String
@@ -293,12 +300,33 @@ Parameters:
     Type: String
 
   RemoteAccessCIDR:
-    Description: CIDR range for remote access to public cluster resources i.e. the Bootstrap instance
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: The CIDR IP range that is permitted to access the instances We recommend
+      that you set this value to a trusted IP range.
+    Type: String
+
+  ContainerAccessCIDR:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: The CIDR IP range that is permitted to access the instances We recommend
+      that you set this value to a trusted IP range.
     Type: String
 
   HostedZoneID:
+    Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
+      will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
     Type: String
+    Default: ""
 
+  ClusterIngressPrivateKeySecretName:
+    Description: AWS Secrets Manager name for the SSL Private Key for the certificate in ACM. If provided, Quickstart will load your Certificate and Key into the OpenShift cluster.
+    Type: String
+    Default: ''
+  ClusterIngressCertificateArn:
+    Description: Optional ACM ARN for a SSL Certificate to import into the default OpenShift ingress. Must be certificate signed for your cluster's wildcard domain. Requires `ClusterIngressPrivateKeySecretName`
+    Type: String
+    Default: ''
   SSLCertificateId:
     Type: String
     Description: (Optional) The AWS ACM SSL Certificate ARN to use for LoadBalancer configuration
@@ -449,6 +477,8 @@ Resources:
       HostedZoneName: !Ref HostedZoneName
       LogLevel: !Ref LogLevel
       CertificateArn: !Ref SSLCertificateId
+      ClusterIngressCertificateArn: !Ref ClusterIngressCertificateArn
+      ClusterIngressPrivateKeySecretName: !Ref ClusterIngressPrivateKeySecretName
 
   #
   # Sets up Networking
@@ -463,8 +493,10 @@ Resources:
         ClusterName: !Ref ClusterName
         InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         VpcId: !Ref VPCID
+        ContainerAccessCIDR: !Ref ContainerAccessCIDR
         HostedZoneName: !Ref HostedZoneName
-        HostedZoneId: !Ref HostedZoneID
+        HostedZoneID: !Ref HostedZoneID
+        ACMCertificateId: !Ref SSLCertificateId
         PublicSubnets: !Join
           - ","
           - [!Ref PublicSubnet1ID, !Ref PublicSubnet2ID, !Ref PublicSubnet3ID]
@@ -488,6 +520,8 @@ Resources:
         VpcId: !Ref VPCID
         MasterInstanceProfileName: !Ref MasterInstanceProfileName
         WorkerInstanceProfileName: !Ref WorkerInstanceProfileName
+        ApplicationElbSecurityGroupId: !GetAtt NetworkStack.Outputs.ApplicationElbSecurityGroupId
+        ContainerAccessCIDR: !Ref ContainerAccessCIDR
 
   #
   # OpenShift 4 requires an initial 'bootstrap' server to start the cluster. After the cluster starts up, you can safely
@@ -586,41 +620,8 @@ Resources:
           - !Ref AmiId
         Subnet: !Ref PrivateSubnet1ID
         WorkerInstanceProfileName: !GetAtt 'SecurityStack.Outputs.WorkerInstanceProfile'
-        WorkerSecurityGroupId: !GetAtt 'SecurityStack.Outputs.MasterSecurityGroupId'
+        WorkerSecurityGroupId: !GetAtt 'SecurityStack.Outputs.WorkerSecurityGroupId'
 
-  ExternalAppsServerRecord:
-    Condition: HasACMCertificate
-    Type: AWS::Route53::RecordSetGroup
-    Properties:
-      Comment: Alias record for the Apps ingress
-      HostedZoneId: !Ref HostedZoneID
-      RecordSets:
-        - Name:
-            !Join [
-              ".",
-              ["*", "apps", !Ref ClusterName, !Join ["", [!Ref HostedZoneName, "."]]],
-            ]
-          Type: A
-          AliasTarget:
-            HostedZoneId: !GetAtt OpenShiftBootstrap.IngressZoneId
-            DNSName: !GetAtt OpenShiftBootstrap.IngressDNS
-
-  InternalAppsServerRecord:
-    Condition: HasACMCertificate
-    Type: AWS::Route53::RecordSetGroup
-    Properties:
-      Comment: Alias record for the Apps ingress
-      HostedZoneId: !GetAtt NetworkStack.Outputs.PrivateHostedZoneId
-      RecordSets:
-        - Name:
-            !Join [
-              ".",
-              ["*", "apps", !Ref ClusterName, !Join ["", [!Ref HostedZoneName, "."]]],
-            ]
-          Type: A
-          AliasTarget:
-            HostedZoneId: !GetAtt OpenShiftBootstrap.IngressZoneId
-            DNSName: !GetAtt OpenShiftBootstrap.IngressDNS
 
 Conditions:
     NoRhcosAmiParameter:
@@ -630,11 +631,6 @@ Conditions:
     IsBootstrapEnabled: !Equals
       - !Ref EnableBootstrap
       - 'yes'
-
-    HasACMCertificate: !Not
-      - !Equals
-        - !Ref SSLCertificateId
-        - ""
 
 Mappings:
   NoDotVersion:
@@ -702,11 +698,7 @@ Outputs:
 
   OpenShiftUI:
     Description: The URL OpenShiftUI
-    Value: !Join
-      - ''
-      - - https://
-        - !GetAtt NetworkStack.Outputs.ExtApiServerDnsName
-        - ':6443'
+    Value: !Sub "https://console-openshift-console.apps.${ClusterName}.${HostedZoneName}"
 
 
   KubeAdminPassword:

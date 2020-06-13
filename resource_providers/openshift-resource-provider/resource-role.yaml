@@ -23,6 +23,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                - "acm:*Certificate"
                 - "ec2:DeleteSecurityGroup"
                 - "ec2:DescribeAccountAttributes"
                 - "ec2:DescribeImages"

@@ -22,7 +22,7 @@ from cloudformation_cli_python_lib import (
 from .models import ResourceHandlerRequest, ResourceModel
 from .delete import bootstrap_delete, generate_ignition_delete
 from .create import generate_ignition_create, bootstrap_create
-from .util import fetch_resource
+from .read import fetch_resource, fetch_kube_parameters
 
 DEFAULT_MIRROR_URL = "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/"
 DEFAULT_VERSION = "4.3.21"
@@ -62,14 +62,14 @@ def create_handler(
     model = request.desiredResourceState
     LOG.setLevel(model.LogLevel or "INFO")
     LOG.info('[CREATE] Entering CREATE Handler')
+    model.OpenShiftInstallBinary = model.OpenShiftInstallBinary or DEFAULT_INSTALL_BINARY
+    model.OpenShiftVersion = model.OpenShiftVersion or DEFAULT_VERSION
+    model.OpenShiftMirrorURL = model.OpenShiftMirrorURL or DEFAULT_MIRROR_URL
+    model.OpenShiftClientBinary = model.OpenShiftClientBinary or DEFAULT_CLIENT_BINARY
     LOG.debug('[CREATE] Current model state %s', model)
     try:
         validate_create(model)
         LOG.error("[CREATE] Setting up Action: %s", model.Action)
-        model.OpenShiftInstallBinary = model.OpenShiftInstallBinary or DEFAULT_INSTALL_BINARY
-        model.OpenShiftVersion = model.OpenShiftVersion or DEFAULT_VERSION
-        model.OpenShiftMirrorURL = model.OpenShiftMirrorURL or DEFAULT_MIRROR_URL
-        model.OpenShiftClientBinary = model.OpenShiftClientBinary or DEFAULT_CLIENT_BINARY
         if model.Action == "GENERATE_IGNITION":
             event_kwargs = generate_ignition_create(model, session)
         elif model.Action == "BOOTSTRAP":
@@ -117,15 +117,19 @@ def delete_handler(
     """
     model = request.desiredResourceState
     LOG.info('[DELETE] Entering DELETE handler')
+    model.OpenShiftInstallBinary = model.OpenShiftInstallBinary or DEFAULT_INSTALL_BINARY
+    model.OpenShiftVersion = model.OpenShiftVersion or DEFAULT_VERSION
+    model.OpenShiftMirrorURL = model.OpenShiftMirrorURL or DEFAULT_MIRROR_URL
+    model.OpenShiftClientBinary = model.OpenShiftClientBinary or DEFAULT_CLIENT_BINARY
     LOG.setLevel(model.LogLevel or "INFO")
     LOG.debug('[DELETE] Current model state %s', model)
-    read_kwargs = fetch_resource(model, session)
+
+    read_kwargs = fetch_resource(model, session) if model.Action == 'BOOTSTRAP' else fetch_kube_parameters(model, session)
     if read_kwargs['status'] == OperationStatus.FAILED:
         return ProgressEvent(**read_kwargs)
 
-    # Set these values to their ReadOnly counterparts
-    model.InfrastructureName = model.InfrastructureId
-    model.KubeConfig = model.KubeConfigArn
+    model = read_kwargs['resourceModel']
+
     try:
         if model.Action == 'BOOTSTRAP':
             event_kwargs = bootstrap_delete(model, session)
@@ -165,8 +169,14 @@ def read_handler(
     """
     model = request.desiredResourceState
     LOG.info('[READ] Entering READ handler')
+    model.OpenShiftInstallBinary = model.OpenShiftInstallBinary or DEFAULT_INSTALL_BINARY
+    model.OpenShiftVersion = model.OpenShiftVersion or DEFAULT_VERSION
+    model.OpenShiftMirrorURL = model.OpenShiftMirrorURL or DEFAULT_MIRROR_URL
+    model.OpenShiftClientBinary = model.OpenShiftClientBinary or DEFAULT_CLIENT_BINARY
     LOG.setLevel(model.LogLevel or "DEBUG")
     LOG.debug('[READ] Current model state %s', model)
+
+    # `fetch_resource` looks up all the resource info we need
     return ProgressEvent(**fetch_resource(model, session))
 
 
@@ -188,6 +198,13 @@ def validate_create(model: ResourceModel):
         if not (model.AwsSecretAccessKey and model.AwsAccessKeyId):
             raise AttributeError(
                 "AwsAccessKeyId and AwsSecretAccessKey must be provided when generating Ignition files")
+    if model.Action == "BOOTSTRAP":
+        if (model.ClusterIngressCertificateArn or model.ClusterIngressPrivateKeySecretName) and \
+                (not model.ClusterIngressPrivateKeySecretName or not model.ClusterIngressCertificateArn):
+            raise AttributeError(
+                "You must set both ClusterIngressCertificateArn and ClusterIngressPrivateKeySecretName or neither. "
+                "These two parameters must represent the public-private keypair "
+            )
     return True
 
 
