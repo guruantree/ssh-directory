@@ -513,7 +513,7 @@ Resources:
   SecurityStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-security'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-security.template'
       Parameters:
         InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         VpcCidr: !Ref VPCCIDR
@@ -533,7 +533,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Condition: IsBootstrapEnabled
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-bootstrap'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-bootstrap.template'
       Parameters:
         InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         RhcosAmi: !If
@@ -568,7 +568,7 @@ Resources:
     DependsOn: BootStrapStack
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-controlplane'
+      TemplateURL: !Sub 'https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/openshift4/os4-controlplane.template'
       Parameters:
         InfrastructureName: !GetAtt 'OpenShiftGenerateIgnition.InfrastructureId'
         MasterInstanceType: !Ref MasterInstanceType
