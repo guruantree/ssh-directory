@@ -38,6 +38,7 @@ def handler(event, context):
             physical_resource_id = arn
             logging.info("certificate arn: %s" % arn)
             rs = {}
+            time.sleep(15)  # Give ACM time to generate CNAME records
             while True:
                 try:
                     for d in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']:
@@ -51,12 +52,13 @@ def handler(event, context):
                         logging.error('timed out waiting for ResourceRecord')
                         status = cfnresponse.FAILED
                     time.sleep(15)
-            rs = [{'Action': 'CREATE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600,'ResourceRecords': [{'Value': rs[r]}]}} for r in rs.keys()]
-            try:
-                r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': rs})
-            except Exception as e:
-                if 'but it already exists' not in str(e):
-                    raise
+            for r in rs.keys():
+                change = [{'Action': 'CREATE', 'ResourceRecordSet': {'Name': r, 'Type': 'CNAME', 'TTL': 600, 'ResourceRecords': [{'Value': rs[r]}]}}]
+                try:
+                    r53_client.change_resource_record_sets(HostedZoneId=event['ResourceProperties']['HostedZoneId'], ChangeBatch={'Changes': change})
+                except Exception as e:
+                    if 'but it already exists' not in str(e):
+                        raise
             while 'PENDING_VALIDATION' in [v['ValidationStatus'] for v in acm_client.describe_certificate(CertificateArn=arn)['Certificate']['DomainValidationOptions']]:
                 print('waiting for validation to complete')
                 if (context.get_remaining_time_in_millis() / 1000.00) > 20.0:
@@ -72,8 +74,9 @@ def handler(event, context):
                     logging.error(reason)
             data['Arn'] = arn
             # delay as long as possible to give the cert a chance to propogate
-            while context.get_remaining_time_in_millis() / 1000.00 > 10.0:
-                time.sleep(5)
+            # TODO: Remove this commented out code
+#            while context.get_remaining_time_in_millis() / 1000.00 > 10.0:
+#                time.sleep(5)
         elif event['RequestType'] == 'Update':
             reason = 'Exception: Stack updates are not supported'
             logging.error(reason)

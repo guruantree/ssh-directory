@@ -22,7 +22,21 @@ For architectural details, best practices, step-by-step instructions, and custom
 To post feedback, submit feature ideas, or report bugs, use the **Issues** section of this GitHub repo.
 If you'd like to submit code for this Quick Start, please review the [AWS Quick Start Contributor's Kit](https://aws-quickstart.github.io/).
 
-## Usage
+## OpenShift 4.x Usage
+Deploying an OpenShift 4 cluster requires a RedHat Pull Secret to access RedHat's container registry.
+
+If you have a Red Hat account, you can log into your account to generate a new
+Pull Secret. This will require an active subscription for Red Hat OpenShift.
+
+For a standard OpenShift 4.x deployment, you must set the following parameters:
+
+* ClusterName
+* AvailabilityZones
+* DomainName
+* HostedZoneId
+* PullSecret
+
+## OpenShift 3.x Usage
 Using this Quick Start requires credentials for a Red Hat account that includes a subscription for Red Hat OpenShift Enterprise (note that that may require a non-personal email address registration).
 
 The default provisioning in this Quick Start will launch 10 m4.xlarge EC2 instances (3 masters, 3 workers, 3 etcd nodes and 1 ansible configuration server).

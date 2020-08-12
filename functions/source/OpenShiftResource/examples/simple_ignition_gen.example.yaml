@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Simple Example of OpenShift Manager's Geneate Ignition action
+Resources:
+  MyOpenShiftIgnition:
+    Type: "AWSQS::OpenShift::Manager"
+    Properties:
+      Action: "GENERATE_IGNITION"
+      ClusterName: my-cluster
+      LogLevel: "DEBUG"
+      IgnitionBucket: changeme-to-s3-bucket-name
+      HostedZoneName: changeme.example.com
+      SSHKey: your-pubic-ssh-key
+      AvailabilityZones:
+        - us-east-1a
+        - us-east-1b
+        - us-east-1c
+      Subnets:
+        - subnet-XXXXXXXXXXXXXXXXX
+        - subnet-XXXXXXXXXXXXXXXXX
+        - subnet-XXXXXXXXXXXXXXXXX
+        - subnet-XXXXXXXXXXXXXXXXX
+        - subnet-XXXXXXXXXXXXXXXXX
+        - subnet-XXXXXXXXXXXXXXXXX
+      AwsAccessKeyId: AKIXXXXXXXXXXXXXXXXX
+      AwsSecretAccessKey: G7JXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      PullSecret: '{"auths":{" ..... '

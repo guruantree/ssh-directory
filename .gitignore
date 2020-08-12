@@ -1,0 +1,23 @@
+
+# Taskcat
+.taskcat.yml
+.taskcat_overrides.yml
+.taskcat
+taskcat_outputs
+.taskcat-backup
+build/
+functions/packages
+
+# Lambda
+
+.DS_Store
+.idea
+
+
+# misc
+.venv
+resources
+lambda.zip
+awsqs-openshift-manager.zip
+rpdk.log
+cloudformation-cli-python-plugin/

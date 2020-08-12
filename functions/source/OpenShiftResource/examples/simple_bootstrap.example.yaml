@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Simple Example of OpenShift Manager's Geneate Ignition action
+Resources:
+  MyOpenShiftBootstrap:
+    Type: "AWSQS::OpenShift::Manager"
+    Properties:
+      Action: "BOOTSTRAP"
+      ClusterName: my-cluster
+      HostedZoneName: changeme.example.com
+      LogLevel: "DEBUG"

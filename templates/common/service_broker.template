@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: '(qs-1nltbq5f8) OpenShift, License: Apache 2.0 (Please do not remove)
+  April, 6, 2018'
+
+Metadata:
+  ParameterLabels:
+    OpenShiftRoleName:
+      default: OpenShift Role Name
+    OpenShiftRoleArn:
+      default: OpenShift Role ARN
+
+Parameters:
+  OpenShiftRoleName:
+    Description: The IAM Role used by the OpenShift cluster nodes. Set this so the ServiceBroker IAM policies will be attached
+    Type: String
+
+  OpenShiftRoleArn:
+    Description: The IAM Role ARN used by the OpenShift cluster nodes.
+    Type: String
+
+Resources:
+
+  ServiceBrokerTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: "id"
+        AttributeType: "S"
+      - AttributeName: "userid"
+        AttributeType: "S"
+      - AttributeName: "type"
+        AttributeType: "S"
+      KeySchema:
+      - AttributeName: "id"
+        KeyType: "HASH"
+      - AttributeName: "userid"
+        KeyType: "RANGE"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      GlobalSecondaryIndexes:
+      - IndexName: "type-userid-index"
+        KeySchema:
+        - AttributeName: "type"
+          KeyType: "HASH"
+        - AttributeName: "userid"
+          KeyType: "RANGE"
+        Projection:
+          NonKeyAttributes:
+          - "id"
+          - "userid"
+          - "type"
+          - "locked"
+          ProjectionType: "INCLUDE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+  ServiceBrokerPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ServiceBroker
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: [ "s3:GetObject", "s3:ListBucket" ]
+            Resource: [ "arn:aws:s3:::awsservicebroker/templates/*", "arn:aws:s3:::awsservicebroker" ]
+            Effect: "Allow"
+          - Action: [ "dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:DeleteItem" ]
+            Resource: !GetAtt ServiceBrokerTable.Arn
+            Effect: "Allow"
+          - Action: [ "ssm:GetParameter", "ssm:GetParameters" ]
+            Resource:
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/Asb*"
+            Effect: "Allow"
+      Roles:
+        - !Ref OpenShiftRoleName
+
+  ServiceBrokerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: [ !Ref OpenShiftRoleArn ]
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: servicebroker-provisioning-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: "SsmForSecretBindings"
+                Action:
+                - "ssm:PutParameter"
+                - "ssm:GetParameter"
+                - "ssm:GetParameters"
+                Resource:
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/Asb*"
+                Effect: "Allow"
+              - Sid: "AllowCfnToGetTemplates"
+                Action: "s3:GetObject"
+                Resource: "arn:aws:s3:::awsservicebroker/templates/*"
+                Effect: "Allow"
+              - Sid: "CloudFormation"
+                Action:
+                - "cloudformation:CreateStack"
+                - "cloudformation:DeleteStack"
+                - "cloudformation:DescribeStacks"
+                - "cloudformation:DescribeStackEvents"
+                - "cloudformation:UpdateStack"
+                - "cloudformation:CancelUpdateStack"
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/aws-service-broker-*/*"
+                Effect: "Allow"
+              - Sid: "ServiceClassPermissions"
+                Action:
+                - "athena:*"
+                - "dynamodb:*"
+                - "kms:*"
+                - "elasticache:*"
+                - "elasticmapreduce:*"
+                - "kinesis:*"
+                - "rds:*"
+                - "redshift:*"
+                - "route53:*"
+                - "s3:*"
+                - "sns:*"
+                - "sns:*"
+                - "sqs:*"
+                - "ec2:*"
+                - "iam:*"
+                - "lambda:*"
+                Resource: "*"
+                Effect: "Allow"
+
+
+Outputs:
+  ServiceBrokerTable:
+    Description: The DynamoDB table that AWS Service Broker uses
+    Value: !Ref ServiceBrokerTable
+  ServiceBrokerRole:
+    Description: The IAM Role name for the Service Broker. OpenShift assumes this role to manage AWS services
+    Value: !Ref ServiceBrokerRole
+  ServiceBrokerTableArn:
+    Description: The DynamoDB table (ARN) that AWS Service Broker uses
+    Value: !GetAtt ServiceBrokerTable.Arn

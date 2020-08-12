@@ -1,0 +1,15 @@
+{
+  "CREATE": {
+    "/Action": "GENERATE_IGNITION",
+    "/HostedZoneName": "example.com",
+    "/IgnitionBucket": "CHANGEME",
+    "/ClusterName": "openshift4-useast1-demo",
+    "/SSHKey": "ssh-key XXXX",
+    "/PullSecret": "{\"auth\": ....",
+    "/Subnets": ["PUBLIC_1", "PUBLIC_2", "PRIVATE_1", "PRIVATE_2"],
+    "/AvailabilityZones": ["us-east-1a", "us-east-1b"],
+    "/AwsAccessKeyId": "XXXXXX",
+    "/AwsSecretAccessKey": "XXXXXX"
+  },
+  "UPDATE": {}
+}
