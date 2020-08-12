@@ -5,6 +5,7 @@
     "entrypoint": "awsqs_openshift_manager.handlers.resource",
     "testEntrypoint": "awsqs_openshift_manager.handlers.test_entrypoint",
     "settings": {
+        "protocolVersion": "2.0.0",
         "use_docker": false
     }
 }
