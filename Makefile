@@ -42,7 +42,7 @@ venv:
 	python3 -m venv $(VENV_NAME);
 
 # Make sure to export all of the parameters found in LambdaStack resource in
-# templates/aws-ocp-master.template.yaml as env variables
+# templates/aws-ocp-main.template.yaml as env variables
 run_lambda_create_cf: venv
 	${VENV_ACTIVATE} && \
 	cd functions/source/OpenShift4Installation/ && \
