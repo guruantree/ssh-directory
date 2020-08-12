@@ -56,6 +56,13 @@ def create_handler(
     :param callback_context: Value Mapping set when the handler returns status=IN_PROGRESS and needs more processing.
     :return ProgressEvent:
     """
+    if not callback_context:
+        return ProgressEvent(
+            status=OperationStatus.IN_PROGRESS,
+            resourceModel=request.desiredResourceState,
+            callbackDelaySeconds=1,
+            callbackContext={"init": "complete"}
+        )
     model = request.desiredResourceState
     LOG.setLevel(model.LogLevel or "INFO")
     LOG.info('[CREATE] Entering CREATE Handler')
