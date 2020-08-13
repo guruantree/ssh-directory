@@ -140,5 +140,4 @@ overrides.json
 .DS_Store
 
 # This project's ignores
-examples/simple_ignition_gen.yaml
-examples/simple_bootstrap.yaml
+src/awsqs_openshift_manager/oc

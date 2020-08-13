@@ -184,7 +184,7 @@ def cluster_api_available(oc: str, kubeconfig_path: str) -> bool:
     :return bool: True if API available. False, otherwise
     """
     try:
-        run_process(f'{oc} --config {kubeconfig_path} cluster-info')
+        run_process(f'{oc} --config {kubeconfig_path} cluster-info --request-timeout 3s')
         log.info('Cluster is available for connections')
         return True
     except (subprocess.CalledProcessError, OSError):

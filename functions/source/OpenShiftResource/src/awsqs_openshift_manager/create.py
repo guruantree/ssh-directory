@@ -4,6 +4,7 @@ Handles CREATE actions for the Resource
 import logging
 import time
 from typing import Optional, Mapping
+from pathlib import Path
 
 from cloudformation_cli_python_lib import OperationStatus, SessionProxy
 
@@ -138,9 +139,9 @@ def bootstrap_create(model: ResourceModel, stage: str, start_time: float, sessio
             "callbackDelaySeconds": 300
         }}
     else:
-        oc_bin = f'/tmp/{openshift_client_binary}'
+        oc_bin = f'{Path(__file__).parent.absolute()}/{openshift_client_binary}'
         kubeconfig_path = write_kubeconfig(session, model.KubeConfig)
-        fetch_openshift_binary(openshift_client_mirror_url, openshift_client_package, openshift_client_binary, '/tmp/')
+        #fetch_openshift_binary(openshift_client_mirror_url, openshift_client_package, openshift_client_binary, '/tmp/')
 
     if stage == "WAIT_FOR_INIT":
         if cluster_api_available(oc_bin, kubeconfig_path):
