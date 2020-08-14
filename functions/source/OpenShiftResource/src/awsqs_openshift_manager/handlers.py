@@ -8,6 +8,8 @@ Main entry-points for the CloudFormation Resource Provider framework
 """
 import logging
 from typing import Any, MutableMapping, Optional
+from datetime import datetime
+from random import choice
 
 from cloudformation_cli_python_lib import (
     Action,
@@ -56,7 +58,13 @@ def create_handler(
     :param callback_context: Value Mapping set when the handler returns status=IN_PROGRESS and needs more processing.
     :return ProgressEvent:
     """
+    code = "".join([str(choice(range(9))) for _ in range(8)])
+    LOG.debug(f"--------------------------[{code}] CREATE INVOKE STARTING------------------------------")
+    started = datetime.now()
+    LOG.debug(f"model: {request.desiredResourceState.__dict__} \n\ncallback: {callback_context}")
     if not callback_context:
+        LOG.debug(
+            f"--------------------------[{code}] CREATE INVOKE DONE {(datetime.now() - started).total_seconds()}------------------------------")
         return ProgressEvent(
             status=OperationStatus.IN_PROGRESS,
             resourceModel=request.desiredResourceState,
@@ -81,14 +89,17 @@ def create_handler(
                                             callback_context.get("start_time", 0.0), session)
         else:
             raise AttributeError('Action: %s is not a valid action', model.Action)
+        LOG.debug(f"--------------------------[{code}] CREATE INVOKE DONE {(datetime.now() - started).total_seconds()} {event_kwargs}------------------------------")
         return ProgressEvent(**event_kwargs)
     except AttributeError as e:
+        LOG.debug(f"--------------------------[{code}] CREATE INVOKE ERROR {(datetime.now() - started).total_seconds()}------------------------------")
         return ProgressEvent(
             status=OperationStatus.FAILED,
             errorCode=HandlerErrorCode.InvalidRequest,
             message=f"Operation failed because the parameters were invalid: {e}"
         )
     except BaseException as e:
+        LOG.debug(f"--------------------------[{code}] CREATE INVOKE ERROR {(datetime.now() - started).total_seconds()}------------------------------")
         return ProgressEvent(
             status=OperationStatus.FAILED,
             errorCode=HandlerErrorCode.InternalFailure,
