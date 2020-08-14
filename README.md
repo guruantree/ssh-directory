@@ -16,6 +16,8 @@ The Quick Start offers two deployment options:
 - Deploying OpenShift Container Platform into a new VPC - [Launch now](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/template?stackName=Red-Hat-OpenShift&templateURL=https://aws-quickstart.s3.amazonaws.com/quickstart-redhat-openshift-4.3-preview/templates/openshift-main.template.yaml)
 - Deploying OpenShift Container Platform into an existing VPC - [Launch now](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/template?stackName=Red-Hat-OpenShift&templateURL=https://aws-quickstart.s3.amazonaws.com/quickstart-redhat-openshift-4.3-preview/templates/openshift-main-existing-vpc.template.yaml)
 
+> *NOTE:* This preview is available for launch in us-east-2, us-west-2, eu-west-1 and ap-southeast-1.
+ 
 You can also use the AWS CloudFormation templates as a starting point for your own implementation.
 
 ![Quick Start architecture for OpenShift Container Platform on AWS](https://d0.awsstatic.com/partner-network/QuickStart/datasheets/redhat-openshift-on-aws-architecture.png)
