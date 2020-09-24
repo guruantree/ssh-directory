@@ -1,9 +1,6 @@
 # quickstart-redhat-openshift
 
-## [DEVELOPER PREVIEW] Red Hat OpenShift Container Platform 4.3 on the AWS Cloud
-
-> This branch is a developer preview for OpenShift 4.3, and not for production use. 
-> For the stable version (OpenShift 3.11) see https://aws.amazon.com/quickstart/architecture/openshift/
+## Red Hat OpenShift Container Platform on the AWS Cloud
 
 This Quick Start deploys Red Hat OpenShift Container Platform on the AWS Cloud in a highly available configuration.
 
