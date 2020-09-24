@@ -8,15 +8,6 @@ Red Hat OpenShift Container Platform is a platform as a service (PaaS) solution 
 
 The Quick Start includes AWS CloudFormation templates that build the AWS infrastructure using AWS best practices, and then pass that environment to Ansible playbooks to build out the OpenShift environment. The deployment provisions OpenShift master instances, etcd instances, and node instances in a virtual private cloud (VPC) across three Availability Zones.
 
-The Quick Start offers two deployment options:
-
-- Deploying OpenShift Container Platform into a new VPC - [Launch now](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/template?stackName=Red-Hat-OpenShift&templateURL=https://aws-quickstart.s3.amazonaws.com/quickstart-redhat-openshift-4.3-preview/templates/openshift-main.template.yaml)
-- Deploying OpenShift Container Platform into an existing VPC - [Launch now](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/template?stackName=Red-Hat-OpenShift&templateURL=https://aws-quickstart.s3.amazonaws.com/quickstart-redhat-openshift-4.3-preview/templates/openshift-main-existing-vpc.template.yaml)
-
-> *NOTE:* This preview is available for launch in us-east-2, us-west-2, eu-west-1 and ap-southeast-1.
- 
-You can also use the AWS CloudFormation templates as a starting point for your own implementation.
-
 ![Quick Start architecture for OpenShift Container Platform on AWS](https://d0.awsstatic.com/partner-network/QuickStart/datasheets/redhat-openshift-on-aws-architecture.png)
 
 For architectural details, best practices, step-by-step instructions, and customization options, see the [deployment guide](https://fwd.aws/dwpPW).
