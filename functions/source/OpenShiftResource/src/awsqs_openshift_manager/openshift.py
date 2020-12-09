@@ -250,7 +250,13 @@ def bootstrap_post_process(oc, kubeconfig_path, remove_builtin_ingress=False, do
     with open(ingress_yaml_path, 'w') as f:
         f.write(ingress_yaml)
     LOG.debug('Ingress YAML: %s', ingress_yaml)
-    run_process(f'{oc} --config {kubeconfig_path} replace --force --wait -f {ingress_yaml_path}')
+    try:
+        run_process(f'{oc} --config {kubeconfig_path} replace --force --wait -f {ingress_yaml_path}')
+    except subprocess.CalledProcessError as e:
+        if 'AlreadyExists' in e.stderr:
+            LOG.info('Caught Exception: Command exited with nonzero because resource already exists. Continuing as normal.')
+        else:
+            raise
     LOG.info('Finished Post-Process steps')
 
 
