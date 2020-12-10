@@ -353,7 +353,7 @@ Parameters:
     Default: ''
   OpenshiftContainerPlatformVersion:
     Description: OpenShift version to deploy
-    Default: '4.3'
+    Default: '4.5'
     Type: String
     AllowedValues: [ '3.11', '4.3', '4.5' ]
   VPCCIDR:
