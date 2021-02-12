@@ -54,37 +54,10 @@ Metadata:
         Parameters:
           - OpenshiftContainerPlatformVersion
           - ClusterName
-      - Label:
-          default: OpenShift v4 Configuration
-        Parameters:
+          - OpenShiftAdminPassword
           - PullSecret
           - MasterInstanceProfileName
           - WorkerInstanceProfileName
-      - Label:
-          default: OpenShift v3 Configuration
-        Parameters:
-          - OpenshiftContainerPlatformVersion
-          - AWSServiceBroker
-          - HawkularMetrics
-          - AnsibleFromGit
-          - GlusterFS
-          - GlusterStorageSize
-          - GlusterStorageType
-          - GlusterStorageIops
-          - GlusterStorageEncrypted
-          - GlusterInstanceType
-          - NumberOfGluster
-          - AutomationBroker
-          - ClusterConsole
-          - NumberOfEtcd
-          - EtcdInstanceType
-          - OpenShiftAdminPassword
-      - Label:
-          default: OpenShift v3 Red Hat Subscription Information
-        Parameters:
-          - RedhatSubscriptionUserName
-          - RedhatSubscriptionPassword
-          - RedhatSubscriptionPoolID
       - Label:
           default: AWS Quick Start Configuration
         Parameters:
@@ -140,32 +113,16 @@ Metadata:
         default: Allowed External Access CIDR (OCP Router)
       VPCCIDR:
         default: VPC CIDR
-      OpenShiftAdminPassword:
-        default: OpenShift UI Password
-      RedhatSubscriptionUserName:
-        default: Red Hat Subscription User Name
-      RedhatSubscriptionPassword:
-        default: Red Hat Subscription Password
-      RedhatSubscriptionPoolID:
-        default: Red Hat Pool ID
       OpenshiftContainerPlatformVersion:
         default: Openshift Container Platform Version
       MasterInstanceType:
         default: Master Instance Type
-      EtcdInstanceType:
-        default: Etcd Instance Type
       NodesInstanceType:
         default: Nodes Instance Type
       NumberOfMaster:
         default: Number of Masters
-      NumberOfEtcd:
-        default: Number of Etcds
       NumberOfNodes:
         default: Number of Nodes
-      AWSServiceBroker:
-        default: AWS Service Broker
-      HawkularMetrics:
-        default: Hawkular Metrics
       DomainName:
         default: Domain Name
       HostedZoneID:
@@ -174,30 +131,10 @@ Metadata:
         default: Subdomain Prefix
       CertificateArn:
         default: Certificate ARN
-      GlusterFS:
-        default: GlusterFS
-      GlusterStorageSize:
-        default: Gluster Storage Size
-      GlusterStorageType:
-        default: Gluster EBS volume type
-      GlusterInstanceType:
-        default: Gluster Instance Type
-      NumberOfGluster:
-        default: Number of Gluster Hosts
-      GlusterStorageIops:
-        default: Gluster Storage Iops
-      GlusterStorageEncrypted:
-        default: Gluster Storage Encrypted
-      AutomationBroker:
-        default: OpenSift Automation Broker
       AvailabilityZones:
         default: Availability Zones
-      AnsibleFromGit:
-        default: Get Ansible from Git
       ClusterName:
         default: Cluster Name
-      ClusterConsole:
-        default: Enable the cluster console (Requires OpenShift 3.11)
       NumberOfAZs:
         default: Number of Availability Zones
       ClusterIngressPrivateKeySecretName:
@@ -361,7 +298,7 @@ Parameters:
     AllowedPattern: ^[0-9a-zA-Z-/.]*$
     ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
       uppercase letters, hyphens (-), and forward slash (/).
-    Default: quickstart-redhat-openshift-4.3-preview/
+    Default: quickstart-redhat-openshift/
     Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
       can include numbers, lowercase letters, uppercase letters, hyphens (-), and
       forward slash (/).
@@ -392,24 +329,11 @@ Parameters:
     AllowedPattern: ^[^ \\']+$
     NoEcho: 'true'
     Default: 'xxxxxxxx'
-  RedhatSubscriptionUserName:
-    Description: (Required for OS v3) Enter Redhat RHN User Name
-    Type: String
-    Default: ''
-  RedhatSubscriptionPassword:
-    NoEcho: 'true'
-    Description: (Required for OS v3) Enter Redhat RHN Password
-    Type: String
-    Default: ''
-  RedhatSubscriptionPoolID:
-    Description: (Required for OS v3) Enter Redhat RHN PoolID
-    Type: String
-    Default: ''
   OpenshiftContainerPlatformVersion:
     Description: OpenShift version to deploy
-    Default: '4.3'
+    Default: '4.6'
     Type: String
-    AllowedValues: [ '3.11', '4.3', '4.5' ]
+    AllowedValues: [ '4.3', '4.6' ]
   VPCCIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(1[6-9]|2[0-8]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
@@ -453,33 +377,6 @@ Parameters:
       - r4.16xlarge
     ConstraintDescription: Must contain valid instance type
     Description: Type of EC2 instance for the Master instances
-  EtcdInstanceType:
-    Default: m5.xlarge
-    AllowedValues:
-      - t3.xlarge
-      - t3.2xlarge
-      - m5.xlarge
-      - m5.2xlarge
-      - m5.4xlarge
-      - m5.12xlarge
-      - c5.large
-      - c5.xlarge
-      - c5.2xlarge
-      - c5.4xlarge
-      - c5.9xlarge
-      - t2.large
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-      - m4.10xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-      - c4.8xlarge
-    ConstraintDescription: Must contain valid instance type
-    Description: Type of EC2 instance for the Etcd instances
-    Type: String
   NodesInstanceType:
     Default: m5.xlarge
     AllowedValues:
@@ -527,20 +424,10 @@ Parameters:
     Description: This Deployment requires at least 3 OpenShift Master instances
     Type: String
     AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
-  NumberOfEtcd:
-    Default: '3'
-    Description: This Deployment requires at least 3 OpenShift Etcd instances
-    Type: String
-    AllowedPattern: '^[3579]$|(^[1-9]+[13579]$)'
   NumberOfNodes:
     Default: '3'
     Description: The desired capacity for the OpenShift node instances
     Type: Number
-  AWSServiceBroker:
-    Default: Enabled
-    Description: Enable the AWS Service Broker
-    Type: String
-    AllowedValues: [ Enabled, Disabled ]
   HostedZoneID:
     Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
       will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
@@ -564,80 +451,10 @@ Parameters:
       valid for *.apps.${ClusterName}.${DomainName}. Example: *.apps.my-cluster.example.com
     Type: String
     Default: ""
-  HawkularMetrics:
-    Default: Enabled
-    Description: Enable Hawkular cluster metrics
-    Type: String
-    AllowedValues: [ Enabled, Disabled ]
-  GlusterFS:
-    Default: Disabled
-    Description: Enable GlusterFS storage cluster
-    Type: String
-    AllowedValues:
-      - Enabled
-      - Disabled
-  GlusterStorageSize:
-    Description: Size in GB of the available storage (will create 3x ebs volumes of this size)
-    Type: Number
-    Default: 1000
-  GlusterStorageType:
-    Default: io1
-    Description: EBS volume type to use for storage
-    Type: String
-    AllowedValues:
-      - io1
-      - gp2
-      - st1
-  GlusterInstanceType:
-    Default: i3.large
-    AllowedValues:
-      - i3.large
-      - i3.xlarge
-      - i3.2xlarge
-      - i3.4xlarge
-      - i3.8xlarge
-      - i3.16xlarge
-    ConstraintDescription: Must contain valid instance type
-    Description: Type of EC2 instance for the Node instances
-    Type: String
-  NumberOfGluster:
-    Default: '3'
-    Description: This Deployment requires a minimum of 3 Gluster instances
-    Type: Number
-    AllowedValues:
-      - '3'
-  GlusterStorageIops:
-    Default: 3000
-    Description: EBS volume IOPS to allocate (only applicable if io1 has been selected for GlusterStorageType)
-    Type: Number
-  GlusterStorageEncrypted:
-    Default: 'False'
-    Description: Enable EBS encryption for Gluster storage volumes
-    Type: String
-    AllowedValues:
-      - 'False'
-      - 'True'
-  AutomationBroker:
-    Default: Enabled
-    Description: Enable the OpenShift Automation Service Broker
-    Type: String
-    AllowedValues: [ Enabled, Disabled ]
-  AnsibleFromGit:
-    Default: "False"
-    Description: Get openshift installer playbooks from GitHub. By default, they come from RPM.
-    Type: String
-    AllowedValues:
-      - "True"
-      - "False"
   ClusterName:
     Default: ""
     Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
     Type: String
-  ClusterConsole:
-    Default: Enabled
-    Description: Enable the Cluster Console
-    Type: String
-    AllowedValues: [ Enabled, Disabled ]
 Resources:
   #
   # Generates an S3 Bucket for OpenShift to back its container image registry
@@ -690,27 +507,9 @@ Resources:
         PrivateSubnet1ACIDR: !Ref 'PrivateSubnet1CIDR'
         PrivateSubnet2ACIDR: !Ref 'PrivateSubnet2CIDR'
         PrivateSubnet3ACIDR: !Ref 'PrivateSubnet3CIDR'
-        PrivateSubnetATag2: !If
-          - OS3
-          - !If
-            - CustomClusterName
-            - !Sub "kubernetes.io/cluster/${ClusterName}=owned"
-            - !Sub "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}=owned"
-          - !Ref AWS::NoValue
-        PrivateSubnetATag3: !If
-          - OS3
-          - "kubernetes.io/role/internal-elb="
-          - !Ref AWS::NoValue
         PublicSubnet1CIDR: !Ref 'PublicSubnet1CIDR'
         PublicSubnet2CIDR: !Ref 'PublicSubnet2CIDR'
         PublicSubnet3CIDR: !Ref 'PublicSubnet3CIDR'
-        PublicSubnetTag2: !If
-          - OS3
-          - !If
-            - CustomClusterName
-            - !Sub "kubernetes.io/cluster/${ClusterName}=owned"
-            - !Sub "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}=owned"
-          - !Ref AWS::NoValue
         PublicSubnetTag3: "kubernetes.io/role/elb="
         VPCCIDR: !Ref 'VPCCIDR'
   #
@@ -764,7 +563,6 @@ Resources:
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
   OpenShift4:
     Type: AWS::CloudFormation::Stack
-    Condition: OS4
     DependsOn: CustomLambdaStack
     Properties:
       TemplateURL: !Sub
@@ -843,88 +641,6 @@ Resources:
         AvailabilityZones: !Join
           - ","
           - !Ref AvailabilityZones
-  OpenShift3:
-    Type: AWS::CloudFormation::Stack
-    Condition: OS3
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/openshift3/os3.template.yaml'
-        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        # CloudFormation Meta
-        QSS3BucketName: !Ref 'QSS3BucketName'
-        QSS3KeyPrefix: !Ref 'QSS3KeyPrefix'
-        QSS3BucketRegion: !Ref 'QSS3BucketRegion'
-        # Cluster Management
-        AnsibleStorageSize: '10'
-        AnsibleFromGit: !Ref 'AnsibleFromGit'
-        AnsibleSubnetID: !Ref PublicSubnet1ID
-        KeyPairName: !Ref 'KeyPairName'
-        RedhatSubscriptionUserName: !Ref 'RedhatSubscriptionUserName'
-        RedhatSubscriptionPassword: !Ref 'RedhatSubscriptionPassword'
-        RedhatSubscriptionPoolID: !Ref 'RedhatSubscriptionPoolID'
-        # Cluster Config
-        OpenshiftContainerPlatformVersion: !Ref 'OpenshiftContainerPlatformVersion'
-        AmiId: !Ref AmiId
-        NumberOfMaster: !Ref NumberOfMaster
-        NumberOfEtcd: !Ref NumberOfEtcd
-        NumberOfNodes: !Ref NumberOfNodes
-        NumberOfGluster: !Ref NumberOfGluster
-        MasterInstanceType: !Ref 'MasterInstanceType'
-        NodesInstanceType: !Ref 'NodesInstanceType'
-        EtcdInstanceType: !Ref 'EtcdInstanceType'
-        ClusterName: !If
-        - CustomClusterName
-        - !Ref ClusterName
-        - !Sub '${AWS::StackName}-${AWS::Region}'
-        GlusterStorageEncrypted: !Ref GlusterStorageEncrypted
-        GlusterStorageIops: !Ref GlusterStorageIops
-        GlusterInstanceType: !Ref GlusterInstanceType
-        GlusterStorageType: !Ref GlusterStorageType
-        GlusterStorageSize: !Ref GlusterStorageSize
-        GlusterFS: !Ref GlusterFS
-        AutomationBroker: !Ref AutomationBroker
-        ClusterConsole: !Ref ClusterConsole
-        AWSServiceBroker: !Ref 'AWSServiceBroker'
-        RegistryBucket: !Ref RegistryBucket
-        RegistryBucketArn: !GetAtt RegistryBucket.Arn
-        # Network Configuration
-        VPCCIDR: !Ref VPCCIDR
-        PrivateSubnet1ID: !Ref PrivateSubnet1ID
-        PrivateSubnet2ID: !Ref PrivateSubnet2ID
-        PrivateSubnet3ID: !Ref PrivateSubnet3ID
-        PublicSubnet3ID: !Ref PublicSubnet3ID
-        PublicSubnet2ID: !Ref PublicSubnet2ID
-        PublicSubnet1ID: !Ref PublicSubnet1ID
-        VPCID: !Ref VPCID
-        RemoteAccessCIDR: !Ref RemoteAccessCIDR
-        ContainerAccessCIDR: !Ref ContainerAccessCIDR
-        NumberOfAZs: !Ref NumberOfAZs
-        # DNS / Certificate Config
-        DomainName: !Ref DomainName
-        CertificateArn: !If
-          - UseCustomDomain
-          - !If
-            - UseCustomCertificate
-            - !Ref 'CertificateArn'
-            - !If
-              - SetupRoute53
-              - !GetAtt SSLCertificateStack.Outputs.ACMCertificateDNSArn
-              - !GetAtt SSLCertificateStack.Outputs.ACMCertificateEmail
-          - !Ref AWS::NoValue
-        # Custom Resource Lambdas
-        KeyGenLambdaArn: !GetAtt CustomLambdaStack.Outputs.KeyGenLambdaArn
-        UnSubscribeLambdaArn: !GetAtt CustomLambdaStack.Outputs.UnSubscribeLambdaArn
-        CleanupPVLambdaArn: !GetAtt CustomLambdaStack.Outputs.CleanupPVLambdaArn
-        # OpenShift Config
-        OpenShiftAdminPassword: !If
-          - EmptyOpenShiftAdminPassword
-          - ""
-          - !Ref OpenShiftAdminPassword
-        # Monitoring
-        HawkularMetrics: !Ref 'HawkularMetrics'
-        OpenShiftLogGroup: !Ref OpenShiftLogGroup
 Conditions:
   EmptyPullSecret: !Equals
     - !Ref PullSecret
@@ -936,9 +652,6 @@ Conditions:
     - !Equals
       - !Ref ClusterName
       - ""
-  OS4:
-    !Or [ !Equals [!Ref OpenshiftContainerPlatformVersion, '4.2'], !Equals [!Ref OpenshiftContainerPlatformVersion, '4.3'], !Equals [!Ref OpenshiftContainerPlatformVersion, '4.5']]
-  OS3: !Equals [!Ref OpenshiftContainerPlatformVersion, '3.11']
   UseCustomDomain: !And
     - !Not
       - !Equals
@@ -977,11 +690,6 @@ Conditions:
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
 Mappings:
   OpenShiftVersion:
-    "3.11":
-      OpenShiftMirrorURL: ""
-      OpenShiftVersionNum: "3"
-      OpenShiftInstallBinary: ""
-      OpenShiftClientBinary: ""
     "4.3":
       OpenShiftMirrorURL:  "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/"
       OpenShiftVersionNum: "4.3.21"
@@ -992,17 +700,12 @@ Mappings:
       OpenShiftVersionNum: "4.5.16"
       OpenShiftInstallBinary: "openshift-install"
       OpenShiftClientBinary: "openshift-client"
+    "4.6":
+      OpenShiftMirrorURL:  "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/"
+      OpenShiftVersionNum: "4.6.8"
+      OpenShiftInstallBinary: "openshift-install"
+      OpenShiftClientBinary: "openshift-client"
 Outputs:
   OpenShiftUI:
     Description: The URL OpenShiftUI
-    Value: !If
-      - OS3
-      - !GetAtt OpenShift3.Outputs.OpenShiftUI
-      - !If
-        - OS4
-        - !GetAtt OpenShift4.Outputs.OpenShiftUI
-        - ""
-  ContainerAccessELBName:
-    Condition: OS3
-    Description: Use this ELB to expose ports to the internet
-    Value: !GetAtt OpenShift3.Outputs.ContainerAccessELB
+    Value: !GetAtt OpenShift4.Outputs.OpenShiftUI
