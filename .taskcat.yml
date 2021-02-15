@@ -29,7 +29,7 @@ tests:
       - us-east-1
   legacyversion:
     parameters:
-      OpenshiftContainerPlatformVersion: 4.3
+      OpenshiftContainerPlatformVersion: '4.3'
     regions:
       - us-east-2
   os4-dns:
