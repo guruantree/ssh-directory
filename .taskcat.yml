@@ -16,7 +16,6 @@ project:
     ClusterName: "$[taskcat_random-string]"
     SubDomainPrefix: "$[taskcat_random-string]"
     QSS3BucketName: $[taskcat_autobucket]
-    QSS3BucketRegion: $[taskcat_current_region]
     PullSecret: ---overridden---
   lambda_source_path: functions/source
   lambda_zip_path: functions/packages
