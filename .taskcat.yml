@@ -26,6 +26,7 @@ tests:
       - eu-north-1
       - ap-northeast-1
       - us-east-1
+      - us-gov-west-1
   legacyversion:
     parameters:
       OpenshiftContainerPlatformVersion: '4.3'
