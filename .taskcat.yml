@@ -14,7 +14,6 @@ project:
     RemoteAccessCIDR: 10.0.0.0/16
     ContainerAccessCIDR: 10.0.0.0/16
     ClusterName: "$[taskcat_random-string]"
-    SubDomainPrefix: "$[taskcat_random-string]"
     QSS3BucketName: $[taskcat_autobucket]
     PullSecret: ---overridden---
   lambda_source_path: functions/source
