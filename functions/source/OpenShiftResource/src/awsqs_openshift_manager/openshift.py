@@ -73,6 +73,7 @@ def generate_ignition_files(openshift_install_binary, download_path, cluster_nam
     openshift_install_config['sshKey'] = ssh_key
     openshift_install_config['pullSecret'] = pull_secret
     openshift_install_config['baseDomain'] = hosted_zone_name
+    openshift_install_config['credentialsMode'] = 'Mint'
     openshift_install_config['platform']['aws']['subnets'] = subnets
     openshift_install_config['platform']['aws']['region'] = os.getenv('AWS_REGION')
     if ami_id is not None:
@@ -329,7 +330,8 @@ items:
 # Template for install-config.yaml
 #
 INSTALL_CONFIG_YAML = '''apiVersion: v1
-baseDomain: example.com 
+baseDomain: example.com
+credentialsMode: Mint
 compute:
 - hyperthreading: Enabled
   name: worker
