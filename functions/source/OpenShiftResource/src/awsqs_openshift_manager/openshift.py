@@ -80,6 +80,7 @@ def generate_ignition_files(openshift_install_binary, download_path, cluster_nam
         openshift_install_config['platform']['aws']['amiID'] = ami_id
     openshift_install_config['controlPlane']['platform']['aws']['zones'] = availability_zones
     openshift_install_config['compute'][0]['platform']['aws']['zones'] = availability_zones
+    openshift_install_config['compute'][0]['platform']['aws']['rootVolume']['type'] = 'gp3'
     openshift_install_config['compute'][0]['replicas'] = worker_node_size
 
     cluster_install_config_file = os.path.join(assets_directory, 'install-config.yaml')
@@ -338,6 +339,8 @@ compute:
   platform:
     aws:
       zones: []
+      rootVolume:
+        type: gp3
   replicas: 3
 controlPlane:
   hyperthreading: Enabled
