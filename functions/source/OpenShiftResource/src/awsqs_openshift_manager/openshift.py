@@ -73,12 +73,14 @@ def generate_ignition_files(openshift_install_binary, download_path, cluster_nam
     openshift_install_config['sshKey'] = ssh_key
     openshift_install_config['pullSecret'] = pull_secret
     openshift_install_config['baseDomain'] = hosted_zone_name
+    openshift_install_config['credentialsMode'] = 'Mint'
     openshift_install_config['platform']['aws']['subnets'] = subnets
     openshift_install_config['platform']['aws']['region'] = os.getenv('AWS_REGION')
     if ami_id is not None:
         openshift_install_config['platform']['aws']['amiID'] = ami_id
     openshift_install_config['controlPlane']['platform']['aws']['zones'] = availability_zones
     openshift_install_config['compute'][0]['platform']['aws']['zones'] = availability_zones
+    openshift_install_config['compute'][0]['platform']['aws']['rootVolume']['type'] = 'gp3'
     openshift_install_config['compute'][0]['replicas'] = worker_node_size
 
     cluster_install_config_file = os.path.join(assets_directory, 'install-config.yaml')
@@ -329,13 +331,16 @@ items:
 # Template for install-config.yaml
 #
 INSTALL_CONFIG_YAML = '''apiVersion: v1
-baseDomain: example.com 
+baseDomain: example.com
+credentialsMode: Mint
 compute:
 - hyperthreading: Enabled
   name: worker
   platform:
     aws:
       zones: []
+      rootVolume:
+        type: gp3
   replicas: 3
 controlPlane:
   hyperthreading: Enabled
