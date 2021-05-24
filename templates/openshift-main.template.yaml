@@ -128,7 +128,7 @@ Parameters:
   EnableSSLCertificateGeneration:
     Description: Activates automatic SSL Certificate generation through ACM. Uses DNS or Email depending on available options
     Type: String
-    Default: "yes"
+    Default: "no"
     AllowedValues: [ "yes", "no" ]
   ClusterIngressPrivateKeySecretName:
     Description: >-
@@ -377,17 +377,15 @@ Parameters:
     Description: The desired capacity for the OpenShift node instances
     Type: Number
   HostedZoneID:
-    Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
-      will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
+    Description: 'Required: Route 53 Hosted Zone ID to use.'
     Type: String
-    Default: ""
+    AllowedPattern: ".+"
+    Default: "Required"
   DomainName:
-    Description: >-
-      OPTIONAL: domain name configured for the cluster, if left blank self signed
-      certificates will be used for TLS and the LoadBalancer's auto-generated hostname
-      will be used for connections from outside the cluster.
+    Description: "Required: domain name configured for the cluster."
     Type: String
-    Default: ""
+    AllowedPattern: ".+"
+    Default: "Required"
   SubDomainPrefix:
     Default: ''
     Description: 'OPTIONAL: Subdomain to use, if left blank DomainName will be used
