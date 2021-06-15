@@ -308,10 +308,10 @@ Parameters:
       that you set this value to a trusted IP range.
     Type: String
   HostedZoneID:
-    Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
-      will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
+    Description: 'Required: Route 53 Hosted Zone ID to use.'
     Type: String
-    Default: ""
+    AllowedPattern: ".+"
+    Default: "Required"
   ClusterIngressPrivateKeySecretName:
     Description: AWS Secrets Manager name for the SSL Private Key for the certificate in ACM. If provided, Quickstart will load your Certificate and Key into the OpenShift cluster.
     Type: String
