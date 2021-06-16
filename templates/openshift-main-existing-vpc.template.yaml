@@ -452,8 +452,9 @@ Parameters:
     Type: String
     Default: ""
   ClusterName:
-    Default: ""
-    Description: Custom cluster name for kubernetes.io/cluster/ tags, if left blank will use the stackname suffixed with the region
+    AllowedPattern: ".+"
+    Default: "Required"
+    Description: "Required: cluster name is required for OCP 4.x"
     Type: String
 Resources:
   #
