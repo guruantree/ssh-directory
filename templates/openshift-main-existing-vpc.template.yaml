@@ -3,6 +3,13 @@ Description: '(qs-1nltbq5f8) OpenShift, License: Apache 2.0 (Please do not remov
   April, 6, 2018
   Deploys an OpenShift cluster into a new VPC'
 Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W
+        - E9101
+        - E0002
+        - E9010
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -438,8 +445,6 @@ Parameters:
     Type: String
     AllowedPattern: ".+"
     Default: "Required"
-    Type: String
-    Default: ""
   SubDomainPrefix:
     Default: ''
     Description: 'OPTIONAL: Subdomain to use, if left blank DomainName will be used
@@ -496,6 +501,13 @@ Resources:
   # Creates the VPC Network for the cluster
   #
   VPCStack:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E9902
+          ignore_reasons:
+            E9902: Parameter name is same
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub

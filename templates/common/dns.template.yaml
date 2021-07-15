@@ -3,6 +3,10 @@ Description: '(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not r
   April, 6, 2018'
 
 Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:

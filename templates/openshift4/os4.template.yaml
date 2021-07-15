@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: '(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not remove)
   April, 6, 2018'
 Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W
+        - E9101
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -291,7 +296,7 @@ Parameters:
   ClusterName:
     AllowedPattern: ".+"
     Default: "Required"
-    Description: Required: cluster name is required for OCP 4.x
+    Description: Required, cluster name is required for OCP 4.x
     Type: String
   AvailabilityZones:
     Description: Comma-delimited list of Availability Zones to use
@@ -365,10 +370,28 @@ Resources:
   # them for administrative tasks (e.g. autoscaling, ingress management, etc.)
   #
   OpenShift4ClusterManagerAccessKeys:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyActionWildcard
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyActionWildcard: Need to administer the resources
+            EIAMPolicyWildcardResource: EC2 doesn't support resource-level permissions
     Type: AWS::IAM::AccessKey
     Properties:
       UserName: !Ref OpenShift4ClusterManagerUser
   OpenShift4ClusterManagerUser:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyActionWildcard
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyActionWildcard: Need to administer the resources
+            EIAMPolicyWildcardResource: EC2 doesn't support resource-level permissions
     Type: AWS::IAM::User
     Properties:
       Policies:
@@ -426,6 +449,13 @@ Resources:
   # these configurations to install OpenShift and install K8s manifests
   #
   OpenShiftGenerateIgnition:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002
+          ignore_reasons:
+            E3002: AmiId is required and sent to generate ignition
     Type: "AWSQS::OpenShift::Manager"
     Properties:
       Action: "GENERATE_IGNITION"
@@ -565,6 +595,15 @@ Resources:
   # Master nodes also contain the ETCD cluster and DNS records **must** be set up to point the control plane private IPs
   #
   ControlPlaneStack:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3005
+            - E9902
+          ignore_reasons:
+            E3005: Bootstrap will exist as a dependancy
+            E9902: Parameter name is same
     DependsOn: BootStrapStack
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -604,6 +643,15 @@ Resources:
   #
   # After the cluster initializes, it will create the remaining workers
   WorkerStack:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3005
+            - E9902
+          ignore_reasons:
+            E3005: Bootstrap will exist as a dependancy
+            E9902: Parameter name is same
     DependsOn: BootStrapStack
     Type: AWS::CloudFormation::Stack
     Properties:
