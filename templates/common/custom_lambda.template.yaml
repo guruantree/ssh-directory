@@ -1,4 +1,9 @@
 Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W
+        - E9007
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -86,13 +91,20 @@ Resources:
       Description: Creates and verifies an ACM certificate using DNS validation and
         route53
       Handler: lambda_function.handler
-      Runtime: python2.7
+      Runtime: python3.7
       Role: !GetAtt 'ACMCertificateRole.Arn'
       Timeout: 300
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/ACMCert/lambda.zip'
   ACMCertificateRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Certificate ARN is not yet determined
     Condition: SetupRoute53
     Type: AWS::IAM::Role
     Properties:
@@ -144,11 +156,18 @@ Resources:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/KeyGen/lambda.zip'
       Handler: service.handler
-      Runtime: python3.6
+      Runtime: python3.7
       Timeout: 300
       Role: !GetAtt 'KeyGenRole.Arn'
   KeyGenRole:
     Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Stack arn is not determined
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -176,6 +195,15 @@ Resources:
                   - cloudformation:DescribeStacks
                 Resource: '*'
   RegisterTypeRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyActionWildcard
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyActionWildcard: CloudFormation stacks will be manipulated
+            EIAMPolicyWildcardResource: CloudFormation stacks arn cannot be determined
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -246,7 +274,7 @@ Resources:
       Description: When the OpenShift Quickstart is deleted this deletes any orphaned
         EBS volumes used as OpenShift Persistent Volumes
       Handler: lambda_function.handler
-      Runtime: python2.7
+      Runtime: python3.7
       Role: !GetAtt 'CleanupPVRole.Arn'
       Timeout: 300
       Code:
@@ -259,12 +287,19 @@ Resources:
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Role: !GetAtt 'UnSubscribeRole.Arn'
-      Runtime: python2.7
+      Runtime: python3.7
       Timeout: 300
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/UnSubscribe/lambda.zip'
   DeleteBucketContentsRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyActionWildcard
+          ignore_reasons:
+            EIAMPolicyActionWildcard: S3 bucket will be manipulated
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -300,7 +335,7 @@ Resources:
       Handler: lambda_function.lambda_handler
       MemorySize: 128
       Role: !GetAtt 'DeleteBucketContentsRole.Arn'
-      Runtime: python2.7
+      Runtime: python3.7
       Timeout: 300
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
@@ -335,6 +370,13 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*'
   UnSubscribeRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Lambda arn cannot be determined
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -363,6 +405,13 @@ Resources:
                 Resource:
                   - '*'
   CleanupPVRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Does not support resource-level permission
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -397,7 +446,7 @@ Resources:
     Properties:
       Description: Copies objects from a source S3 bucket to a destination
       Handler: index.handler
-      Runtime: python2.7
+      Runtime: python3.7
       Role: !GetAtt 'CopyZipsRole.Arn'
       Timeout: 240
       Code:
@@ -460,6 +509,15 @@ Resources:
                   cfnresponse.send(event, context, status, {}, None)
 
   OpenShiftCustomResourceExecutionRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+            - EIAMPolicyActionWildcard
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Does not support resource-level permission
+            EIAMPolicyActionWildcard: Elastic load balancer actions are needed
     Type: AWS::IAM::Role
     Properties:
       MaxSessionDuration: 8400
@@ -521,6 +579,13 @@ Resources:
                   - "tag:GetResources"
                 Resource: "*"
   OpenShiftCustomResourceLogDeliveryRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Logs and CloudWatch resources are not yet determined
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:

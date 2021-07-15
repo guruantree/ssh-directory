@@ -15,26 +15,26 @@ project:
     ContainerAccessCIDR: 10.0.0.0/16
     ClusterName: "$[taskcat_random-string]"
     QSS3BucketName: $[taskcat_autobucket]
-    PullSecret: ---overridden---
+    PullSecret: '---overridden---'
   lambda_source_path: functions/source
   lambda_zip_path: functions/packages
 tests:
-  os4-defaults:
-    regions:
-      - eu-central-1
-      - eu-north-1
-      - ap-northeast-1
-      - us-east-1
-      - us-gov-west-1
-  legacyversion:
-    parameters:
-      OpenshiftContainerPlatformVersion: '4.3'
-    regions:
-      - us-east-2
+  #os4-defaults:
+  #  regions:
+  #    - eu-central-1
+  #    - eu-north-1
+  #    - ap-northeast-1
+  #    - us-east-1
+  #    - us-gov-west-1
+  #legacyversion:
+  #  parameters:
+  #    OpenshiftContainerPlatformVersion: '4.3'
+  #  regions:
+   #   - us-east-2
   os4-dns:
     parameters:
-      HostedZoneID: ---overridden---
-      DomainName: ---overridden---
+      HostedZoneID: Z31IF6ZTTII4TH
+      DomainName: ocp.t.quickstart.awspartner.com
       SubDomainPrefix: "$[taskcat_random-string]"
     regions:
       - us-west-2

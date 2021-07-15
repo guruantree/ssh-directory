@@ -3,6 +3,10 @@ Description: '(qs-1nltbq5f8) OpenShift, License: Apache 2.0 (Please do not remov
   April, 6, 2018'
 
 Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W
   ParameterLabels:
     OpenShiftRoleName:
       default: OpenShift Role Name
@@ -78,6 +82,13 @@ Resources:
         - !Ref OpenShiftRoleName
 
   ServiceBrokerRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyActionWildcard
+          ignore_reasons:
+            EIAMPolicyActionWildcard: Service class permissions are needed for manipulation
     Type: "AWS::IAM::Role"
     Properties:
       AssumeRolePolicyDocument:
