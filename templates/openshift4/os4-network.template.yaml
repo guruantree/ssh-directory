@@ -44,6 +44,11 @@ Parameters:
     Type: String
 
 Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W
+        - E9007
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -739,6 +744,13 @@ Resources:
       SourceArn: !GetAtt OpenShift4ScalingCWEventRule.Arn
 
   RegisterWorkersLambdaRole:
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: EC2 doesnt support resource-level permissions
     Condition: HasACMCertificate
     Type: AWS::IAM::Role
     Properties:
