@@ -401,7 +401,7 @@ Parameters:
   CertificateArn:
     Description: >-
       OPTIONAL: Specify the ACM arn of the certificate for OpenShift applications. Must be
-      valid for *.apps.${ClusterName}.${DomainName}. Example: *.apps.my-cluster.example.com
+      valid for *.apps.ClusterName.DomainName. Example: *.apps.my-cluster.example.com
     Type: String
     Default: ""
   ClusterName:
