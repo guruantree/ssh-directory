@@ -59,7 +59,6 @@ class ResourceModel(BaseModel):
     CertificateArn: Optional[str]
     ClusterIngressCertificateArn: Optional[str]
     ClusterIngressPrivateKeySecretName: Optional[str]
-    AmiId: Optional[str]
     InfrastructureName: Optional[str]
     InfrastructureId: Optional[str]
     KubeConfig: Optional[str]
@@ -96,7 +95,6 @@ class ResourceModel(BaseModel):
             CertificateArn=json_data.get("CertificateArn"),
             ClusterIngressCertificateArn=json_data.get("ClusterIngressCertificateArn"),
             ClusterIngressPrivateKeySecretName=json_data.get("ClusterIngressPrivateKeySecretName"),
-            AmiId=json_data.get("AmiId"),
             InfrastructureName=json_data.get("InfrastructureName"),
             InfrastructureId=json_data.get("InfrastructureId"),
             KubeConfig=json_data.get("KubeConfig"),

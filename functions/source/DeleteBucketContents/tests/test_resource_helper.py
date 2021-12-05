@@ -309,7 +309,7 @@ class TestCfnResource(unittest.TestCase):
         c._context = MockContext()
         c._event = test_events["Update"]
         c._lambda_client.add_permission = Mock()
-        c._events_client.put_rule = Mock(return_value={"RuleArn": !Sub arn:${AWS::Partition}:lambda:blah:blah:function:blah/blah"})
+        c._events_client.put_rule = Mock(return_value={"RuleArn": "arn:aws:lambda:blah:blah:function:blah/blah"})
         c._events_client.put_targets = Mock()
         c._setup_polling()
         c._events_client.put_targets.assert_called()

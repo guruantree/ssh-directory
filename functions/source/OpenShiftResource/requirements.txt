@@ -1,2 +1,2 @@
-cloudformation-cli-python-lib>=2.1.3
+./cloudformation_cli_python_lib/
 ruamel.yaml==0.16.10

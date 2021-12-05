@@ -3,10 +3,6 @@ Description: '(qs-1nltbq5f3) OpenShift+VPC, License: Apache 2.0 (Please do not r
   April, 6, 2018'
 
 Metadata:
-  cfn-lint:
-    config:
-      ignore_checks:
-        - W
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -24,15 +20,18 @@ Metadata:
         default: Domain Name
 Parameters:
   HostedZoneID:
-    Description: 'Required: Route 53 Hosted Zone ID to use.'
+    Description: 'OPTIONAL: Route 53 Hosted Zone ID to use. If left blank route 53
+      will not be configured and DNS must be setup manually If you specify this you must also specify DomainName'
     Type: String
-    AllowedPattern: ".+"
-    Default: "Required"
+    MaxLength: '32'
+    Default: ""
   DomainName:
-    Description: "Required: domain name configured for the cluster."
+    Description: >-
+      OPTIONAL: domain name configured for the cluster, if left blank self signed
+      certificates will be used for TLS and the LoadBalancer's auto-generated hostname
+      will be used for connections from outside the cluster.
     Type: String
-    AllowedPattern: ".+"
-    Default: "Required"
+    Default: ""
   SubDomainPrefix:
     Default: ''
     Description: 'OPTIONAL: Subdomain to use, if left blank DomainName will be used
