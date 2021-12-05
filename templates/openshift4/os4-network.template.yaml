@@ -44,11 +44,6 @@ Parameters:
     Type: String
 
 Metadata:
-  cfn-lint:
-    config:
-      ignore_checks:
-        - W
-        - E9007
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -647,7 +642,7 @@ Resources:
                     "ec2:DeleteTags",
                     "ec2:CreateTags"
                   ]
-                Resource: !Sub "arn:${AWS::Partition}:ec2:*:*:subnet/*"
+                Resource: "arn:aws:ec2:*:*:subnet/*"
               - Effect: "Allow"
                 Action:
                   [
@@ -744,13 +739,6 @@ Resources:
       SourceArn: !GetAtt OpenShift4ScalingCWEventRule.Arn
 
   RegisterWorkersLambdaRole:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - EIAMPolicyWildcardResource
-          ignore_reasons:
-            EIAMPolicyWildcardResource: EC2 doesnt support resource-level permissions
     Condition: HasACMCertificate
     Type: AWS::IAM::Role
     Properties:
@@ -764,8 +752,8 @@ Resources:
             Action: sts:AssumeRole
       Path: /
       ManagedPolicyArns:
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ReadOnlyAccess'
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
         - PolicyName: Attach-OpenShift-Workers
           PolicyDocument:

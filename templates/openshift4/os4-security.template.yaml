@@ -36,12 +36,6 @@ Parameters:
     Type: String
     Default: ''
 Metadata:
-  cfn-lint:
-    config:
-      ignore_checks:
-        - W
-        - E9007
-        - E9101
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -355,15 +349,6 @@ Resources:
       IpProtocol: tcp
 
   MasterIamRole:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - EIAMPolicyActionWildcard
-            - EIAMPolicyWildcardResource
-          ignore_reasons:
-            EIAMPolicyActionWildcard: Multiple actions are needed for manipulation
-            EIAMPolicyWildcardResource: EC2 doesn't support resource-level permissions
     Type: AWS::IAM::Role
     Condition: CreateMasterInstanceProfile
     Properties:
@@ -403,13 +388,6 @@ Resources:
         - Ref: "MasterIamRole"
 
   WorkerIamRole:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - EIAMPolicyActionWildcard
-          ignore_reasons:
-            EIAMPolicyActionWildcard: EC2 describe actions are needed for manipulation
     Type: AWS::IAM::Role
     Condition: CreateWorkerInstanceProfile
     Properties:

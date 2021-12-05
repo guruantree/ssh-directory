@@ -3,10 +3,6 @@ Description: '(qs-1nltbq5f8) OpenShift, License: Apache 2.0 (Please do not remov
   April, 6, 2018'
 
 Metadata:
-  cfn-lint:
-    config:
-      ignore_checks:
-        - W
   ParameterLabels:
     OpenShiftRoleName:
       default: OpenShift Role Name
@@ -68,27 +64,20 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Action: [ "s3:GetObject", "s3:ListBucket" ]
-            Resource: [ !Sub "arn:${AWS::Partition}:s3:::awsservicebroker/templates/*", !Sub "arn:${AWS::Partition}:s3:::awsservicebroker" ]
+            Resource: [ "arn:aws:s3:::awsservicebroker/templates/*", "arn:aws:s3:::awsservicebroker" ]
             Effect: "Allow"
           - Action: [ "dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:DeleteItem" ]
             Resource: !GetAtt ServiceBrokerTable.Arn
             Effect: "Allow"
           - Action: [ "ssm:GetParameter", "ssm:GetParameters" ]
             Resource:
-            - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
-            - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/Asb*"
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+            - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/Asb*"
             Effect: "Allow"
       Roles:
         - !Ref OpenShiftRoleName
 
   ServiceBrokerRole:
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - EIAMPolicyActionWildcard
-          ignore_reasons:
-            EIAMPolicyActionWildcard: Service class permissions are needed for manipulation
     Type: "AWS::IAM::Role"
     Properties:
       AssumeRolePolicyDocument:
@@ -110,12 +99,12 @@ Resources:
                 - "ssm:GetParameter"
                 - "ssm:GetParameters"
                 Resource:
-                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
-                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/Asb*"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/asb-*"
+                - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/Asb*"
                 Effect: "Allow"
               - Sid: "AllowCfnToGetTemplates"
                 Action: "s3:GetObject"
-                Resource: !Sub "arn:${AWS::Partition}:s3:::awsservicebroker/templates/*"
+                Resource: "arn:aws:s3:::awsservicebroker/templates/*"
                 Effect: "Allow"
               - Sid: "CloudFormation"
                 Action:
@@ -125,7 +114,7 @@ Resources:
                 - "cloudformation:DescribeStackEvents"
                 - "cloudformation:UpdateStack"
                 - "cloudformation:CancelUpdateStack"
-                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/aws-service-broker-*/*"
+                Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/aws-service-broker-*/*"
                 Effect: "Allow"
               - Sid: "ServiceClassPermissions"
                 Action:

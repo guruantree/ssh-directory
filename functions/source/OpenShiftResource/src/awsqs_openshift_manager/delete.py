@@ -2,7 +2,6 @@
 Handles DELETE actions for the Resource
 """
 import logging
-import re
 import time
 from typing import Optional, Mapping
 
@@ -13,7 +12,7 @@ from .util import delete_contents_s3
 
 log = logging.getLogger(__name__)
 
-S3_BUCKET_ARN = re.compile(r'^arn:[^:]+:s3:::(?P<bucket>.+)$')
+
 def generate_ignition_delete(model: Optional[ResourceModel], session: Optional[SessionProxy]) -> Mapping:
     """
     Executes DELETE for the GENERATE_IGNITION Action
@@ -139,8 +138,7 @@ def _cleanup_image_registry_bucket(model, session):
         for b in response['ResourceTagMappingList']:
             for t in b['Tags']:
                 if t['Key'] == 'Name' and str(t['Value']).endswith('image-registry'):
-                    image_registry_bucket_arn = str(b['ResourceARN'])
-                    bucket_name_match = S3_BUCKET_ARN.match(image_registry_bucket_arn)
+                    bucket_name = str(b['ResourceARN']).lstrip('arn:aws:s3:::')
                     log.info('[DELETE] Deleting contents of image registry bucket')
                     delete_contents_s3(bucket_name, session)
                     log.info('[DELETE] Deleting image registry bucket')
