@@ -3,8 +3,7 @@
     "description": "Manages an OpenShift Cluster. Generates Ignition Configuation to help with installation or manages the bootstrap process",
     "definitions": {
         "Arn": {
-            "type": "string",
-            "pattern": "^arn:aws(-(cn|gov))?:[a-z-]+:(([a-z]+-)+[0-9])?:([0-9]{12})?:[^.]+$"
+            "type": "string"
         }
     },
     "properties": {
@@ -103,6 +102,10 @@
         "ClusterIngressPrivateKeySecretName": {
             "type": "string",
             "description": "The AWS Secrets Manager name identifier for the private key used to sign ClusterIngressCertificateArn. The Secret String must be PEM encoded"
+        },
+        "AmiId": {
+            "type": "string",
+            "description": "The RHCOS AMI to use"
         },
         "InfrastructureName": {
             "description": "The unique identifier for the OpenShift cluster",
